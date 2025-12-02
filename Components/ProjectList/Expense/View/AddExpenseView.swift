@@ -272,8 +272,8 @@ struct AddExpenseView: View {
                         .foregroundColor(.secondary)
                 }
                     
-                // MARK: - Payment Proof (Required for UPI and Check)
-                if viewModel.selectedPaymentMode == .upi || viewModel.selectedPaymentMode == .check {
+                // MARK: - Payment Proof (Required for UPI and Cheque)
+                if viewModel.selectedPaymentMode == .upi || viewModel.selectedPaymentMode == .cheque {
                     Section {
                         paymentProofView
                     } header: {
@@ -282,7 +282,7 @@ struct AddExpenseView: View {
                             .font(.subheadline)
                             .foregroundColor(.secondary)
                     } footer: {
-                        Text("Payment proof is required for UPI and check payments")
+                        Text("Payment proof is required for UPI and cheque payments")
                             .font(.caption)
                             .foregroundColor(.secondary)
                     }

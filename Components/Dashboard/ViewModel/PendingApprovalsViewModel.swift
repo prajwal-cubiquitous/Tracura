@@ -479,7 +479,7 @@ class PendingApprovalsViewModel: ObservableObject {
                 phaseId: nil,
                 phaseName: nil,
                 categories: ["Equipment"],
-                modeOfPayment: .check,
+                modeOfPayment: .cheque,
                 description: "Equipment purchase",
                 attachmentURL: nil,
                 attachmentName: nil,

@@ -97,9 +97,9 @@ struct EditExpenseView: View {
                     attachmentView
                 }
                 
-                // MARK: - Payment Proof (Required for UPI and Check)
-                if viewModel.selectedPaymentMode == .upi || viewModel.selectedPaymentMode == .check {
-                    Section(header: Text("Payment Proof"), footer: Text("Payment proof is required for UPI and check payments")) {
+                // MARK: - Payment Proof (Required for UPI and Cheque)
+                if viewModel.selectedPaymentMode == .upi || viewModel.selectedPaymentMode == .cheque {
+                    Section(header: Text("Payment Proof"), footer: Text("Payment proof is required for UPI and cheque payments")) {
                         paymentProofView
                     }
                 }

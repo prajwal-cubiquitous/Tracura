@@ -16,7 +16,7 @@ struct Expense: Identifiable, Codable {
     let description: String // Description of the expense
     let attachmentURL: String? // Firebase Storage URL
     let attachmentName: String? // Original file name
-    let paymentProofURL: String? // Firebase Storage URL for payment proof (required for UPI and check)
+    let paymentProofURL: String? // Firebase Storage URL for payment proof (required for UPI and cheque)
     let paymentProofName: String? // Original file name for payment proof
     let submittedBy: String // User phone number
     let status: ExpenseStatus
@@ -183,14 +183,14 @@ struct Expense: Identifiable, Codable {
 enum PaymentMode: String, Codable, CaseIterable {
     case cash = "By cash"
     case upi = "By UPI"
-    case check = "By check"
+    case cheque = "By cheque"
     case Card = "By Card"
     
     var icon: String {
         switch self {
         case .cash: return "banknote"
         case .upi: return "qrcode"
-        case .check: return "checkmark.rectangle"
+        case .cheque: return "checkmark.rectangle"
         case .Card: return "creditcard"
         }
     }

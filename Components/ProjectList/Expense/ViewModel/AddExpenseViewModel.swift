@@ -240,8 +240,8 @@ class AddExpenseViewModel: ObservableObject {
         let hasValidDescription = !description.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
         let hasValidAttachment = attachmentURL != nil && !attachmentURL!.isEmpty
         
-        // Payment proof is required for UPI and check payment modes
-        let requiresPaymentProof = selectedPaymentMode == .upi || selectedPaymentMode == .check
+        // Payment proof is required for UPI and cheque payment modes
+        let requiresPaymentProof = selectedPaymentMode == .upi || selectedPaymentMode == .cheque
         let hasValidPaymentProof = !requiresPaymentProof || (paymentProofURL != nil && !paymentProofURL!.isEmpty)
         
         // Check categories: each must have a value, and if it's "Misc / Other", must have custom name
@@ -1141,7 +1141,7 @@ class AddExpenseViewModel: ObservableObject {
     
     var paymentProofError: String? {
         guard shouldShowValidationErrors else { return nil }
-        let requiresPaymentProof = selectedPaymentMode == .upi || selectedPaymentMode == .check
+        let requiresPaymentProof = selectedPaymentMode == .upi || selectedPaymentMode == .cheque
         if requiresPaymentProof && (paymentProofURL == nil || paymentProofURL!.isEmpty) {
             return "Payment proof is required"
         }
@@ -1209,8 +1209,8 @@ class AddExpenseViewModel: ObservableObject {
             return "attachment"
         }
         
-        // Check payment proof (required for UPI and check)
-        let requiresPaymentProof = selectedPaymentMode == .upi || selectedPaymentMode == .check
+        // Check payment proof (required for UPI and cheque)
+        let requiresPaymentProof = selectedPaymentMode == .upi || selectedPaymentMode == .cheque
         if requiresPaymentProof && (paymentProofURL == nil || paymentProofURL!.isEmpty) {
             return "paymentProof"
         }
