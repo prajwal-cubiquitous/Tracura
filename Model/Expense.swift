@@ -19,6 +19,16 @@ struct Expense: Identifiable, Codable {
     let paymentProofURL: String? // Firebase Storage URL for payment proof (required for UPI and cheque)
     let paymentProofName: String? // Original file name for payment proof
     let submittedBy: String // User phone number
+    
+    // Material Details (optional - for backward compatibility)
+    let itemType: String? // Sub-category (Global)
+    let item: String? // Material
+    let brand: String? // Brand (optional)
+    let spec: String? // Grade/Spec
+    let thickness: String? // Thickness
+    let quantity: String? // Quantity
+    let uom: String? // Unit of Measure
+    let unitPrice: String? // Unit Price
     let status: ExpenseStatus
     let remark: String? // Optional remark for approval/rejection
     let isAdmin: Bool // Whether this expense requires admin approval (default: false)
@@ -41,6 +51,7 @@ struct Expense: Identifiable, Codable {
         case status, remark, isAdmin, isAnonymous, originalDepartment, departmentDeletedAt
         case approvedBy, rejectedBy
         case createdAt, updatedAt
+        case itemType, item, brand, spec, thickness, quantity, uom, unitPrice
     }
     
     // MARK: - Memberwise Initializer
@@ -61,6 +72,14 @@ struct Expense: Identifiable, Codable {
         paymentProofName: String? = nil,
         submittedBy: String,
         status: ExpenseStatus,
+        itemType: String? = nil,
+        item: String? = nil,
+        brand: String? = nil,
+        spec: String? = nil,
+        thickness: String? = nil,
+        quantity: String? = nil,
+        uom: String? = nil,
+        unitPrice: String? = nil,
         remark: String? = nil,
         isAdmin: Bool = false,
         isAnonymous: Bool? = nil,
@@ -87,6 +106,14 @@ struct Expense: Identifiable, Codable {
         self.paymentProofName = paymentProofName
         self.submittedBy = submittedBy
         self.status = status
+        self.itemType = itemType
+        self.item = item
+        self.brand = brand
+        self.spec = spec
+        self.thickness = thickness
+        self.quantity = quantity
+        self.uom = uom
+        self.unitPrice = unitPrice
         self.remark = remark
         self.isAdmin = isAdmin
         self.isAnonymous = isAnonymous
@@ -115,6 +142,14 @@ struct Expense: Identifiable, Codable {
         paymentProofName = try container.decodeIfPresent(String.self, forKey: .paymentProofName)
         submittedBy = try container.decode(String.self, forKey: .submittedBy)
         status = try container.decode(ExpenseStatus.self, forKey: .status)
+        itemType = try container.decodeIfPresent(String.self, forKey: .itemType)
+        item = try container.decodeIfPresent(String.self, forKey: .item)
+        brand = try container.decodeIfPresent(String.self, forKey: .brand)
+        spec = try container.decodeIfPresent(String.self, forKey: .spec)
+        thickness = try container.decodeIfPresent(String.self, forKey: .thickness)
+        quantity = try container.decodeIfPresent(String.self, forKey: .quantity)
+        uom = try container.decodeIfPresent(String.self, forKey: .uom)
+        unitPrice = try container.decodeIfPresent(String.self, forKey: .unitPrice)
         remark = try container.decodeIfPresent(String.self, forKey: .remark)
         isAdmin = try container.decodeIfPresent(Bool.self, forKey: .isAdmin) ?? false // Default to false if not present
         isAnonymous = try container.decodeIfPresent(Bool.self, forKey: .isAnonymous)
@@ -143,6 +178,14 @@ struct Expense: Identifiable, Codable {
         try container.encodeIfPresent(paymentProofName, forKey: .paymentProofName)
         try container.encode(submittedBy, forKey: .submittedBy)
         try container.encode(status, forKey: .status)
+        try container.encodeIfPresent(itemType, forKey: .itemType)
+        try container.encodeIfPresent(item, forKey: .item)
+        try container.encodeIfPresent(brand, forKey: .brand)
+        try container.encodeIfPresent(spec, forKey: .spec)
+        try container.encodeIfPresent(thickness, forKey: .thickness)
+        try container.encodeIfPresent(quantity, forKey: .quantity)
+        try container.encodeIfPresent(uom, forKey: .uom)
+        try container.encodeIfPresent(unitPrice, forKey: .unitPrice)
         try container.encodeIfPresent(remark, forKey: .remark)
         try container.encode(isAdmin, forKey: .isAdmin)
         try container.encodeIfPresent(isAnonymous, forKey: .isAnonymous)

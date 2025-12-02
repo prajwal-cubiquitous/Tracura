@@ -12,12 +12,18 @@ class AddExpenseViewModel: ObservableObject {
     // MARK: - Form Inputs
     @Published var expenseDate: Date = Date()
     @Published var amount: String = ""
-    @Published var selectedPhaseId: String = ""
-    @Published var selectedDepartment: String = ""
-    @Published var categories: [String] = [""]
-    @Published var categoryCustomNames: [Int: String] = [:] // Store custom names for "Misc / Other" selections (keyed by index)
+    @Published var selectedPhaseId: String = "" {
+        didSet { updateFormValidation() }
+    }
+    @Published var selectedDepartment: String = "" {
+        didSet { updateFormValidation() }
+    }
+    @Published var categories: [String] = [""] // Not used in form anymore, kept for backward compatibility
+    @Published var categoryCustomNames: [Int: String] = [:] // Not used in form anymore, kept for backward compatibility
     @Published var categorySearchTexts: [Int: String] = [:] // Track search text for each category field
-    @Published var description: String = ""
+    @Published var description: String = "" {
+        didSet { updateFormValidation() }
+    }
     
     // MARK: - Line Item Fields
     @Published var selectedItemType: String = "" // Sub-category (Global)
@@ -25,15 +31,26 @@ class AddExpenseViewModel: ObservableObject {
     @Published var brand: String = "" // Brand (optional, manual entry)
     @Published var selectedSpec: String = "" // Grade (from spec)
     @Published var thickness: String = "16 mm" // Thickness (default value)
-    @Published var quantity: String = "" // Quantity (numbers only)
+    @Published var quantity: String = "" {
+        didSet { updateFormValidation() }
+    }
     @Published var uom: String = "ton" // Unit of Measure
-    @Published var unitPrice: String = "" // Unit Price (manual entry)
+    @Published var unitPrice: String = "" {
+        didSet { updateFormValidation() }
+    }
     @Published var availableItemTypes: [String] = [] // Available item types from department
-    @Published var selectedPaymentMode: PaymentMode = .cash
-    @Published var attachmentURL: String?
+    @Published var selectedPaymentMode: PaymentMode = .cash {
+        didSet { updateFormValidation() }
+    }
+    @Published var attachmentURL: String? {
+        didSet { updateFormValidation() }
+    }
     @Published var attachmentName: String?
-    @Published var paymentProofURL: String?
+    @Published var paymentProofURL: String? {
+        didSet { updateFormValidation() }
+    }
     @Published var paymentProofName: String?
+    @Published var isFormValid: Bool = false
     
     // MARK: - Predefined Categories
     static let predefinedCategories: [String] = [
@@ -233,34 +250,58 @@ class AddExpenseViewModel: ObservableObject {
         return formatter.string(from: NSNumber(value: amountValue)) ?? "₹0.00"
     }
     
-    var isFormValid: Bool {
-        let hasValidAmount = !amount.isEmpty && amountValue >= 1
+    // MARK: - Form Validation
+    private func updateFormValidation() {
+        // Required fields based on what's actually in the form:
+        // 1. Phase - required
         let hasValidPhase = !selectedPhaseId.isEmpty
+        
+        // 2. Department - required
         let hasValidDepartment = !selectedDepartment.isEmpty
+        
+        // 3. Quantity - required (from Material Details)
+        let cleanedQuantity = quantity.replacingOccurrences(of: ",", with: "").trimmingCharacters(in: .whitespaces)
+        let hasQuantity = !cleanedQuantity.isEmpty && Double(cleanedQuantity) != nil && Double(cleanedQuantity)! > 0
+        
+        // 4. Unit Price - required (from Material Details)
+        let cleanedUnitPrice = unitPrice.replacingOccurrences(of: ",", with: "").trimmingCharacters(in: .whitespaces)
+        let hasUnitPrice = !cleanedUnitPrice.isEmpty && Double(cleanedUnitPrice) != nil && Double(cleanedUnitPrice)! > 0
+        
+        // 5. Line Amount - must be >= 1 (calculated from quantity × unitPrice)
+        let hasValidAmount = hasQuantity && hasUnitPrice && lineAmount >= 1
+        
+        // 6. Description (Notes) - required
         let hasValidDescription = !description.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        
+        // 7. Receipt (Attachment) - required
         let hasValidAttachment = attachmentURL != nil && !attachmentURL!.isEmpty
         
-        // Payment proof is required for UPI and cheque payment modes
+        // 8. Payment Proof - required only for UPI and cheque payment modes
         let requiresPaymentProof = selectedPaymentMode == .upi || selectedPaymentMode == .cheque
         let hasValidPaymentProof = !requiresPaymentProof || (paymentProofURL != nil && !paymentProofURL!.isEmpty)
         
-        // Check categories: each must have a value, and if it's "Misc / Other", must have custom name
-        let validCategories = categories.enumerated().compactMap { index, category -> String? in
-            if category.isEmpty {
-                return nil
-            }
-            if category == "Misc / Other (notes required)" {
-                // Must have custom name
-                if let customName = categoryCustomNames[index], !customName.trimmingCharacters(in: .whitespaces).isEmpty {
-                    return customName
-                }
-                return nil
-            }
-            return category
-        }
-        let hasValidCategories = !validCategories.isEmpty
+        // Optional fields (not validated):
+        // - Brand (optional)
+        // - Sub-category, Material, Grade (optional)
+        // - UoM (has default value)
+        // - Thickness (has default value)
         
-        return hasValidAmount && hasValidPhase && hasValidDepartment && hasValidDescription && hasValidCategories && hasValidAttachment && hasValidPaymentProof
+        let isValid = hasValidPhase && hasValidDepartment && hasValidAmount && hasValidDescription && hasValidAttachment && hasValidPaymentProof
+        
+        // Debug logging (remove in production)
+        #if DEBUG
+        if !isValid {
+            print("🔍 Form Validation Debug:")
+            print("  hasValidPhase: \(hasValidPhase)")
+            print("  hasValidDepartment: \(hasValidDepartment)")
+            print("  hasValidAmount (qty: \(hasQuantity), price: \(hasUnitPrice), lineAmount: \(lineAmount)): \(hasValidAmount)")
+            print("  hasValidDescription: \(hasValidDescription)")
+            print("  hasValidAttachment: \(hasValidAttachment)")
+            print("  hasValidPaymentProof: \(hasValidPaymentProof)")
+        }
+        #endif
+        
+        isFormValid = isValid
     }
     
     var selectedPhase: PhaseInfo? {
@@ -283,6 +324,8 @@ class AddExpenseViewModel: ObservableObject {
         if customerId != nil {
             loadPhases()
         }
+        // Initial validation check
+        updateFormValidation()
     }
     
     // MARK: - Category Management
@@ -314,6 +357,7 @@ class AddExpenseViewModel: ObservableObject {
     func setCategoryCustomName(_ name: String, at index: Int) {
         if index >= 0 && index < categories.count && categories[index] == "Misc / Other (notes required)" {
             categoryCustomNames[index] = name
+            updateFormValidation() // Explicitly update validation
         }
     }
     
@@ -544,8 +588,10 @@ class AddExpenseViewModel: ObservableObject {
     }
     
     var lineAmount: Double {
-        let qty = Double(quantity.replacingOccurrences(of: ",", with: "")) ?? 0
-        let price = Double(unitPrice.replacingOccurrences(of: ",", with: "")) ?? 0
+        let cleanedQty = quantity.replacingOccurrences(of: ",", with: "").trimmingCharacters(in: .whitespaces)
+        let cleanedPrice = unitPrice.replacingOccurrences(of: ",", with: "").trimmingCharacters(in: .whitespaces)
+        let qty = Double(cleanedQty) ?? 0
+        let price = Double(cleanedPrice) ?? 0
         return qty * price
     }
     
@@ -1082,11 +1128,18 @@ class AddExpenseViewModel: ObservableObject {
     
     var amountError: String? {
         guard shouldShowValidationErrors else { return nil }
-        if amount.isEmpty {
-            return "Amount is required"
+        // Check if quantity and unitPrice are filled and lineAmount is valid
+        let cleanedQuantity = quantity.replacingOccurrences(of: ",", with: "").trimmingCharacters(in: .whitespaces)
+        let cleanedUnitPrice = unitPrice.replacingOccurrences(of: ",", with: "").trimmingCharacters(in: .whitespaces)
+        
+        if cleanedQuantity.isEmpty {
+            return "Quantity is required"
         }
-        if amountValue < 1 {
-            return "Value must be greater than 0"
+        if cleanedUnitPrice.isEmpty {
+            return "Unit price is required"
+        }
+        if lineAmount < 1 {
+            return "Line amount must be greater than 0"
         }
         return nil
     }
@@ -1171,12 +1224,7 @@ class AddExpenseViewModel: ObservableObject {
     // MARK: - Find First Invalid Field
     
     func findFirstInvalidFieldId() -> String? {
-        // Check amount first (most important)
-        if amount.isEmpty || amountValue < 1 {
-            return "amount"
-        }
-        
-        // Check phase
+        // Check phase first
         if selectedPhaseId.isEmpty {
             return "phase"
         }
@@ -1186,22 +1234,26 @@ class AddExpenseViewModel: ObservableObject {
             return "department"
         }
         
-        // Check description
-        if description.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-            return "description"
+        // Check quantity (from Material Details)
+        let cleanedQuantity = quantity.replacingOccurrences(of: ",", with: "").trimmingCharacters(in: .whitespaces)
+        if cleanedQuantity.isEmpty || Double(cleanedQuantity) == nil || Double(cleanedQuantity)! <= 0 {
+            return "quantity"
         }
         
-        // Check categories
-        for (index, category) in categories.enumerated() {
-            if category.isEmpty {
-                return "category_\(index)"
-            }
-            if category == "Misc / Other (notes required)" {
-                if let customName = categoryCustomNames[index], !customName.trimmingCharacters(in: .whitespaces).isEmpty {
-                    continue
-                }
-                return "category_\(index)_custom"
-            }
+        // Check unit price (from Material Details)
+        let cleanedUnitPrice = unitPrice.replacingOccurrences(of: ",", with: "").trimmingCharacters(in: .whitespaces)
+        if cleanedUnitPrice.isEmpty || Double(cleanedUnitPrice) == nil || Double(cleanedUnitPrice)! <= 0 {
+            return "unitPrice"
+        }
+        
+        // Check line amount
+        if lineAmount < 1 {
+            return "quantity" // Return quantity as the field to focus on
+        }
+        
+        // Check description (Notes)
+        if description.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            return "description"
         }
         
         // Check attachment (receipt)
@@ -1274,7 +1326,7 @@ class AddExpenseViewModel: ObservableObject {
                 let expenseData: [String: Any] = [
                     "projectId": projectId,
                     "date": formatDate(expenseDate),
-                    "amount": amountValue,
+                    "amount": lineAmount, // Use lineAmount (quantity × unitPrice)
                     "department": departmentKey, // Use department key with phaseId prefix
                     "phaseId": selectedPhaseId,
                     "phaseName": phase?.name ?? "",
@@ -1288,6 +1340,15 @@ class AddExpenseViewModel: ObservableObject {
                     "submittedBy": "\(currentUserPhone)",
                     "status": ExpenseStatus.pending.rawValue,
                     "isAdmin": isAdmin,
+                    // Material Details
+                    "itemType": selectedItemType.isEmpty ? NSNull() : selectedItemType,
+                    "item": selectedItem.isEmpty ? NSNull() : selectedItem,
+                    "brand": brand.isEmpty ? NSNull() : brand,
+                    "spec": selectedSpec.isEmpty ? NSNull() : selectedSpec,
+                    "thickness": thickness.isEmpty ? NSNull() : thickness,
+                    "quantity": quantity.isEmpty ? NSNull() : quantity,
+                    "uom": uom.isEmpty ? NSNull() : uom,
+                    "unitPrice": unitPrice.isEmpty ? NSNull() : unitPrice,
                     "createdAt": Timestamp(),
                     "updatedAt": Timestamp()
                 ]
@@ -1394,6 +1455,15 @@ class AddExpenseViewModel: ObservableObject {
             "description": description.trimmingCharacters(in: .whitespacesAndNewlines),
             "modeOfPayment": selectedPaymentMode.rawValue,
             "isAdmin": isAdmin,
+            // Material Details
+            "itemType": selectedItemType.isEmpty ? NSNull() : selectedItemType,
+            "item": selectedItem.isEmpty ? NSNull() : selectedItem,
+            "brand": brand.isEmpty ? NSNull() : brand,
+            "spec": selectedSpec.isEmpty ? NSNull() : selectedSpec,
+            "thickness": thickness.isEmpty ? NSNull() : thickness,
+            "quantity": quantity.isEmpty ? NSNull() : quantity,
+            "uom": uom.isEmpty ? NSNull() : uom,
+            "unitPrice": unitPrice.isEmpty ? NSNull() : unitPrice,
             "updatedAt": Timestamp()
         ]
         

@@ -860,6 +860,7 @@ struct AddExpenseView: View {
                     .cornerRadius(10)
                 }
                 .frame(maxWidth: .infinity)
+                .id("quantity")
                 
                 // UoM
                 VStack(alignment: .leading, spacing: 6) {
@@ -903,6 +904,7 @@ struct AddExpenseView: View {
                     .cornerRadius(10)
                 }
                 .frame(maxWidth: .infinity)
+                .id("unitPrice")
                 
                 // Line Amount
                 VStack(alignment: .leading, spacing: 6) {
@@ -1000,6 +1002,11 @@ struct AddExpenseView: View {
                         },
                         set: { newValue in
                             viewModel.categorySearchTexts[index] = newValue
+                            // Also update categories array if text is not empty (for validation)
+                            let trimmedValue = newValue.trimmingCharacters(in: .whitespaces)
+                            if !trimmedValue.isEmpty && index < viewModel.categories.count {
+                                viewModel.categories[index] = trimmedValue
+                            }
                         }
                     ),
                     filteredCategories: viewModel.filteredCategories(for: index),
@@ -1328,7 +1335,8 @@ struct AddExpenseView: View {
             .foregroundColor(.white)
             .cornerRadius(12)
         }
-        .disabled(viewModel.isLoading)
+        .disabled(viewModel.isLoading || !viewModel.isFormValid)
+        .opacity(viewModel.isFormValid ? 1.0 : 0.6)
         .listRowBackground(Color.clear)
         .listRowInsets(EdgeInsets())
         .padding(.horizontal)

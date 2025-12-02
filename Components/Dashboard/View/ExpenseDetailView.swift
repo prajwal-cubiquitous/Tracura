@@ -62,6 +62,11 @@ struct ExpenseDetailView: View {
                         // Expense Details Card
                         expenseDetailsCard
                         
+                        // Material Details Card (if material details exist)
+                        if hasMaterialDetails {
+                            materialDetailsCard
+                        }
+                        
                         // Budget Context Card (only show for pending expenses)
                         if expense.phaseId != nil && expense.status == .pending {
                             budgetContextCard
@@ -273,6 +278,177 @@ struct ExpenseDetailView: View {
         .background(Color(.systemBackground))
         .cornerRadius(DesignSystem.CornerRadius.large)
         .shadow(color: .black.opacity(0.05), radius: 2, x: 0, y: 1)
+    }
+    
+    // MARK: - Material Details Card
+    private var hasMaterialDetails: Bool {
+        expense.itemType != nil || expense.item != nil || expense.brand != nil ||
+        expense.spec != nil || expense.thickness != nil || expense.quantity != nil ||
+        expense.uom != nil || expense.unitPrice != nil
+    }
+    
+    private var materialDetailsCard: some View {
+        VStack(alignment: .leading, spacing: DesignSystem.Spacing.medium) {
+            // Header with icon
+            HStack(spacing: DesignSystem.Spacing.small) {
+                Image(systemName: "cube.box.fill")
+                    .font(.title3)
+                    .foregroundColor(.blue)
+                
+                Text("Material Details")
+                    .font(.headline)
+                    .fontWeight(.semibold)
+                    .foregroundColor(.primary)
+            }
+            
+            VStack(spacing: DesignSystem.Spacing.small) {
+                // Sub-category (Item Type)
+                if let itemType = expense.itemType, !itemType.isEmpty {
+                    MaterialDetailRow(
+                        icon: "tag.fill",
+                        title: "Sub-category",
+                        value: itemType,
+                        iconColor: .blue
+                    )
+                }
+                
+                // Material (Item)
+                if let item = expense.item, !item.isEmpty {
+                    MaterialDetailRow(
+                        icon: "cube.fill",
+                        title: "Material",
+                        value: item,
+                        iconColor: .orange
+                    )
+                }
+                
+                // Brand (if provided)
+                if let brand = expense.brand, !brand.isEmpty {
+                    MaterialDetailRow(
+                        icon: "tag.circle.fill",
+                        title: "Brand",
+                        value: brand,
+                        iconColor: .purple
+                    )
+                }
+                
+                // Grade/Spec
+                if let spec = expense.spec, !spec.isEmpty {
+                    MaterialDetailRow(
+                        icon: "star.fill",
+                        title: "Grade",
+                        value: spec,
+                        iconColor: .yellow
+                    )
+                }
+                
+                // Thickness
+                if let thickness = expense.thickness, !thickness.isEmpty {
+                    MaterialDetailRow(
+                        icon: "ruler.fill",
+                        title: "Thickness",
+                        value: thickness,
+                        iconColor: .gray
+                    )
+                }
+                
+                // Quantity and UoM in a row
+                if let quantity = expense.quantity, !quantity.isEmpty || expense.uom != nil {
+                    HStack(spacing: DesignSystem.Spacing.medium) {
+                        if !quantity.isEmpty {
+                            VStack(alignment: .leading, spacing: 4) {
+                                HStack(spacing: 4) {
+                                    Image(systemName: "number.circle.fill")
+                                        .font(.caption)
+                                        .foregroundColor(.green)
+                                    Text("Quantity")
+                                        .font(.caption)
+                                        .foregroundColor(.secondary)
+                                }
+                                Text(quantity)
+                                    .font(.subheadline)
+                                    .fontWeight(.medium)
+                                    .foregroundColor(.primary)
+                            }
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                        }
+                        
+                        if let uom = expense.uom, !uom.isEmpty {
+                            VStack(alignment: .leading, spacing: 4) {
+                                HStack(spacing: 4) {
+                                    Image(systemName: "scalemass.fill")
+                                        .font(.caption)
+                                        .foregroundColor(.blue)
+                                    Text("UoM")
+                                        .font(.caption)
+                                        .foregroundColor(.secondary)
+                                }
+                                Text(uom)
+                                    .font(.subheadline)
+                                    .fontWeight(.medium)
+                                    .foregroundColor(.primary)
+                            }
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                        }
+                    }
+                }
+                
+                // Unit Price and Line Amount
+                if let unitPrice = expense.unitPrice, !unitPrice.isEmpty {
+                    HStack(spacing: DesignSystem.Spacing.medium) {
+                        VStack(alignment: .leading, spacing: 4) {
+                            HStack(spacing: 4) {
+                                Image(systemName: "indianrupeesign.circle.fill")
+                                    .font(.caption)
+                                    .foregroundColor(.orange)
+                                Text("Unit Price")
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                            }
+                            Text(formatCurrency(from: unitPrice))
+                                .font(.subheadline)
+                                .fontWeight(.medium)
+                                .foregroundColor(.primary)
+                        }
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        
+                        // Calculate and show line amount
+                        if let qty = expense.quantity, !qty.isEmpty,
+                           let qtyValue = Double(qty.replacingOccurrences(of: ",", with: "")),
+                           let priceValue = Double(unitPrice.replacingOccurrences(of: ",", with: "")) {
+                            VStack(alignment: .leading, spacing: 4) {
+                                HStack(spacing: 4) {
+                                    Image(systemName: "indianrupeesign.circle.fill")
+                                        .font(.caption)
+                                        .foregroundColor(.green)
+                                    Text("Line Amount")
+                                        .font(.caption)
+                                        .foregroundColor(.secondary)
+                                }
+                                Text((qtyValue * priceValue).formattedCurrency)
+                                    .font(.subheadline)
+                                    .fontWeight(.semibold)
+                                    .foregroundColor(.green)
+                            }
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                        }
+                    }
+                }
+            }
+        }
+        .padding(DesignSystem.Spacing.medium)
+        .background(Color(.systemBackground))
+        .cornerRadius(DesignSystem.CornerRadius.large)
+        .shadow(color: .black.opacity(0.05), radius: 2, x: 0, y: 1)
+    }
+    
+    // Helper to format currency from string
+    private func formatCurrency(from value: String) -> String {
+        let cleaned = value.replacingOccurrences(of: ",", with: "")
+        if let number = Double(cleaned) {
+            return number.formattedCurrency
+        }
+        return value
     }
     
     // MARK: - Budget Context Card
@@ -921,6 +1097,37 @@ struct DetailRow: View {
             
             Spacer()
         }
+    }
+}
+
+// MARK: - Material Detail Row Component
+struct MaterialDetailRow: View {
+    let icon: String
+    let title: String
+    let value: String
+    let iconColor: Color
+    
+    var body: some View {
+        HStack(spacing: DesignSystem.Spacing.small) {
+            Image(systemName: icon)
+                .font(.caption)
+                .foregroundColor(iconColor)
+                .frame(width: 20)
+            
+            Text(title)
+                .font(.caption)
+                .foregroundColor(.secondary)
+                .frame(width: 90, alignment: .leading)
+            
+            Text(value)
+                .font(.subheadline)
+                .fontWeight(.medium)
+                .foregroundColor(.primary)
+                .multilineTextAlignment(.leading)
+            
+            Spacer()
+        }
+        .padding(.vertical, 2)
     }
 }
 
