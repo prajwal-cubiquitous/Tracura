@@ -133,7 +133,8 @@ struct Expense: Identifiable, Codable {
         department = try container.decode(String.self, forKey: .department)
         phaseId = try container.decodeIfPresent(String.self, forKey: .phaseId)
         phaseName = try container.decodeIfPresent(String.self, forKey: .phaseName)
-        categories = try container.decode([String].self, forKey: .categories)
+        // Categories might be missing or empty in Firebase, default to empty array
+        categories = try container.decodeIfPresent([String].self, forKey: .categories) ?? []
         modeOfPayment = try container.decode(PaymentMode.self, forKey: .modeOfPayment)
         description = try container.decode(String.self, forKey: .description)
         attachmentURL = try container.decodeIfPresent(String.self, forKey: .attachmentURL)
@@ -169,7 +170,8 @@ struct Expense: Identifiable, Codable {
         try container.encode(department, forKey: .department)
         try container.encodeIfPresent(phaseId, forKey: .phaseId)
         try container.encodeIfPresent(phaseName, forKey: .phaseName)
-        try container.encode(categories, forKey: .categories)
+        // Always encode categories, even if empty (for backward compatibility)
+        try container.encode(categories.isEmpty ? [] : categories, forKey: .categories)
         try container.encode(modeOfPayment, forKey: .modeOfPayment)
         try container.encode(description, forKey: .description)
         try container.encodeIfPresent(attachmentURL, forKey: .attachmentURL)

@@ -119,12 +119,18 @@ class PendingApprovalsViewModel: ObservableObject {
                     .getDocuments()
                 
                 for expenseDoc in expensesSnapshot.documents {
-                    var expense = try expenseDoc.data(as: Expense.self)
-                    expense.id = expenseDoc.documentID
-                    expenses.append(expense)
+                    do {
+                        var expense = try expenseDoc.data(as: Expense.self)
+                        expense.id = expenseDoc.documentID
+                        expenses.append(expense)
+                    } catch {
+                        print("❌ Error decoding expense \(expenseDoc.documentID): \(error)")
+                        print("   Document data: \(expenseDoc.data())")
+                    }
                 }
             
             pendingExpenses = expenses
+            print("✅ Loaded \(expenses.count) pending expenses")
             
         } catch {
             print("Error loading pending expenses: \(error)")
@@ -134,8 +140,9 @@ class PendingApprovalsViewModel: ObservableObject {
     
     private func loadExpensesFromFirebaseAdmin() async {
         do {
+            guard let projectId = project.id else { return }
             
-            guard let projectId = project.id else{ return }
+            let customerID = try await FirebasePathHelper.shared.fetchEffectiveUserID()
             
             // Get all projects where current user is the manager
             let projectsSnapshot = try await db.collection("customers")
@@ -152,12 +159,18 @@ class PendingApprovalsViewModel: ObservableObject {
                     .getDocuments()
                 
                 for expenseDoc in expensesSnapshot.documents {
-                    var expense = try expenseDoc.data(as: Expense.self)
-                    expense.id = expenseDoc.documentID
-                    expenses.append(expense)
+                    do {
+                        var expense = try expenseDoc.data(as: Expense.self)
+                        expense.id = expenseDoc.documentID
+                        expenses.append(expense)
+                    } catch {
+                        print("❌ Error decoding expense \(expenseDoc.documentID): \(error)")
+                        print("   Document data: \(expenseDoc.data())")
+                    }
                 }
             
             pendingExpenses = expenses
+            print("✅ Loaded \(expenses.count) pending expenses (Admin)")
             
         } catch {
             print("Error loading pending expenses: \(error)")
