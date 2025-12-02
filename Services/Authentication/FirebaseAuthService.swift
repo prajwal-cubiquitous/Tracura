@@ -1,0 +1,358 @@
+import Foundation
+import FirebaseAuth
+import FirebaseFirestore
+import FirebaseMessaging
+
+@MainActor
+class FirebaseAuthService: ObservableObject {
+    @Published var isAuthenticated = false
+    @Published var currentUser: User?
+    @Published var isAdmin = false
+    @Published var isApprover = false
+    @Published var isUser = false
+    @Published var isLoading = false
+    @Published var errorMessage: String?
+    @Published var currentCustomerId: String? // Customer ID for multi-tenant support
+    
+    private let auth = Auth.auth()
+    private let db = Firestore.firestore()
+    @Published var verificationID: String?
+    
+    init() {
+        // Check if user is already authenticated
+        if let firebaseUser = auth.currentUser {
+            Task {
+                await loadCurrentUser(firebaseUser: firebaseUser)
+            }
+        }
+        
+        // Listen for auth state changes
+        auth.addStateDidChangeListener { [weak self] _, user in
+            Task { @MainActor in
+                if let user = user {
+                    await self?.loadCurrentUser(firebaseUser: user)
+                } else {
+                    self?.resetAuthState()
+                }
+            }
+        }
+    }
+    
+    private func resetAuthState() {
+        currentUser = nil
+        currentCustomerId = nil
+        isAuthenticated = false
+        isAdmin = false
+        isApprover = false
+        isUser = false
+        errorMessage = nil
+    }
+    
+    private func loadCurrentUser(firebaseUser: FirebaseAuth.User) async {
+        isLoading = true
+        errorMessage = nil
+        
+        // Check if this is an admin user (email-based)
+        if let email = firebaseUser.email, !email.isEmpty {
+            // This is an admin user - customer ID is the Firebase Auth UID
+            currentCustomerId = firebaseUser.uid
+            // For admin users, ownerID is their own UID (they created their own account)
+            let adminUser = User.adminUser(email: email, name: firebaseUser.displayName ?? "Admin", ownerID: firebaseUser.uid)
+            updateUserState(user: adminUser)
+        } else {
+            // This is an OTP-based user (APPROVER or USER)
+            if let phoneNumber = firebaseUser.phoneNumber {
+                await loadOTPUser(phoneNumber: phoneNumber)
+            } else {
+                errorMessage = "Unable to determine user type"
+                isLoading = false
+            }
+        }
+        
+        isLoading = false
+    }
+    
+    public func loadOTPUser(phoneNumber: String) async {
+        do {
+            let cleanPhoneNumber = phoneNumber.replacingOccurrences(of: "+91", with: "").trimmingCharacters(in: .whitespacesAndNewlines)
+            
+            // Fetch user document from users collection using phone number as document ID
+            let userDoc = try await db.collection("users").document(cleanPhoneNumber).getDocument()
+            
+            if userDoc.exists, let userData = try? userDoc.data(as: User.self) {
+                // Get ownerID from user document - this is the customer document ID
+                let ownerID = userData.ownerID
+                
+                // Use ownerID as the customer ID (customer document ID in customers collection)
+                currentCustomerId = ownerID
+                
+                // Verify that the customer document exists
+                let customerDoc = try await db.collection("customers").document(ownerID).getDocument()
+                if !customerDoc.exists {
+                    print("⚠️ Warning: Customer document not found for ownerID: \(ownerID)")
+                    // Still allow login, but log a warning
+                }
+                
+                updateUserState(user: userData)
+            } else {
+                // Fallback: try old collection structure for backward compatibility
+                let document = try await db.collection(FirebaseCollections.users).document(cleanPhoneNumber).getDocument()
+                
+                if document.exists, let userData = try? document.data(as: User.self) {
+                    // Try to use ownerID if available, otherwise fallback to first customer
+                    if !userData.ownerID.isEmpty {
+                        currentCustomerId = userData.ownerID
+                    } else {
+                        // Legacy fallback: use first customer
+                        let customersSnapshot = try await db.collection("customers").getDocuments()
+                        if let firstCustomer = customersSnapshot.documents.first {
+                            currentCustomerId = firstCustomer.documentID
+                        }
+                    }
+                    updateUserState(user: userData)
+                } else {
+                    errorMessage = "User not found. Please contact admin for access."
+                    resetAuthState()
+                }
+            }
+        } catch {
+            errorMessage = "Failed to load user: \(error.localizedDescription)"
+            resetAuthState()
+        }
+    }
+    
+    private func updateUserState(user: User) {
+        currentUser = user
+        print("User state updated: \(String(describing: user))")
+        isAuthenticated = true
+        
+        // Set role flags
+        isAdmin = (user.role == .ADMIN)
+        isApprover = (user.role == .APPROVER)
+        isUser = (user.role == .USER)
+    }
+    
+    // MARK: - Email Authentication (Admin only)
+    func signInWithEmail(email: String, password: String) async -> Bool {
+        isLoading = true
+        errorMessage = nil
+        
+        do {
+            let result = try await auth.signIn(withEmail: email, password: password)
+            // Admin user will be loaded automatically through auth state listener
+            
+            // Save FCM token to customers collection after successful login
+            Task {
+                do {
+                    let token = try await Messaging.messaging().token()
+                    print("📱 FCM token at admin login: \(token)")
+                    await FirestoreManager.shared.saveToken(token: token)
+                } catch {
+                    print("⚠️ Error fetching/saving FCM token after admin login: \(error.localizedDescription)")
+                }
+            }
+            
+            return true
+        } catch {
+            errorMessage = error.localizedDescription
+            isLoading = false
+            return false
+        }
+    }
+    
+    // MARK: - OTP Authentication (APPROVER and USER)
+    func sendOTP(to phoneNumber: String) async -> Bool {
+        isLoading = true
+        errorMessage = nil
+        
+        // Clean phone number and add country code
+        let cleanPhoneNumber = phoneNumber.replacingOccurrences(of: "+91", with: "").trimmingCharacters(in: .whitespacesAndNewlines)
+        
+        // Validate phone number format
+        guard cleanPhoneNumber.count == 10, cleanPhoneNumber.allSatisfy({ $0.isNumber }) else {
+            errorMessage = "Please enter a valid 10-digit phone number"
+            isLoading = false
+            return false
+        }
+        
+        let fullPhoneNumber = "+91\(cleanPhoneNumber)"
+        print("📱 Sending OTP to: \(fullPhoneNumber)")
+        
+        // First check if user exists in Firestore
+        do {
+            let document = try await db.collection(FirebaseCollections.users).document(cleanPhoneNumber).getDocument()
+            if !document.exists {
+                errorMessage = "Mobile Number not registered, please contact admin"
+                isLoading = false
+                return false
+            }
+        } catch {
+            errorMessage = "Failed to verify user: \(error.localizedDescription)"
+            isLoading = false
+            return false
+        }
+        
+        do{
+//            Auth.auth().settings.isAppVerificationDisabledForTesting = true
+            PhoneAuthProvider.provider()
+              .verifyPhoneNumber(fullPhoneNumber, uiDelegate: nil) { verificationID, error in
+                            if let error = error {
+                                self.errorMessage = "Error: \(error.localizedDescription)"
+                                return
+                            }
+                            self.verificationID = verificationID
+                            self.isLoading = false
+                            self.errorMessage = nil
+                        }
+            return true
+        } catch {
+            print("❌ OTP Send Error: \(error.localizedDescription)")
+            errorMessage = "Failed to send OTP: \(error.localizedDescription)"
+            isLoading = false
+            return false
+        }
+
+    }
+    
+    func verifyOTP(code: String) async -> Bool {
+        isLoading = true
+        errorMessage = nil
+        
+        guard let verificationID = verificationID ?? UserDefaults.standard.string(forKey: "authVerificationID") else {
+            errorMessage = "Verification ID not found. Please request a new OTP."
+            isLoading = false
+            return false
+        }
+        
+        do {
+            let credential = PhoneAuthProvider.provider().credential(withVerificationID: verificationID, verificationCode: code)
+            let result = try await auth.signIn(with: credential)
+            // User will be loaded automatically through auth state listener
+            isLoading = false
+            return true
+        } catch {
+            errorMessage = error.localizedDescription
+            isLoading = false
+            return false
+        }
+    }
+    
+    // MARK: - User Management (Admin only)
+    func createUser(phoneNumber: String, name: String, role: UserRole, overwrite: Bool = false) async -> Bool {
+        guard isAdmin else {
+            errorMessage = "Only admin users can create new users"
+            return false
+        }
+        
+        guard let customerId = currentCustomerId else {
+            errorMessage = "Customer ID not found. Please log in again."
+            return false
+        }
+        
+        do {
+            // Clean phone number of any potential prefixes
+            let cleanPhoneNumber = phoneNumber.replacingOccurrences(of: "+91", with: "").trimmingCharacters(in: .whitespacesAndNewlines)
+            
+            // Use customer-specific users collection
+            let userRef = db.collection("users").document(cleanPhoneNumber)
+            
+            // Check if user exists
+            if !overwrite {
+                let doc = try await userRef.getDocument()
+                if doc.exists {
+                    errorMessage = "User already exists with this phone number"
+                    return false
+                }
+            }
+            
+            // Get the current logged-in user's UID as ownerID (required field)
+            // Use the current user's UID if available, otherwise fall back to customerId
+            let ownerID = auth.currentUser?.uid ?? customerId
+            
+            let newUser = User(
+                phoneNumber: cleanPhoneNumber,
+                name: name,
+                role: role,
+                email: nil,
+                ownerID: ownerID
+            )
+            
+            try await userRef.setData(from: newUser, merge: overwrite)
+            return true
+        } catch {
+            errorMessage = error.localizedDescription
+            return false
+        }
+    }
+    
+    func getAllUsers() async -> [User] {
+        guard isAdmin else { return [] }
+        guard let customerId = currentCustomerId else { return [] }
+        
+        do {
+            let snapshot = try await db.collection("users")
+                .whereField("isActive", isEqualTo: true)
+                .getDocuments()
+            return snapshot.documents.compactMap { document in
+                try? document.data(as: User.self)
+            }
+        } catch {
+            errorMessage = "Failed to fetch users: \(error.localizedDescription)"
+            return []
+        }
+    }
+    
+    func getApprovers() async -> [User] {
+        guard let customerId = currentCustomerId else { return [] }
+        
+        do {
+            let snapshot = try await db.collection("users")
+                .whereField("role", isEqualTo: UserRole.APPROVER.rawValue)
+                .whereField("isActive", isEqualTo: true)
+                .getDocuments()
+            
+            return snapshot.documents.compactMap { document in
+                try? document.data(as: User.self)
+            }
+        } catch {
+            errorMessage = "Failed to fetch approvers: \(error.localizedDescription)"
+            return []
+        }
+    }
+    
+    func getUsers() async -> [User] {
+        guard isAdmin else { return [] }
+        guard let customerId = currentCustomerId else { return [] }
+        
+        do {
+            let snapshot = try await db.collection("users")
+                .whereField("role", isEqualTo: UserRole.USER.rawValue)
+                .whereField("isActive", isEqualTo: true)
+                .getDocuments()
+            
+            return snapshot.documents.compactMap { document in
+                try? document.data(as: User.self)
+            }
+        } catch {
+            errorMessage = "Failed to fetch users: \(error.localizedDescription)"
+            return []
+        }
+    }
+    
+    // MARK: - Sign Out
+    func signOut() {
+        // Remove FCM token before signing out
+        Task {
+            await FirestoreManager.shared.removeToken()
+        }
+        
+        do {
+            try auth.signOut()
+            resetAuthState()
+            verificationID = nil
+            UserDefaults.standard.removeObject(forKey: "authVerificationID")
+        } catch {
+            errorMessage = error.localizedDescription
+        }
+    }
+}
