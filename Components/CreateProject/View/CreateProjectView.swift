@@ -394,9 +394,11 @@ struct CreateProjectView: View {
     @State private var showingClearFormConfirmation = false
     
     let projectToEdit: Project? // Optional project for editing
+    let template: ProjectTemplate? // Optional template for new project
     
-    init(projectToEdit: Project? = nil) {
+    init(projectToEdit: Project? = nil, template: ProjectTemplate? = nil) {
         self.projectToEdit = projectToEdit
+        self.template = template
     }
     
     let currencies = [
@@ -467,6 +469,11 @@ struct CreateProjectView: View {
                             // Expand all phases when editing
                             expandedPhaseIds = Set(viewModel.phases.map { $0.id })
                         }
+                    } else if let template = template {
+                        // Load template data
+                        viewModel.loadTemplate(template)
+                        // Expand all phases when using template
+                        expandedPhaseIds = Set(viewModel.phases.map { $0.id })
                     } else {
                         // Restore expanded phases from saved state
                         if !viewModel.restoredExpandedPhaseIds.isEmpty {

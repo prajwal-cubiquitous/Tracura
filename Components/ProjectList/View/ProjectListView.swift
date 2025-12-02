@@ -13,7 +13,9 @@ import FirebaseFirestore
 struct ProjectListView: View {
     
     @State private var isShowingCreateSheet = false
+    @State private var isShowingTemplateSheet = false
     @State private var isShowingMenuSheet = false
+    @State private var selectedTemplate: ProjectTemplate?
     @State private var selectedProject: Project?
     @State private var shouldNavigateToDashboard = false
     @State private var showingTempApproval = false
@@ -302,8 +304,37 @@ struct ProjectListView: View {
                 }
             }
         }
+        .sheet(isPresented: $isShowingTemplateSheet) {
+            TemplateSelectionView(
+                onSelectTemplate: { template in
+                    selectedTemplate = template
+                    isShowingTemplateSheet = false
+                    // Small delay to ensure template sheet dismisses before showing create view
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                        isShowingCreateSheet = true
+                    }
+                },
+                onCreateNew: {
+                    selectedTemplate = nil
+                    isShowingTemplateSheet = false
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                        isShowingCreateSheet = true
+                    }
+                }
+            )
+        }
         .sheet(isPresented: $isShowingCreateSheet) {
-            CreateProjectView()
+            if let template = selectedTemplate {
+                CreateProjectView(template: template)
+            } else {
+                CreateProjectView()
+            }
+        }
+        .onChange(of: isShowingCreateSheet) { oldValue, newValue in
+            if !newValue {
+                // Reset template when sheet is dismissed
+                selectedTemplate = nil
+            }
         }
         .onAppear {
             
@@ -670,9 +701,22 @@ struct ProjectListView: View {
             }
             
             if role == .ADMIN {
-                Button("Create First Project") {
-                    HapticManager.impact(.medium)
-                    isShowingCreateSheet = true
+                Menu {
+                    Button {
+                        HapticManager.selection()
+                        isShowingCreateSheet = true
+                    } label: {
+                        Label("Create New Project", systemImage: "plus.circle.fill")
+                    }
+                    
+                    Button {
+                        HapticManager.selection()
+                        isShowingTemplateSheet = true
+                    } label: {
+                        Label("Select from Template", systemImage: "doc.text.fill")
+                    }
+                } label: {
+                    Text("Create First Project")
                 }
                 .primaryButton()
                 .padding(.horizontal, DesignSystem.Spacing.extraLarge)
@@ -920,10 +964,19 @@ struct ProjectListView: View {
     }
     
     private var floatingActionButton: some View {
-        Button {
-            HapticManager.impact(.medium)
-            withAnimation(DesignSystem.Animation.fastSpring) {
+        Menu {
+            Button {
+                HapticManager.selection()
                 isShowingCreateSheet = true
+            } label: {
+                Label("Create New Project", systemImage: "plus.circle.fill")
+            }
+            
+            Button {
+                HapticManager.selection()
+                isShowingTemplateSheet = true
+            } label: {
+                Label("Select from Template", systemImage: "doc.text.fill")
             }
         } label: {
             Image(systemName: "plus")
@@ -942,8 +995,9 @@ struct ProjectListView: View {
                         )
                 )
         }
-        .scaleEffect(isShowingCreateSheet ? 0.9 : 1.0)
+        .scaleEffect((isShowingCreateSheet || isShowingTemplateSheet) ? 0.9 : 1.0)
         .animation(DesignSystem.Animation.interactiveSpring, value: isShowingCreateSheet)
+        .animation(DesignSystem.Animation.interactiveSpring, value: isShowingTemplateSheet)
         .padding(.trailing, DesignSystem.Spacing.extraLarge)
         .padding(.bottom, DesignSystem.Spacing.extraLarge)
     }

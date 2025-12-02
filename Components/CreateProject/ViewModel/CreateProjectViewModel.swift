@@ -1039,6 +1039,64 @@ class CreateProjectViewModel: ObservableObject {
         }
     }
     
+    // MARK: - Load Template
+    func loadTemplate(_ template: ProjectTemplate) {
+        // Clear existing form data
+        projectName = ""
+        client = ""
+        location = template.location
+        currency = template.currency
+        plannedDate = template.plannedDate
+        projectDescription = ""
+        allowTemplateOverrides = template.allowTemplateOverrides
+        
+        // Clear team selections
+        selectedProjectManager = nil
+        selectedProjectTeamMembers = []
+        
+        // Load phases from template
+        var loadedPhases: [PhaseItem] = []
+        
+        for (index, templatePhase) in template.phases.enumerated() {
+            var phaseItem = PhaseItem(phaseNumber: index + 1)
+            phaseItem.phaseName = templatePhase.phaseName
+            phaseItem.startDate = templatePhase.startDate
+            phaseItem.endDate = templatePhase.endDate
+            phaseItem.hasStartDate = true
+            phaseItem.hasEndDate = true
+            
+            // Load departments from template
+            var departments: [DepartmentItem] = []
+            
+            for templateDept in templatePhase.departments {
+                var deptItem = DepartmentItem()
+                deptItem.name = templateDept.name
+                deptItem.contractorMode = templateDept.contractorMode
+                
+                // Load line items from template
+                var lineItems: [DepartmentLineItem] = []
+                
+                for templateLineItem in templateDept.lineItems {
+                    var lineItem = DepartmentLineItem()
+                    lineItem.itemType = templateLineItem.itemType
+                    lineItem.item = templateLineItem.item
+                    lineItem.spec = templateLineItem.spec
+                    lineItem.quantity = templateLineItem.quantity
+                    lineItem.unitPrice = templateLineItem.unitPrice
+                    lineItems.append(lineItem)
+                }
+                
+                deptItem.lineItems = lineItems.isEmpty ? [DepartmentLineItem()] : lineItems
+                departments.append(deptItem)
+            }
+            
+            phaseItem.departments = departments.isEmpty ? [DepartmentItem()] : departments
+            loadedPhases.append(phaseItem)
+        }
+        
+        phases = loadedPhases.isEmpty ? [PhaseItem(phaseNumber: 1)] : loadedPhases
+    }
+    
     // MARK: - Phase Management
     func addPhase() {
         let nextPhaseNumber = phases.count + 1
