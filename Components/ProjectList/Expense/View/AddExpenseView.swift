@@ -166,35 +166,35 @@ struct AddExpenseView: View {
                             
                             if let selectedPhase = viewModel.selectedPhase {
                                 Menu {
-                                    ForEach(selectedPhase.departments.keys.sorted(), id: \.self) { department in
+                                    ForEach(selectedPhase.departments.sorted(by: { $0.name < $1.name }), id: \.id) { department in
+                                        let deptKey = String.departmentKey(phaseId: selectedPhase.id, departmentName: department.name)
                                         Button {
-                                            viewModel.selectedDepartment = department
+                                            viewModel.selectedDepartment = deptKey
                                             viewModel.loadAvailableItemTypes()
                                             viewModel.checkAdminApprovalConditions()
                                         } label: {
                                             HStack {
-                                                Text(formatDepartmentName(department))
+                                                Text(department.name)
                                                 Spacer()
-                                                if let remaining = selectedPhase.departmentRemainingAmounts[department] {
-                                                    Text(formatCurrency(remaining))
-                                                        .font(.caption)
-                                                        .foregroundColor(.secondary)
-                                                }
+                                                Text(formatCurrency(department.remainingAmount))
+                                                    .font(.caption)
+                                                    .foregroundColor(.secondary)
                                             }
                                         }
                                     }
                                 } label: {
                                     VStack(alignment: .leading, spacing: 4) {
-                                        if !viewModel.selectedDepartment.isEmpty {
-                                            Text(formatDepartmentName(viewModel.selectedDepartment))
+                                        if !viewModel.selectedDepartment.isEmpty,
+                                           let selectedDept = selectedPhase.departments.first(where: { dept in
+                                               String.departmentKey(phaseId: selectedPhase.id, departmentName: dept.name) == viewModel.selectedDepartment
+                                           }) {
+                                            Text(selectedDept.name)
                                                 .font(.body)
                                                 .fontWeight(.semibold)
                                                 .foregroundColor(.primary)
-                                            if let remaining = selectedPhase.departmentRemainingAmounts[viewModel.selectedDepartment] {
-                                                Text("Remaining: \(formatCurrency(remaining))")
-                                                    .font(.caption2)
-                                                    .foregroundColor(.secondary)
-                                            }
+                                            Text("Remaining: \(formatCurrency(selectedDept.remainingAmount))")
+                                                .font(.caption2)
+                                                .foregroundColor(.secondary)
                                         } else {
                                             Text("Select Department")
                                                 .font(.body)
@@ -589,24 +589,24 @@ struct AddExpenseView: View {
             
             if let selectedPhase = viewModel.selectedPhase {
                 Menu {
-                    ForEach(selectedPhase.departments.keys.sorted(), id: \.self) { department in
+                    ForEach(selectedPhase.departments.sorted(by: { $0.name < $1.name }), id: \.id) { department in
+                        let deptKey = String.departmentKey(phaseId: selectedPhase.id, departmentName: department.name)
                         Button {
-                            viewModel.selectedDepartment = department
+                            viewModel.selectedDepartment = deptKey
+                            viewModel.loadAvailableItemTypes()
                             viewModel.checkAdminApprovalConditions()
                         } label: {
                             HStack {
                                 TruncatedTextWithTooltip(
-                                    formatDepartmentName(department),
+                                    department.name,
                                     font: .body,
                                     foregroundColor: .primary,
                                     lineLimit: 1
                                 )
                                 Spacer()
-                                if let remaining = selectedPhase.departmentRemainingAmounts[department] {
-                                    Text(formatCurrency(remaining))
-                                        .font(.caption)
-                                        .foregroundColor(.secondary)
-                                }
+                                Text(formatCurrency(department.remainingAmount))
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
                             }
                         }
                     }
@@ -618,17 +618,24 @@ struct AddExpenseView: View {
                                 .fontWeight(.medium)
                         } else {
                             VStack(alignment: .leading, spacing: 4) {
-                                TruncatedTextWithTooltip(
-                                    formatDepartmentName(viewModel.selectedDepartment),
-                                    font: .body,
-                                    fontWeight: .medium,
-                                    foregroundColor: .primary,
-                                    lineLimit: 1
-                                )
-                                if let remaining = selectedPhase.departmentRemainingAmounts[viewModel.selectedDepartment] {
-                                    Text("Remaining: \(formatCurrency(remaining))")
+                                if let selectedDept = selectedPhase.departments.first(where: { dept in
+                                    String.departmentKey(phaseId: selectedPhase.id, departmentName: dept.name) == viewModel.selectedDepartment
+                                }) {
+                                    TruncatedTextWithTooltip(
+                                        selectedDept.name,
+                                        font: .body,
+                                        fontWeight: .medium,
+                                        foregroundColor: .primary,
+                                        lineLimit: 1
+                                    )
+                                    Text("Remaining: \(formatCurrency(selectedDept.remainingAmount))")
                                         .font(.caption2)
                                         .foregroundColor(.secondary)
+                                } else {
+                                    Text(formatDepartmentName(viewModel.selectedDepartment))
+                                        .font(.body)
+                                        .fontWeight(.medium)
+                                        .foregroundColor(.primary)
                                 }
                             }
                         }

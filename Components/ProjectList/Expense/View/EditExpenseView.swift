@@ -388,12 +388,13 @@ struct EditExpenseView: View {
             
             if let selectedPhase = viewModel.selectedPhase {
                 Menu {
-                    ForEach(selectedPhase.departments.keys.sorted(), id: \.self) { department in
+                    ForEach(selectedPhase.departments.sorted(by: { $0.name < $1.name }), id: \.id) { department in
+                        let deptKey = String.departmentKey(phaseId: selectedPhase.id, departmentName: department.name)
                         Button {
-                            viewModel.selectedDepartment = department
+                            viewModel.selectedDepartment = deptKey
                         } label: {
                             TruncatedTextWithTooltip(
-                                department,
+                                department.name,
                                 font: .body,
                                 foregroundColor: .primary,
                                 lineLimit: 1
@@ -402,13 +403,35 @@ struct EditExpenseView: View {
                     }
                 } label: {
                     HStack {
-                        TruncatedTextWithTooltip(
-                            viewModel.selectedDepartment.isEmpty ? "Select Department" : viewModel.selectedDepartment,
-                            font: .body,
-                            fontWeight: .medium,
-                            foregroundColor: viewModel.selectedDepartment.isEmpty ? .secondary : .primary,
-                            lineLimit: 1
-                        )
+                        if viewModel.selectedDepartment.isEmpty {
+                            Text("Select Department")
+                                .foregroundColor(.secondary)
+                                .fontWeight(.medium)
+                        } else {
+                            if let selectedDept = selectedPhase.departments.first(where: { dept in
+                                String.departmentKey(phaseId: selectedPhase.id, departmentName: dept.name) == viewModel.selectedDepartment
+                            }) {
+                                TruncatedTextWithTooltip(
+                                    selectedDept.name,
+                                    font: .body,
+                                    fontWeight: .medium,
+                                    foregroundColor: .primary,
+                                    lineLimit: 1
+                                )
+                            } else {
+                                // Fallback: format department name from key
+                                let deptName = viewModel.selectedDepartment.contains("_") ? 
+                                    String(viewModel.selectedDepartment[viewModel.selectedDepartment.index(after: viewModel.selectedDepartment.firstIndex(of: "_")!)...]) :
+                                    viewModel.selectedDepartment
+                                TruncatedTextWithTooltip(
+                                    deptName,
+                                    font: .body,
+                                    fontWeight: .medium,
+                                    foregroundColor: .primary,
+                                    lineLimit: 1
+                                )
+                            }
+                        }
                         Spacer()
                         Image(systemName: "chevron.down")
                             .font(.caption)

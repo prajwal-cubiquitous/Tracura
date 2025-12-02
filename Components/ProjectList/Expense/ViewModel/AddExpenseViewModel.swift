@@ -113,22 +113,45 @@ class AddExpenseViewModel: ObservableObject {
     struct PhaseInfo: Identifiable, Equatable {
         let id: String
         let name: String
-        let departments: [String: Double] // Department name to budget mapping
+        let departments: [DepartmentInfo] // Departments from subcollection
         let isEnabled: Bool
         let canAddExpense: Bool // True if phase is in timeline and enabled
         let totalBudget: Double
         let remainingAmount: Double
-        let departmentRemainingAmounts: [String: Double] // Department name to remaining amount mapping
+        
+        // Helper computed properties for backward compatibility
+        var departmentKeys: [String] {
+            departments.map { String.departmentKey(phaseId: id, departmentName: $0.name) }
+        }
+        
+        var departmentRemainingAmounts: [String: Double] {
+            Dictionary(uniqueKeysWithValues: departments.map { dept in
+                (String.departmentKey(phaseId: id, departmentName: dept.name), dept.remainingAmount)
+            })
+        }
         
         static func == (lhs: PhaseInfo, rhs: PhaseInfo) -> Bool {
             lhs.id == rhs.id &&
             lhs.name == rhs.name &&
-            lhs.departments == rhs.departments &&
+            lhs.departments.map { $0.name } == rhs.departments.map { $0.name } &&
             lhs.isEnabled == rhs.isEnabled &&
             lhs.canAddExpense == rhs.canAddExpense &&
             lhs.totalBudget == rhs.totalBudget &&
-            lhs.remainingAmount == rhs.remainingAmount &&
-            lhs.departmentRemainingAmounts == rhs.departmentRemainingAmounts
+            lhs.remainingAmount == rhs.remainingAmount
+        }
+    }
+    
+    struct DepartmentInfo: Identifiable, Equatable {
+        let id: String // Document ID from Firestore
+        let name: String
+        let totalBudget: Double
+        let remainingAmount: Double
+        
+        static func == (lhs: DepartmentInfo, rhs: DepartmentInfo) -> Bool {
+            lhs.id == rhs.id &&
+            lhs.name == rhs.name &&
+            lhs.totalBudget == rhs.totalBudget &&
+            lhs.remainingAmount == rhs.remainingAmount
         }
     }
     
@@ -446,29 +469,46 @@ class AddExpenseViewModel: ObservableObject {
                         let isEnabled = phase.isEnabledValue
                         let canAddExpense = isInTimeline && isEnabled
                         
-                        // Calculate phase budget and remaining amount
-                        let totalBudget = phase.departments.values.reduce(0, +)
+                        // Load departments from subcollection
+                        var departmentList: [DepartmentInfo] = []
+                        do {
+                            let departmentsSnapshot = try await FirebasePathHelper.shared
+                                .departmentsCollection(customerId: customerId, projectId: projectId, phaseId: doc.documentID)
+                                .getDocuments()
+                            
+                            let deptApprovedAmounts = phaseDepartmentApprovedAmounts[doc.documentID] ?? [:]
+                            
+                            for deptDoc in departmentsSnapshot.documents {
+                                if let department = try? deptDoc.data(as: Department.self) {
+                                    let deptKey = String.departmentKey(phaseId: doc.documentID, departmentName: department.name)
+                                    let deptApproved = deptApprovedAmounts[deptKey] ?? 0
+                                    let remainingAmount = department.totalBudget - deptApproved
+                                    
+                                    departmentList.append(DepartmentInfo(
+                                        id: deptDoc.documentID,
+                                        name: department.name,
+                                        totalBudget: department.totalBudget,
+                                        remainingAmount: remainingAmount
+                                    ))
+                                }
+                            }
+                        } catch {
+                            print("Error loading departments for phase \(doc.documentID): \(error)")
+                        }
+                        
+                        // Calculate phase budget from departments
+                        let totalBudget = departmentList.reduce(0.0) { $0 + $1.totalBudget }
                         let approvedAmount = phaseApprovedAmounts[doc.documentID] ?? 0
                         let remainingAmount = totalBudget - approvedAmount
-                        
-                        // Calculate department remaining amounts
-                        var departmentRemainingAmounts: [String: Double] = [:]
-                        let deptApprovedAmounts = phaseDepartmentApprovedAmounts[doc.documentID] ?? [:]
-                        
-                        for (deptName, deptBudget) in phase.departments {
-                            let deptApproved = deptApprovedAmounts[deptName] ?? 0
-                            departmentRemainingAmounts[deptName] = deptBudget - deptApproved
-                        }
                         
                         phasesList.append(PhaseInfo(
                             id: doc.documentID,
                             name: phase.phaseName,
-                            departments: phase.departments,
+                            departments: departmentList,
                             isEnabled: isEnabled,
                             canAddExpense: canAddExpense,
                             totalBudget: totalBudget,
-                            remainingAmount: remainingAmount,
-                            departmentRemainingAmounts: departmentRemainingAmounts
+                            remainingAmount: remainingAmount
                         ))
                     }
                 }
@@ -479,13 +519,13 @@ class AddExpenseViewModel: ObservableObject {
                     
                     // If previously selected phase is still valid, keep it
                     if let previousPhase = phasesList.first(where: { $0.id == previousSelectedPhaseId && $0.canAddExpense }) {
-                        if !previousPhase.departments.keys.contains(self.selectedDepartment) {
-                            self.selectedDepartment = previousPhase.departments.keys.sorted().first ?? ""
+                        if !previousPhase.departmentKeys.contains(self.selectedDepartment) {
+                            self.selectedDepartment = previousPhase.departmentKeys.first ?? ""
                         }
                     } else {
                         if let firstAvailable = phasesList.first(where: { $0.canAddExpense }) {
                             self.selectedPhaseId = firstAvailable.id
-                            self.selectedDepartment = firstAvailable.departments.keys.sorted().first ?? ""
+                            self.selectedDepartment = firstAvailable.departmentKeys.first ?? ""
                         } else {
                             self.selectedPhaseId = ""
                             self.selectedDepartment = ""
@@ -508,8 +548,8 @@ class AddExpenseViewModel: ObservableObject {
         }
         
         // If current department is not in selected phase, select first available
-        if !phase.departments.keys.contains(selectedDepartment) {
-            selectedDepartment = phase.departments.keys.sorted().first ?? ""
+        if !phase.departmentKeys.contains(selectedDepartment) {
+            selectedDepartment = phase.departmentKeys.first ?? ""
         }
         
         // Load available item types from department
@@ -598,7 +638,7 @@ class AddExpenseViewModel: ObservableObject {
     // MARK: - Admin Approval Check
     
     func checkAdminApprovalConditions() {
-        guard amountValue > 0 else {
+        guard lineAmount > 0 else {
             adminApprovalMessage = nil
             return
         }
@@ -609,20 +649,24 @@ class AddExpenseViewModel: ObservableObject {
         if let phase = selectedPhase {
             if phase.totalBudget == 0 {
                 messages.append("Phase total budget is 0, so expense will be approved by admin")
-            } else if amountValue > phase.remainingAmount {
+            } else if lineAmount > phase.remainingAmount {
                 messages.append("Entered amount is greater than remaining amount in phase, so expense will be approved by admin")
             }
         }
         
         // Check department conditions
         if let phase = selectedPhase, !selectedDepartment.isEmpty {
-            let deptBudget = phase.departments[selectedDepartment] ?? 0
-            let deptRemaining = phase.departmentRemainingAmounts[selectedDepartment] ?? 0
+            // Find department by matching the department key
+            let selectedDept = phase.departments.first { dept in
+                String.departmentKey(phaseId: phase.id, departmentName: dept.name) == selectedDepartment
+            }
             
-            if deptBudget == 0 {
-                messages.append("Department total budget is 0, so expense will be approved by admin")
-            } else if amountValue > deptRemaining {
-                messages.append("Entered amount is greater than remaining amount in department, so expense will be approved by admin")
+            if let dept = selectedDept {
+                if dept.totalBudget == 0 {
+                    messages.append("Department total budget is 0, so expense will be approved by admin")
+                } else if lineAmount > dept.remainingAmount {
+                    messages.append("Entered amount is greater than remaining amount in department, so expense will be approved by admin")
+                }
             }
         }
         
@@ -632,28 +676,32 @@ class AddExpenseViewModel: ObservableObject {
     // MARK: - Calculate isAdmin
     
     var isAdmin: Bool {
-        guard amountValue > 0 else { return false }
+        guard lineAmount > 0 else { return false }
         
         // Check phase conditions
         if let phase = selectedPhase {
             if phase.totalBudget == 0 {
                 return true
             }
-            if amountValue > phase.remainingAmount {
+            if lineAmount > phase.remainingAmount {
                 return true
             }
         }
         
         // Check department conditions
         if let phase = selectedPhase, !selectedDepartment.isEmpty {
-            let deptBudget = phase.departments[selectedDepartment] ?? 0
-            let deptRemaining = phase.departmentRemainingAmounts[selectedDepartment] ?? 0
-            
-            if deptBudget == 0 {
-                return true
+            // Find department by matching the department key
+            let selectedDept = phase.departments.first { dept in
+                String.departmentKey(phaseId: phase.id, departmentName: dept.name) == selectedDepartment
             }
-            if amountValue > deptRemaining {
-                return true
+            
+            if let dept = selectedDept {
+                if dept.totalBudget == 0 {
+                    return true
+                }
+                if lineAmount > dept.remainingAmount {
+                    return true
+                }
             }
         }
         
@@ -1530,7 +1578,7 @@ class AddExpenseViewModel: ObservableObject {
         // Reset phase and department to first available
         if let firstAvailable = availablePhases.first(where: { $0.canAddExpense }) {
             selectedPhaseId = firstAvailable.id
-            selectedDepartment = firstAvailable.departments.keys.sorted().first ?? ""
+            selectedDepartment = firstAvailable.departmentKeys.first ?? ""
         }
     }
 }
