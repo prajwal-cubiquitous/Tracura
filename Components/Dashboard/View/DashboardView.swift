@@ -129,6 +129,15 @@ struct DashboardView: View {
         let name: String
         let budget: Double
         let contractorMode: String
+        let lineItems: [DepartmentLineItemData]
+        
+        func hash(into hasher: inout Hasher) {
+            hasher.combine(id)
+        }
+        
+        static func == (lhs: DepartmentSummary, rhs: DepartmentSummary) -> Bool {
+            lhs.id == rhs.id
+        }
     }
     
     struct PhaseBudget: Identifiable {
@@ -1498,6 +1507,8 @@ struct DashboardView: View {
                                                     title: dept.name,
                                                     amount: dept.budget,
                                                     spent: spentAmount,
+                                                    contractorMode: dept.contractorMode,
+                                                    lineItems: dept.lineItems,
                                                     onTap: {
                                                         selectedDepartmentForDetail = dept.name
                                                         selectedPhaseIdForDetail = phase.id
@@ -1534,6 +1545,8 @@ struct DashboardView: View {
                                                     title: displayName,
                                                     amount: amount,
                                                     spent: spentAmount,
+                                                    contractorMode: "Turnkey", // Default for backward compatibility
+                                                    lineItems: [], // Empty for backward compatibility
                                                     onTap: {
                                                         selectedDepartmentForDetail = displayName
                                                         selectedPhaseIdForDetail = phase.id
@@ -1996,7 +2009,8 @@ struct DashboardView: View {
                                         id: deptId,
                                         name: department.name,
                                         budget: deptBudget,
-                                        contractorMode: department.contractorMode
+                                        contractorMode: department.contractorMode,
+                                        lineItems: department.lineItems
                                     ))
                                 }
                             }
@@ -3522,71 +3536,115 @@ private struct DepartmentMiniCard: View {
     let title: String
     let amount: Double
     let spent: Double
+    let contractorMode: String
+    let lineItems: [DepartmentLineItemData]
     let onTap: (() -> Void)?
 
     private var budget: Double { amount }
     private var remaining: Double { max(budget - spent, 0) }
     
+    // Group line items by type
+    private var materials: [DepartmentLineItemData] {
+        lineItems.filter { $0.itemType == "Raw material" }
+    }
+    
+    private var labour: [DepartmentLineItemData] {
+        lineItems.filter { $0.itemType == "Labour" }
+    }
+    
+    // Calculate total labour amount and units
+    private var labourTotal: (amount: Double, totalQuantity: Double, uom: String) {
+        let labourItems = labour
+        let totalAmount = labourItems.reduce(0) { $0 + $1.total }
+        let totalQuantity = labourItems.reduce(0) { $0 + $1.quantity }
+        // Get the most common UOM from labour items, or default to first one
+        let uom = labourItems.first?.uom ?? ""
+        return (totalAmount, totalQuantity, uom)
+    }
+    
     private var cardContent: some View {
-        VStack(alignment: .leading, spacing: DesignSystem.Spacing.small) {
-            // Title row
-            HStack {
-                TruncatedTextWithTooltip(
-                    title,
-                    font: DesignSystem.Typography.headline,
-                    foregroundColor: .primary,
-                    lineLimit: 1
-                )
+        VStack(alignment: .leading, spacing: DesignSystem.Spacing.medium) {
+            // Title row with contractor mode badge
+            HStack(alignment: .top) {
+                Text(title)
+                    .font(DesignSystem.Typography.headline)
+                    .fontWeight(.bold)
+                    .foregroundColor(.primary)
+                    .lineLimit(2)
+                
                 Spacer()
-                Image(systemName: "info.circle")
-                    .font(.caption)
+                
+                // Contractor mode badge
+                Text(contractorMode)
+                    .font(DesignSystem.Typography.caption2)
+                    .fontWeight(.medium)
                     .foregroundColor(.secondary)
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 4)
+                    .background(Color(.systemGray5))
+                    .cornerRadius(8)
             }
-
-            // Budget/Spent/Remaining rows
-            VStack(alignment: .leading, spacing: 6) {
-                HStack {
-                    Text("Budget:")
+            
+            // Budget
+            HStack {
+                Text("Budget:")
+                    .font(DesignSystem.Typography.caption1)
+                    .foregroundColor(.secondary)
+                Spacer()
+                Text(budget.formattedCurrency)
+                    .font(DesignSystem.Typography.subheadline)
+                    .fontWeight(.semibold)
+                    .foregroundColor(.primary)
+            }
+            
+            // Materials section
+            if !materials.isEmpty {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("Materials:")
                         .font(DesignSystem.Typography.caption1)
                         .foregroundColor(.secondary)
-                    Spacer()
-                    Text("\(Int(budget).formattedCurrency)")
-                        .font(DesignSystem.Typography.subheadline)
-                        .fontWeight(.semibold)
-                }
-                HStack {
-                    Text("Approved:")
-                        .font(DesignSystem.Typography.caption1)
-                        .foregroundColor(.secondary)
-                    Spacer()
-                    Text("\(Int(spent).formattedCurrency)")
-                        .font(DesignSystem.Typography.subheadline)
-                        .fontWeight(.semibold)
-                        .foregroundColor(.blue)
-                }
-                HStack {
-                    Text("Remaining:")
-                        .font(DesignSystem.Typography.caption1)
-                        .foregroundColor(.secondary)
-                    Spacer()
-                    Text("\(Int(remaining).formattedCurrency)")
-                        .font(DesignSystem.Typography.subheadline)
-                        .fontWeight(.semibold)
-                        .foregroundColor(remaining >= 0 ? .green : .red)
-                }
-
-                // Progress bar
-                GeometryReader { geometry in
-                    ZStack(alignment: .leading) {
-                        RoundedRectangle(cornerRadius: 4)
-                            .fill(Color(.systemGray5))
-                            .frame(height: 6)
-                        RoundedRectangle(cornerRadius: 4)
-                            .fill(Color.accentColor)
-                            .frame(width: budget > 0 ? min(CGFloat(spent / budget) * geometry.size.width, geometry.size.width) : 0, height: 6)
+                    
+                    ForEach(materials.prefix(3), id: \.item) { item in
+                        HStack {
+                            Text(item.item)
+                                .font(DesignSystem.Typography.caption1)
+                                .foregroundColor(.primary)
+                            Spacer()
+                            Text("\(formatQuantity(item.quantity)) \(item.uom)")
+                                .font(DesignSystem.Typography.caption1)
+                                .foregroundColor(.secondary)
+                        }
+                    }
+                    
+                    if materials.count > 3 {
+                        Text("+ \(materials.count - 3) more")
+                            .font(DesignSystem.Typography.caption2)
+                            .foregroundColor(.secondary)
+                            .italic()
                     }
                 }
-                .frame(height: 6)
+            }
+            
+            // Labour section
+            if !labour.isEmpty {
+                let labourInfo = labourTotal
+                HStack {
+                    Text("Labour:")
+                        .font(DesignSystem.Typography.caption1)
+                        .foregroundColor(.secondary)
+                    Spacer()
+                    HStack(spacing: 4) {
+                        Text(labourInfo.amount.formattedCurrency)
+                            .font(DesignSystem.Typography.caption1)
+                            .foregroundColor(.primary)
+                        Text("•")
+                            .font(DesignSystem.Typography.caption1)
+                            .foregroundColor(.secondary)
+                        Text("\(formatQuantity(labourInfo.totalQuantity)) \(labourInfo.uom)")
+                            .font(DesignSystem.Typography.caption1)
+                            .foregroundColor(.secondary)
+                    }
+                }
             }
         }
         .padding(DesignSystem.Spacing.medium)
@@ -3597,6 +3655,15 @@ private struct DepartmentMiniCard: View {
             RoundedRectangle(cornerRadius: 12)
                 .stroke(Color(.systemGray5), lineWidth: 0.5)
         )
+    }
+    
+    private func formatQuantity(_ quantity: Double) -> String {
+        // Format quantity: remove trailing zeros if it's a whole number
+        if quantity.truncatingRemainder(dividingBy: 1) == 0 {
+            return String(format: "%.0f", quantity)
+        } else {
+            return String(format: "%.1f", quantity)
+        }
     }
 
     var body: some View {
@@ -4410,6 +4477,8 @@ private struct AllPhasesView: View {
                                 title: dept.name,
                                 amount: dept.budget,
                                 spent: spentAmount,
+                                contractorMode: dept.contractorMode,
+                                lineItems: dept.lineItems,
                                 onTap: {
                                     selectedDepartment = DepartmentSelection(name: dept.name, phaseId: phase.id)
                                     DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
@@ -4445,6 +4514,8 @@ private struct AllPhasesView: View {
                                 title: displayName,
                                 amount: amount,
                                 spent: spentAmount,
+                                contractorMode: "Turnkey", // Default for backward compatibility
+                                lineItems: [], // Empty for backward compatibility
                                 onTap: {
                                     selectedDepartment = DepartmentSelection(name: displayName, phaseId: phase.id)
                                     DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {

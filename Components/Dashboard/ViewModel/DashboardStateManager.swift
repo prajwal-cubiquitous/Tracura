@@ -472,7 +472,8 @@ class DashboardStateManager: ObservableObject {
                                     id: deptId,
                                     name: department.name,
                                     budget: deptBudget,
-                                    contractorMode: department.contractorMode
+                                    contractorMode: department.contractorMode,
+                                    lineItems: department.lineItems
                                 ))
                             }
                         }
