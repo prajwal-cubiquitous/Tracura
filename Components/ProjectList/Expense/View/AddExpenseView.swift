@@ -681,9 +681,32 @@ struct AddExpenseView: View {
                 Menu {
                     ForEach(viewModel.availableItemTypes, id: \.self) { itemType in
                         Button {
+                            let previousItemType = viewModel.selectedItemType
                             viewModel.selectedItemType = itemType
                             viewModel.selectedItem = ""
                             viewModel.selectedSpec = ""
+                            
+                            // Clear brand, spec, and thickness when switching to Labour
+                            if itemType == "Labour" {
+                                viewModel.brand = ""
+                                viewModel.selectedSpec = ""
+                                viewModel.thickness = "16 mm" // Reset to default
+                                // Set default UOM for Labour if empty
+                                if viewModel.uom.isEmpty {
+                                    viewModel.uom = DepartmentItemData.uomOptions(for: "Labour").first ?? ""
+                                } else {
+                                    // Validate UOM is valid for Labour
+                                    let labourUOMs = DepartmentItemData.uomOptions(for: "Labour")
+                                    if !labourUOMs.contains(viewModel.uom) {
+                                        viewModel.uom = labourUOMs.first ?? ""
+                                    }
+                                }
+                            } else {
+                                // Reset UOM to default for non-Labour items
+                                if previousItemType == "Labour" {
+                                    viewModel.uom = "ton"
+                                }
+                            }
                         } label: {
                             Text(itemType)
                         }
@@ -707,55 +730,54 @@ struct AddExpenseView: View {
                 }
             }
             
-            // Material and Brand - Side by Side
-            HStack(spacing: 12) {
-                // Material
-                VStack(alignment: .leading, spacing: 6) {
-                    Text("Material")
-                        .font(.caption)
-                        .foregroundColor(.secondary)
-                        .fontWeight(.medium)
-                    
-                    if !viewModel.selectedItemType.isEmpty {
-                        Menu {
-                            ForEach(viewModel.availableItems, id: \.self) { item in
-                                Button {
-                                    viewModel.selectedItem = item
-                                    viewModel.selectedSpec = ""
-                                } label: {
-                                    Text(item)
-                                }
-                            }
-                        } label: {
-                            HStack {
-                                Text(viewModel.selectedItem.isEmpty ? "Select Material" : viewModel.selectedItem)
-                                    .font(.body)
-                                    .fontWeight(.semibold)
-                                    .foregroundColor(viewModel.selectedItem.isEmpty ? .secondary : .primary)
-                                Spacer()
-                                Image(systemName: "chevron.down")
-                                    .font(.caption)
-                                    .foregroundColor(.secondary)
-                            }
-                            .padding(.horizontal, 12)
-                            .padding(.vertical, 10)
-                            .frame(maxWidth: .infinity)
-                            .background(Color(.secondarySystemGroupedBackground))
-                            .cornerRadius(10)
-                        }
-                    } else {
-                        Text("Select Sub-category first")
-                            .font(.body)
-                            .foregroundColor(.secondary)
-                            .padding(.horizontal, 12)
-                            .padding(.vertical, 10)
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                            .background(Color(.secondarySystemGroupedBackground))
-                            .cornerRadius(10)
-                    }
-                }
-                .frame(maxWidth: .infinity)
+            // Material/Gender - Full Width (Brand hidden for Labour)
+            VStack(alignment: .leading, spacing: 6) {
+                Text(viewModel.selectedItemType == "Labour" ? "Gender" : "Material")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+                    .fontWeight(.medium)
                 
+                if !viewModel.selectedItemType.isEmpty {
+                    Menu {
+                        ForEach(viewModel.availableItems, id: \.self) { item in
+                            Button {
+                                viewModel.selectedItem = item
+                                viewModel.selectedSpec = ""
+                            } label: {
+                                Text(item)
+                            }
+                        }
+                    } label: {
+                        HStack {
+                            Text(viewModel.selectedItem.isEmpty ? (viewModel.selectedItemType == "Labour" ? "Select Gender" : "Select Material") : viewModel.selectedItem)
+                                .font(.body)
+                                .fontWeight(.semibold)
+                                .foregroundColor(viewModel.selectedItem.isEmpty ? .secondary : .primary)
+                            Spacer()
+                            Image(systemName: "chevron.down")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                        }
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 10)
+                        .frame(maxWidth: .infinity)
+                        .background(Color(.secondarySystemGroupedBackground))
+                        .cornerRadius(10)
+                    }
+                } else {
+                    Text("Select Sub-category first")
+                        .font(.body)
+                        .foregroundColor(.secondary)
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 10)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .background(Color(.secondarySystemGroupedBackground))
+                        .cornerRadius(10)
+                }
+            }
+            
+            // Brand and Grade/Thickness - Hidden for Labour
+            if viewModel.selectedItemType != "Labour" {
                 // Brand
                 VStack(alignment: .leading, spacing: 6) {
                     Text("Brand")
@@ -771,82 +793,81 @@ struct AddExpenseView: View {
                         .background(Color(.secondarySystemGroupedBackground))
                         .cornerRadius(10)
                 }
-                .frame(maxWidth: .infinity)
-            }
-            
-            // Grade and Thickness - Side by Side
-            HStack(spacing: 12) {
-                // Grade
-                VStack(alignment: .leading, spacing: 6) {
-                    Text("Grade")
-                        .font(.caption)
-                        .foregroundColor(.secondary)
-                        .fontWeight(.medium)
-                    
-                    if !viewModel.selectedItemType.isEmpty && !viewModel.selectedItem.isEmpty {
-                        Menu {
-                            ForEach(viewModel.availableSpecs, id: \.self) { spec in
-                                Button {
-                                    viewModel.selectedSpec = spec
-                                } label: {
-                                    Text(spec)
-                                }
-                            }
-                        } label: {
-                            HStack {
-                                Text(viewModel.selectedSpec.isEmpty ? "Select Grade" : viewModel.selectedSpec)
-                                    .font(.body)
-                                    .fontWeight(.semibold)
-                                    .foregroundColor(viewModel.selectedSpec.isEmpty ? .secondary : .primary)
-                                Spacer()
-                                Image(systemName: "chevron.down")
-                                    .font(.caption)
-                                    .foregroundColor(.secondary)
-                            }
-                            .padding(.horizontal, 12)
-                            .padding(.vertical, 10)
-                            .frame(maxWidth: .infinity)
-                            .background(Color(.secondarySystemGroupedBackground))
-                            .cornerRadius(10)
-                        }
-                    } else {
-                        Text("Select Material first")
-                            .font(.body)
+                
+                // Grade and Thickness - Side by Side
+                HStack(spacing: 12) {
+                    // Grade
+                    VStack(alignment: .leading, spacing: 6) {
+                        Text("Grade")
+                            .font(.caption)
                             .foregroundColor(.secondary)
+                            .fontWeight(.medium)
+                        
+                        if !viewModel.selectedItemType.isEmpty && !viewModel.selectedItem.isEmpty {
+                            Menu {
+                                ForEach(viewModel.availableSpecs, id: \.self) { spec in
+                                    Button {
+                                        viewModel.selectedSpec = spec
+                                    } label: {
+                                        Text(spec)
+                                    }
+                                }
+                            } label: {
+                                HStack {
+                                    Text(viewModel.selectedSpec.isEmpty ? "Select Grade" : viewModel.selectedSpec)
+                                        .font(.body)
+                                        .fontWeight(.semibold)
+                                        .foregroundColor(viewModel.selectedSpec.isEmpty ? .secondary : .primary)
+                                    Spacer()
+                                    Image(systemName: "chevron.down")
+                                        .font(.caption)
+                                        .foregroundColor(.secondary)
+                                }
+                                .padding(.horizontal, 12)
+                                .padding(.vertical, 10)
+                                .frame(maxWidth: .infinity)
+                                .background(Color(.secondarySystemGroupedBackground))
+                                .cornerRadius(10)
+                            }
+                        } else {
+                            Text("Select Material first")
+                                .font(.body)
+                                .foregroundColor(.secondary)
+                                .padding(.horizontal, 12)
+                                .padding(.vertical, 10)
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                                .background(Color(.secondarySystemGroupedBackground))
+                                .cornerRadius(10)
+                        }
+                    }
+                    .frame(maxWidth: .infinity)
+                    
+                    // Thickness
+                    VStack(alignment: .leading, spacing: 6) {
+                        Text("Thickness")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                            .fontWeight(.medium)
+                        
+                        Text(viewModel.thickness)
+                            .font(.body)
+                            .fontWeight(.semibold)
+                            .foregroundColor(.primary)
                             .padding(.horizontal, 12)
                             .padding(.vertical, 10)
                             .frame(maxWidth: .infinity, alignment: .leading)
-                            .background(Color(.secondarySystemGroupedBackground))
+                            .background(Color(.tertiarySystemFill))
                             .cornerRadius(10)
                     }
+                    .frame(maxWidth: .infinity)
                 }
-                .frame(maxWidth: .infinity)
-                
-                // Thickness
-                VStack(alignment: .leading, spacing: 6) {
-                    Text("Thickness")
-                        .font(.caption)
-                        .foregroundColor(.secondary)
-                        .fontWeight(.medium)
-                    
-                    Text(viewModel.thickness)
-                        .font(.body)
-                        .fontWeight(.semibold)
-                        .foregroundColor(.primary)
-                        .padding(.horizontal, 12)
-                        .padding(.vertical, 10)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .background(Color(.tertiarySystemFill))
-                        .cornerRadius(10)
-                }
-                .frame(maxWidth: .infinity)
             }
             
-            // Quantity and UoM - Side by Side
+            // Quantity/Members and UoM - Side by Side
             HStack(spacing: 12) {
-                // Quantity
+                // Quantity (Members for Labour)
                 VStack(alignment: .leading, spacing: 6) {
-                    Text("Quantity")
+                    Text(viewModel.selectedItemType == "Labour" ? "Members" : "Quantity")
                         .font(.caption)
                         .foregroundColor(.secondary)
                         .fontWeight(.medium)
@@ -869,29 +890,64 @@ struct AddExpenseView: View {
                 .frame(maxWidth: .infinity)
                 .id("quantity")
                 
-                // UoM
+                // UoM (Dropdown for Labour, TextField for others)
                 VStack(alignment: .leading, spacing: 6) {
                     Text("UoM")
                         .font(.caption)
                         .foregroundColor(.secondary)
                         .fontWeight(.medium)
                     
-                    TextField("ton", text: $viewModel.uom)
-                        .font(.body)
-                        .fontWeight(.semibold)
-                        .padding(.horizontal, 12)
-                        .padding(.vertical, 10)
-                        .background(Color(.secondarySystemGroupedBackground))
-                        .cornerRadius(10)
+                    if viewModel.selectedItemType == "Labour" {
+                        // Dropdown for Labour
+                        Menu {
+                            ForEach(DepartmentItemData.uomOptions(for: "Labour"), id: \.self) { uomOption in
+                                Button {
+                                    viewModel.uom = uomOption
+                                } label: {
+                                    HStack {
+                                        Text(uomOption)
+                                        if viewModel.uom == uomOption {
+                                            Image(systemName: "checkmark")
+                                        }
+                                    }
+                                }
+                            }
+                        } label: {
+                            HStack {
+                                Text(viewModel.uom.isEmpty ? "Select UoM" : viewModel.uom)
+                                    .font(.body)
+                                    .fontWeight(.semibold)
+                                    .foregroundColor(viewModel.uom.isEmpty ? .secondary : .primary)
+                                Spacer()
+                                Image(systemName: "chevron.down")
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                            }
+                            .padding(.horizontal, 12)
+                            .padding(.vertical, 10)
+                            .frame(maxWidth: .infinity)
+                            .background(Color(.secondarySystemGroupedBackground))
+                            .cornerRadius(10)
+                        }
+                    } else {
+                        // TextField for other item types
+                        TextField("ton", text: $viewModel.uom)
+                            .font(.body)
+                            .fontWeight(.semibold)
+                            .padding(.horizontal, 12)
+                            .padding(.vertical, 10)
+                            .background(Color(.secondarySystemGroupedBackground))
+                            .cornerRadius(10)
+                    }
                 }
                 .frame(maxWidth: .infinity)
             }
             
-            // Unit Price and Line Amount - Side by Side
+            // Unit Price (UOM + Price for Labour) and Line Amount - Side by Side
             HStack(spacing: 12) {
-                // Unit Price
+                // Unit Price (UOM + Price for Labour)
                 VStack(alignment: .leading, spacing: 6) {
-                    Text("Unit Price")
+                    Text(viewModel.selectedItemType == "Labour" ? (viewModel.uom.isEmpty ? "UOM Price" : "\(viewModel.uom) Price") : "Unit Price")
                         .font(.caption)
                         .foregroundColor(.secondary)
                         .fontWeight(.medium)
