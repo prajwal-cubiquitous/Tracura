@@ -1007,7 +1007,8 @@ class CreateProjectViewModel: ObservableObject {
                                 var lineItem = DepartmentLineItem()
                                 lineItem.itemType = lineItemData.itemType
                                 lineItem.item = lineItemData.item
-                                lineItem.spec = lineItemData.spec
+                                // Don't load spec for Labour items
+                                lineItem.spec = lineItemData.itemType == "Labour" ? "" : lineItemData.spec
                                 lineItem.quantity = formatIndianNumber(lineItemData.quantity)
                                 lineItem.uom = lineItemData.uom
                                 lineItem.unitPrice = formatIndianNumber(lineItemData.unitPrice)
@@ -1409,7 +1410,7 @@ class CreateProjectViewModel: ObservableObject {
                             DepartmentLineItemData(
                                 itemType: lineItem.itemType,
                                 item: lineItem.item,
-                                spec: lineItem.spec,
+                                spec: lineItem.itemType == "Labour" ? "" : lineItem.spec, // Don't save spec for Labour
                                 quantity: Double(lineItem.quantity.replacingOccurrences(of: ",", with: "")) ?? 0,
                                 uom: lineItem.uom,
                                 unitPrice: Double(lineItem.unitPrice.replacingOccurrences(of: ",", with: "")) ?? 0

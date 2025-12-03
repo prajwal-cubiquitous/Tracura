@@ -60,8 +60,8 @@ struct DepartmentItemData {
             "Sand": ["M-Sand • Zone I", "M-Sand • Zone II", "River Sand (Coarse)", "River Sand (Fine)"]
         ],
         "Labour": [
-            "Men": ["Unskilled", "Semi-skilled", "Skilled", "Mason", "Helper"],
-            "Women":["Unskilled", "Semi-skilled", "Skilled", "Mason", "Helper"]
+            "Men": [],
+            "Women": []
         ],
         "Machines & eq": [
             "JCB": ["Per-day hire", "Per-hour hire"],

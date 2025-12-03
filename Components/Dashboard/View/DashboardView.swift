@@ -2696,6 +2696,7 @@ private struct AddDepartmentSheet: View {
     @State private var departmentNameError: String?
     @State private var existingDepartmentNames: [String] = []
     @State private var showingSuccessAlert = false
+    @State private var shouldShowValidationErrors = false
     @FocusState private var focusedField: Field?
 
     private enum Field { case name, budget }
@@ -2997,7 +2998,7 @@ private struct AddDepartmentSheet: View {
                                         }
                                     },
                                     contractorMode: contractorMode,
-                                    uomError: lineItem.uom.trimmingCharacters(in: .whitespaces).isEmpty ? "UOM is required" : nil
+                                    uomError: shouldShowValidationErrors && lineItem.uom.trimmingCharacters(in: .whitespaces).isEmpty ? "UOM is required" : nil
                                 )
                             }
                         }
@@ -3121,6 +3122,9 @@ private struct AddDepartmentSheet: View {
     }
 
     private func save() {
+        // Show validation errors when user attempts to save
+        shouldShowValidationErrors = true
+        
         // Validate department name before saving
         validateDepartmentName()
         
@@ -3157,7 +3161,7 @@ private struct AddDepartmentSheet: View {
                     DepartmentLineItemData(
                         itemType: lineItem.itemType,
                         item: lineItem.item,
-                        spec: lineItem.spec,
+                        spec: lineItem.itemType == "Labour" ? "" : lineItem.spec, // Don't save spec for Labour
                         quantity: Double(lineItem.quantity.replacingOccurrences(of: ",", with: "")) ?? 0,
                         uom: lineItem.uom,
                         unitPrice: Double(lineItem.unitPrice.replacingOccurrences(of: ",", with: "")) ?? 0
@@ -5542,6 +5546,7 @@ private struct AddPhaseSheet: View {
     @State private var nextPhaseNumber: Int = 1
     @State private var existingPhaseNames: [String] = []
     @State private var phaseNameError: String?
+    @State private var shouldShowValidationErrors = false
     @FocusState private var focusedField: Field?
     
     // Date confirmation alert states
@@ -5859,6 +5864,7 @@ private struct AddPhaseSheet: View {
                                     department: $dept,
                                     isExpanded: expandedDepartmentId == dept.id,
                                     expandedLineItemId: expandedLineItemIds[dept.id],
+                                    shouldShowValidationErrors: shouldShowValidationErrors,
                                     onToggleExpand: {
                                         withAnimation(DesignSystem.Animation.standardSpring) {
                                             if expandedDepartmentId == dept.id {
@@ -6103,6 +6109,9 @@ private struct AddPhaseSheet: View {
     }
     
     private func savePhase() {
+        // Show validation errors when user attempts to save
+        shouldShowValidationErrors = true
+        
         // Validate phase name before saving
         validatePhaseName()
         
@@ -6305,7 +6314,7 @@ private struct AddPhaseSheet: View {
                         DepartmentLineItemData(
                             itemType: lineItem.itemType,
                             item: lineItem.item,
-                            spec: lineItem.spec,
+                            spec: lineItem.itemType == "Labour" ? "" : lineItem.spec, // Don't save spec for Labour
                             quantity: Double(lineItem.quantity.replacingOccurrences(of: ",", with: "")) ?? 0,
                             uom: lineItem.uom,
                             unitPrice: Double(lineItem.unitPrice.replacingOccurrences(of: ",", with: "")) ?? 0
@@ -6646,6 +6655,7 @@ private struct AddPhaseDepartmentRowView: View {
     @Binding var department: AddPhaseDepartmentItem
     let isExpanded: Bool
     let expandedLineItemId: UUID?
+    let shouldShowValidationErrors: Bool
     let onToggleExpand: () -> Void
     let onToggleLineItemExpand: (UUID) -> Void
     let onDelete: () -> Void
@@ -6843,7 +6853,7 @@ private struct AddPhaseDepartmentRowView: View {
                                             onToggleLineItemExpand(lineItem.id)
                                         },
                                         contractorMode: department.contractorMode,
-                                        uomError: lineItem.uom.trimmingCharacters(in: .whitespaces).isEmpty ? "UOM is required" : nil
+                                        uomError: shouldShowValidationErrors && lineItem.uom.trimmingCharacters(in: .whitespaces).isEmpty ? "UOM is required" : nil
                                     )
                                     .onChange(of: lineItem.quantity) { _, _ in
                                         updateDepartmentAmount()

@@ -207,6 +207,7 @@ struct LineItemRowView: View {
                                         let previousItemType = lineItem.itemType
                                         lineItem.itemType = itemType
                                         lineItem.item = ""
+                                        // Always clear spec when switching item types (Labour doesn't use spec)
                                         lineItem.spec = ""
                                         
                                         // Clear UOM if it's not valid for the new item type
@@ -242,9 +243,9 @@ struct LineItemRowView: View {
                             }
                         }
                         
-                        // Item + Spec
+                        // Item + Spec (hide spec for Labour)
                         VStack(alignment: .leading, spacing: DesignSystem.Spacing.extraSmall) {
-                            Text("Item + Spec")
+                            Text(lineItem.itemType == "Labour" ? "Item" : "Item + Spec")
                                 .font(DesignSystem.Typography.caption1)
                                 .foregroundColor(.secondary)
                             
@@ -255,7 +256,10 @@ struct LineItemRowView: View {
                                         Button(action: {
                                             HapticManager.selection()
                                             lineItem.item = item
-                                            lineItem.spec = ""
+                                            // Clear spec when item changes (only if not Labour)
+                                            if lineItem.itemType != "Labour" {
+                                                lineItem.spec = ""
+                                            }
                                         }) {
                                             HStack {
                                                 Text(item)
@@ -283,48 +287,50 @@ struct LineItemRowView: View {
                                 .disabled(lineItem.itemType.isEmpty)
                                 .opacity(lineItem.itemType.isEmpty ? 0.6 : 1.0)
                                 
-                                // Spec Dropdown
-                                Menu {
-                                    ForEach(DepartmentItemData.specs(for: lineItem.itemType, item: lineItem.item), id: \.self) { spec in
-                                        Button(action: {
-                                            HapticManager.selection()
-                                            lineItem.spec = spec
-                                        }) {
-                                            HStack {
-                                                Text(spec)
-                                                if lineItem.spec == spec {
-                                                    Image(systemName: "checkmark")
+                                // Spec Dropdown (hidden for Labour)
+                                if lineItem.itemType != "Labour" {
+                                    Menu {
+                                        ForEach(DepartmentItemData.specs(for: lineItem.itemType, item: lineItem.item), id: \.self) { spec in
+                                            Button(action: {
+                                                HapticManager.selection()
+                                                lineItem.spec = spec
+                                            }) {
+                                                HStack {
+                                                    Text(spec)
+                                                    if lineItem.spec == spec {
+                                                        Image(systemName: "checkmark")
+                                                    }
                                                 }
                                             }
                                         }
+                                    } label: {
+                                        HStack {
+                                            Text(lineItem.spec.isEmpty ? "Select Spec" : lineItem.spec)
+                                                .font(DesignSystem.Typography.body)
+                                                .foregroundColor(lineItem.spec.isEmpty ? .secondary : .primary)
+                                            Spacer()
+                                            Image(systemName: "chevron.down")
+                                                .font(.system(size: 12, weight: .medium))
+                                                .foregroundColor(.secondary)
+                                        }
+                                        .padding(.horizontal, DesignSystem.Spacing.medium)
+                                        .padding(.vertical, DesignSystem.Spacing.small)
+                                        .background(Color(.tertiarySystemGroupedBackground))
+                                        .cornerRadius(DesignSystem.CornerRadius.field)
                                     }
-                                } label: {
-                                    HStack {
-                                        Text(lineItem.spec.isEmpty ? "Select Spec" : lineItem.spec)
-                                            .font(DesignSystem.Typography.body)
-                                            .foregroundColor(lineItem.spec.isEmpty ? .secondary : .primary)
-                                        Spacer()
-                                        Image(systemName: "chevron.down")
-                                            .font(.system(size: 12, weight: .medium))
-                                            .foregroundColor(.secondary)
-                                    }
-                                    .padding(.horizontal, DesignSystem.Spacing.medium)
-                                    .padding(.vertical, DesignSystem.Spacing.small)
-                                    .background(Color(.tertiarySystemGroupedBackground))
-                                    .cornerRadius(DesignSystem.CornerRadius.field)
+                                    .disabled(lineItem.item.isEmpty)
+                                    .opacity(lineItem.item.isEmpty ? 0.6 : 1.0)
                                 }
-                                .disabled(lineItem.item.isEmpty)
-                                .opacity(lineItem.item.isEmpty ? 0.6 : 1.0)
                             }
                         }
                         
                         // Quantity, UOM, and Unit Price
                         VStack(alignment: .leading, spacing: DesignSystem.Spacing.small) {
-                            // Quantity and UOM in a row
+                            // Quantity/Members and UOM in a row
                             HStack(spacing: DesignSystem.Spacing.medium) {
-                                // Quantity
+                                // Quantity (Members for Labour)
                                 VStack(alignment: .leading, spacing: DesignSystem.Spacing.extraSmall) {
-                                    Text("Quantity")
+                                    Text(lineItem.itemType == "Labour" ? "Members" : "Quantity")
                                         .font(DesignSystem.Typography.caption1)
                                         .foregroundColor(.secondary)
                                     
@@ -371,7 +377,7 @@ struct LineItemRowView: View {
                                     } label: {
                                         HStack {
                                             Text(lineItem.itemType.isEmpty ? "Item Type" : (lineItem.uom.isEmpty ? "Select UOM" : lineItem.uom))
-                                                .font(DesignSystem.Typography.body)
+                                                .font(DesignSystem.Typography.caption1)
                                                 .foregroundColor(lineItem.uom.isEmpty ? .secondary : .primary)
                                             Spacer()
                                             Image(systemName: "chevron.down")
@@ -405,9 +411,9 @@ struct LineItemRowView: View {
                                 .frame(maxWidth: .infinity)
                             }
                             
-                            // Unit Price
+                            // Unit Price (UOM + Price for Labour)
                             VStack(alignment: .leading, spacing: DesignSystem.Spacing.extraSmall) {
-                                Text("Unit Price")
+                                Text(lineItem.itemType == "Labour" ? (lineItem.uom.isEmpty ? "UOM Price" : "\(lineItem.uom) Price") : "Unit Price")
                                     .font(DesignSystem.Typography.caption1)
                                     .foregroundColor(.secondary)
                                 
