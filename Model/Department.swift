@@ -41,17 +41,19 @@ struct DepartmentLineItemData: Codable {
     var item: String
     var spec: String
     var quantity: Double
+    var uom: String // Unit of Measurement
     var unitPrice: Double
     
     var total: Double {
         quantity * unitPrice
     }
     
-    init(itemType: String = "", item: String = "", spec: String = "", quantity: Double = 0, unitPrice: Double = 0) {
+    init(itemType: String = "", item: String = "", spec: String = "", quantity: Double = 0, uom: String = "", unitPrice: Double = 0) {
         self.itemType = itemType
         self.item = item
         self.spec = spec
         self.quantity = quantity
+        self.uom = uom
         self.unitPrice = unitPrice
     }
 }

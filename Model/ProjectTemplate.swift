@@ -37,7 +37,17 @@ struct ProjectTemplate: Identifiable, Codable {
         let item: String
         let spec: String
         let quantity: String
+        let uom: String // Unit of Measurement
         let unitPrice: String
+        
+        init(itemType: String, item: String, spec: String, quantity: String, uom: String = "", unitPrice: String) {
+            self.itemType = itemType
+            self.item = item
+            self.spec = spec
+            self.quantity = quantity
+            self.uom = uom
+            self.unitPrice = unitPrice
+        }
     }
 }
 

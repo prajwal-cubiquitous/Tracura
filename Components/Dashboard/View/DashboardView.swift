@@ -2701,8 +2701,19 @@ private struct AddDepartmentSheet: View {
     private enum Field { case name, budget }
 
     private var isFormValid: Bool {
-        !departmentName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty &&
-        departmentNameError == nil
+        guard !departmentName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty &&
+              departmentNameError == nil else {
+            return false
+        }
+        
+        // Validate that all line items have UOM
+        for lineItem in lineItems {
+            if lineItem.uom.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                return false
+            }
+        }
+        
+        return true
     }
     
     private var totalDepartmentBudget: Double {
@@ -2985,7 +2996,8 @@ private struct AddDepartmentSheet: View {
                                             }
                                         }
                                     },
-                                    contractorMode: contractorMode
+                                    contractorMode: contractorMode,
+                                    uomError: lineItem.uom.trimmingCharacters(in: .whitespaces).isEmpty ? "UOM is required" : nil
                                 )
                             }
                         }
@@ -3147,6 +3159,7 @@ private struct AddDepartmentSheet: View {
                         item: lineItem.item,
                         spec: lineItem.spec,
                         quantity: Double(lineItem.quantity.replacingOccurrences(of: ",", with: "")) ?? 0,
+                        uom: lineItem.uom,
                         unitPrice: Double(lineItem.unitPrice.replacingOccurrences(of: ",", with: "")) ?? 0
                     )
                 }
@@ -6294,6 +6307,7 @@ private struct AddPhaseSheet: View {
                             item: lineItem.item,
                             spec: lineItem.spec,
                             quantity: Double(lineItem.quantity.replacingOccurrences(of: ",", with: "")) ?? 0,
+                            uom: lineItem.uom,
                             unitPrice: Double(lineItem.unitPrice.replacingOccurrences(of: ",", with: "")) ?? 0
                         )
                     }
@@ -6828,7 +6842,8 @@ private struct AddPhaseDepartmentRowView: View {
                                         onToggleExpand: {
                                             onToggleLineItemExpand(lineItem.id)
                                         },
-                                        contractorMode: department.contractorMode
+                                        contractorMode: department.contractorMode,
+                                        uomError: lineItem.uom.trimmingCharacters(in: .whitespaces).isEmpty ? "UOM is required" : nil
                                     )
                                     .onChange(of: lineItem.quantity) { _, _ in
                                         updateDepartmentAmount()

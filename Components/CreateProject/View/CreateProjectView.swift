@@ -22,6 +22,7 @@ struct LineItemRowView: View {
     let isExpanded: Bool
     let onToggleExpand: () -> Void
     let contractorMode: ContractorMode
+    let uomError: String? // UOM validation error message
     
     @State private var quantityText: String = ""
     @State private var unitPriceText: String = ""
@@ -35,6 +36,14 @@ struct LineItemRowView: View {
             // Show all item types for Turnkey mode
             return DepartmentItemData.itemTypeKeys
         }
+    }
+    
+    // Get filtered UOM options based on selected item type
+    private var availableUOMs: [String] {
+        if lineItem.itemType.isEmpty {
+            return DepartmentItemData.allUOMOptions
+        }
+        return DepartmentItemData.uomOptions(for: lineItem.itemType)
     }
     
     private func removeFormatting(from value: String) -> String {
@@ -195,9 +204,18 @@ struct LineItemRowView: View {
                                 ForEach(availableItemTypes, id: \.self) { itemType in
                                     Button(action: {
                                         HapticManager.selection()
+                                        let previousItemType = lineItem.itemType
                                         lineItem.itemType = itemType
                                         lineItem.item = ""
                                         lineItem.spec = ""
+                                        
+                                        // Clear UOM if it's not valid for the new item type
+                                        if previousItemType != itemType {
+                                            let newUOMs = DepartmentItemData.uomOptions(for: itemType)
+                                            if !newUOMs.contains(lineItem.uom) {
+                                                lineItem.uom = ""
+                                            }
+                                        }
                                     }) {
                                         HStack {
                                             Text(itemType)
@@ -300,33 +318,92 @@ struct LineItemRowView: View {
                             }
                         }
                         
-                        // Quantity and Unit Price in a row
-                        HStack(spacing: DesignSystem.Spacing.medium) {
-                            // Quantity
-                            VStack(alignment: .leading, spacing: DesignSystem.Spacing.extraSmall) {
-                                Text("Quantity")
-                                    .font(DesignSystem.Typography.caption1)
-                                    .foregroundColor(.secondary)
-                                
-                                TextField("0", text: Binding(
-                                    get: { quantityText.isEmpty ? lineItem.quantity : quantityText },
-                                    set: { newValue in
-                                        quantityText = formatAmountInput(newValue)
-                                        lineItem.quantity = quantityText
+                        // Quantity, UOM, and Unit Price
+                        VStack(alignment: .leading, spacing: DesignSystem.Spacing.small) {
+                            // Quantity and UOM in a row
+                            HStack(spacing: DesignSystem.Spacing.medium) {
+                                // Quantity
+                                VStack(alignment: .leading, spacing: DesignSystem.Spacing.extraSmall) {
+                                    Text("Quantity")
+                                        .font(DesignSystem.Typography.caption1)
+                                        .foregroundColor(.secondary)
+                                    
+                                    TextField("0", text: Binding(
+                                        get: { quantityText.isEmpty ? lineItem.quantity : quantityText },
+                                        set: { newValue in
+                                            quantityText = formatAmountInput(newValue)
+                                            lineItem.quantity = quantityText
+                                        }
+                                    ))
+                                    .keyboardType(.decimalPad)
+                                    .font(DesignSystem.Typography.body)
+                                    .multilineTextAlignment(.trailing)
+                                    .padding(.horizontal, DesignSystem.Spacing.medium)
+                                    .padding(.vertical, DesignSystem.Spacing.small)
+                                    .background(Color(.tertiarySystemGroupedBackground))
+                                    .cornerRadius(DesignSystem.CornerRadius.field)
+                                    .onAppear {
+                                        quantityText = lineItem.quantity
                                     }
-                                ))
-                                .keyboardType(.decimalPad)
-                                .font(DesignSystem.Typography.body)
-                                .multilineTextAlignment(.trailing)
-                                .padding(.horizontal, DesignSystem.Spacing.medium)
-                                .padding(.vertical, DesignSystem.Spacing.small)
-                                .background(Color(.tertiarySystemGroupedBackground))
-                                .cornerRadius(DesignSystem.CornerRadius.field)
-                                .onAppear {
-                                    quantityText = lineItem.quantity
                                 }
+                                .frame(maxWidth: .infinity)
+                                
+                                // UOM (Unit of Measurement)
+                                VStack(alignment: .leading, spacing: DesignSystem.Spacing.extraSmall) {
+                                    Text("UOM")
+                                        .font(DesignSystem.Typography.caption1)
+                                        .foregroundColor(.secondary)
+                                    
+                                    Menu {
+                                        ForEach(availableUOMs, id: \.self) { uom in
+                                            Button(action: {
+                                                HapticManager.selection()
+                                                lineItem.uom = uom
+                                            }) {
+                                                HStack {
+                                                    Text(uom)
+                                                    if lineItem.uom == uom {
+                                                        Image(systemName: "checkmark")
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    } label: {
+                                        HStack {
+                                            Text(lineItem.itemType.isEmpty ? "Item Type" : (lineItem.uom.isEmpty ? "Select UOM" : lineItem.uom))
+                                                .font(DesignSystem.Typography.body)
+                                                .foregroundColor(lineItem.uom.isEmpty ? .secondary : .primary)
+                                            Spacer()
+                                            Image(systemName: "chevron.down")
+                                                .font(.system(size: 12, weight: .medium))
+                                                .foregroundColor(.secondary)
+                                        }
+                                        .padding(.horizontal, DesignSystem.Spacing.medium)
+                                        .padding(.vertical, DesignSystem.Spacing.small)
+                                        .background(Color(.tertiarySystemGroupedBackground))
+                                        .cornerRadius(DesignSystem.CornerRadius.field)
+                                        .overlay(
+                                            RoundedRectangle(cornerRadius: DesignSystem.CornerRadius.field)
+                                                .stroke(uomError != nil ? Color.red : Color.clear, lineWidth: 1.5)
+                                        )
+                                    }
+                                    .disabled(lineItem.itemType.isEmpty)
+                                    .opacity(lineItem.itemType.isEmpty ? 0.6 : 1.0)
+                                    
+                                    if let error = uomError {
+                                        HStack(spacing: DesignSystem.Spacing.extraSmall) {
+                                            Image(systemName: "exclamationmark.circle.fill")
+                                                .font(.system(size: 12))
+                                                .foregroundColor(.red)
+                                            Text(error)
+                                                .font(DesignSystem.Typography.caption2)
+                                                .foregroundColor(.red)
+                                        }
+                                        .padding(.top, DesignSystem.Spacing.extraSmall)
+                                    }
+                                }
+                                .frame(maxWidth: .infinity)
                             }
-                            .frame(maxWidth: .infinity)
                             
                             // Unit Price
                             VStack(alignment: .leading, spacing: DesignSystem.Spacing.extraSmall) {
@@ -352,7 +429,6 @@ struct LineItemRowView: View {
                                     unitPriceText = lineItem.unitPrice
                                 }
                             }
-                            .frame(maxWidth: .infinity)
                         }
                         
                         // Total
@@ -1684,6 +1760,7 @@ struct PhaseCardView: View {
                                 item: $dept,
                                 errorMessage: viewModel.departmentNameError(for: phase.id, departmentId: dept.id),
                                 viewModel: viewModel,
+                                phaseId: phase.id,
                                 canDelete: phase.departments.count > 1,
                                 onDelete: {
                                     viewModel.removeDepartmentById(from: phase.id, departmentId: dept.id)
@@ -1944,6 +2021,7 @@ private struct DepartmentInputRow: View {
     @Binding var item: DepartmentItem
     let errorMessage: String?
     @ObservedObject var viewModel: CreateProjectViewModel
+    let phaseId: UUID
     let canDelete: Bool
     let onDelete: () -> Void
     @State private var rawAmountInput: String = ""
@@ -2116,7 +2194,8 @@ private struct DepartmentInputRow: View {
                                             }
                                         }
                                     },
-                                    contractorMode: contractorMode
+                                    contractorMode: contractorMode,
+                                    uomError: viewModel.lineItemUOMError(for: phaseId, departmentId: item.id, lineItemId: lineItem.id)
                                 )
                             }
                         }

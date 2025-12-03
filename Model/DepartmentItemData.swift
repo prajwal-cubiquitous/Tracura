@@ -30,14 +30,16 @@ struct DepartmentLineItem: Identifiable, Codable {
     var item: String = ""
     var spec: String = ""
     var quantity: String = ""
+    var uom: String = "" // Unit of Measurement
     var unitPrice: String = ""
     
-    init(id: UUID = UUID(), itemType: String = "", item: String = "", spec: String = "", quantity: String = "", unitPrice: String = "") {
+    init(id: UUID = UUID(), itemType: String = "", item: String = "", spec: String = "", quantity: String = "", uom: String = "", unitPrice: String = "") {
         self.id = id
         self.itemType = itemType
         self.item = item
         self.spec = spec
         self.quantity = quantity
+        self.uom = uom
         self.unitPrice = unitPrice
     }
     
@@ -92,6 +94,48 @@ struct DepartmentItemData {
         guard let items = itemTypes[itemType],
               let specs = items[item] else { return [] }
         return specs
+    }
+    
+
+    
+    // Get UOM options filtered by item type
+    static func uomOptions(for itemType: String) -> [String] {
+        switch itemType {
+        case "Raw material":
+            // Weight, volume, and bag-based measurements for raw materials
+            return ["KG", "Tonne", "m³", "Cft", "Bag", "Litre"]
+            
+        case "Labour":
+            // Time-based and count-based measurements for labour
+            return ["Per Day", "Per Hour", "Nos", "Unit"]
+            
+        case "Machines & eq":
+            // Time-based and trip-based measurements for equipment
+            return ["Per Day", "Per Hour", "Per Trip"]
+            
+        case "Electrical":
+            // Linear, count-based, and area measurements for electrical items
+            return ["m", "Rft", "Piece", "Nos", "Unit", "Roll", "Set", "Box", "Bundle", "m²", "Sqft", "Sqmt"]
+            
+        default:
+            // Return all possible UOMs from all item types (union of all UOMs)
+            let allUOMs = Set([
+                // Raw material UOMs
+                "KG", "Tonne", "m³", "Cft", "Bag", "Litre",
+                // Labour UOMs
+                "Per Day", "Per Hour", "Nos", "Unit",
+                // Machines & eq UOMs
+                "Per Trip",
+                // Electrical UOMs
+                "m", "Rft", "Piece", "Roll", "Set", "Box", "Bundle", "m²", "Sqft", "Sqmt"
+            ])
+            return Array(allUOMs).sorted()
+        }
+    }
+    
+    // Get all available UOM options (for when item type is not selected)
+    static var allUOMOptions: [String] {
+        return uomOptions(for: "")
     }
 }
 

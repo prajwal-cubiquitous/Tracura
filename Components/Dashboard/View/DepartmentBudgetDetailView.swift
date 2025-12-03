@@ -1707,6 +1707,7 @@ class DepartmentBudgetDetailViewModel: ObservableObject {
                                 item: item.item,
                                 spec: item.spec,
                                 quantity: item.quantity,
+                                uom: item.uom,
                                 unitPrice: item.unitPrice * scaleFactor
                             )
                         }

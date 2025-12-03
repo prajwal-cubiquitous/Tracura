@@ -443,6 +443,22 @@ class CreateProjectViewModel: ObservableObject {
             if phase.endDate <= phase.startDate {
                 return false
             }
+            
+            // Validate departments and their line items
+            for department in phase.departments {
+                // Skip validation for empty departments
+                if department.name.trimmingCharacters(in: .whitespaces).isEmpty {
+                    continue
+                }
+                
+                // Validate that all line items have required fields including UOM
+                for lineItem in department.lineItems {
+                    // UOM is compulsory for all line items
+                    if lineItem.uom.trimmingCharacters(in: .whitespaces).isEmpty {
+                        return false
+                    }
+                }
+            }
         }
         
         // Validate phase timeline: next phase must start after previous phase ends (dates are now required)
@@ -620,6 +636,25 @@ class CreateProjectViewModel: ObservableObject {
         if phase.departments.isEmpty || phase.departments.allSatisfy({ $0.name.trimmingCharacters(in: .whitespaces).isEmpty }) {
             return "At least one department with a name is required"
         }
+        return nil
+    }
+    
+    func lineItemUOMError(for phaseId: UUID, departmentId: UUID, lineItemId: UUID) -> String? {
+        guard shouldShowValidationErrors else { return nil }
+        guard let phase = phases.first(where: { $0.id == phaseId }),
+              let department = phase.departments.first(where: { $0.id == departmentId }),
+              let lineItem = department.lineItems.first(where: { $0.id == lineItemId }) else { return nil }
+        
+        // Skip validation if department name is empty (not yet filled)
+        if department.name.trimmingCharacters(in: .whitespaces).isEmpty {
+            return nil
+        }
+        
+        // UOM is compulsory
+        if lineItem.uom.trimmingCharacters(in: .whitespaces).isEmpty {
+            return "UOM is required"
+        }
+        
         return nil
     }
     
@@ -974,6 +1009,7 @@ class CreateProjectViewModel: ObservableObject {
                                 lineItem.item = lineItemData.item
                                 lineItem.spec = lineItemData.spec
                                 lineItem.quantity = formatIndianNumber(lineItemData.quantity)
+                                lineItem.uom = lineItemData.uom
                                 lineItem.unitPrice = formatIndianNumber(lineItemData.unitPrice)
                                 return lineItem
                             }
@@ -1082,6 +1118,7 @@ class CreateProjectViewModel: ObservableObject {
                     lineItem.item = templateLineItem.item
                     lineItem.spec = templateLineItem.spec
                     lineItem.quantity = templateLineItem.quantity
+                    lineItem.uom = templateLineItem.uom
                     lineItem.unitPrice = templateLineItem.unitPrice
                     lineItems.append(lineItem)
                 }
@@ -1374,6 +1411,7 @@ class CreateProjectViewModel: ObservableObject {
                                 item: lineItem.item,
                                 spec: lineItem.spec,
                                 quantity: Double(lineItem.quantity.replacingOccurrences(of: ",", with: "")) ?? 0,
+                                uom: lineItem.uom,
                                 unitPrice: Double(lineItem.unitPrice.replacingOccurrences(of: ",", with: "")) ?? 0
                             )
                         }
