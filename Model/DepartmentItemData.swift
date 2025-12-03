@@ -16,9 +16,9 @@ enum ContractorMode: String, CaseIterable, Codable {
     var displayName: String {
         switch self {
         case .labourOnly:
-            return "Labour-Only (materials + labour)"
+            return "Labour-Only"
         case .turnkey:
-            return "Turnkey (materials included)"
+            return "Turnkey"
         }
     }
 }
@@ -58,7 +58,8 @@ struct DepartmentItemData {
             "Sand": ["M-Sand • Zone I", "M-Sand • Zone II", "River Sand (Coarse)", "River Sand (Fine)"]
         ],
         "Labour": [
-            "Men & Women": ["Unskilled", "Semi-skilled", "Skilled", "Mason", "Helper"]
+            "Men": ["Unskilled", "Semi-skilled", "Skilled", "Mason", "Helper"],
+            "Women":["Unskilled", "Semi-skilled", "Skilled", "Mason", "Helper"]
         ],
         "Machines & eq": [
             "JCB": ["Per-day hire", "Per-hour hire"],

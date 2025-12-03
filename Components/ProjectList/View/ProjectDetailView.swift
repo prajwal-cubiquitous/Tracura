@@ -163,39 +163,41 @@ struct ProjectDetailView: View {
             addExpenseButton
         }
         .onAppear {
-            // Load phases first (this also calculates totalApprovedExpenses)
-            viewModel.loadPhases()
-            
-            // Then fetch approved expenses separately (for department breakdown)
-            // This will also update totalApprovedExpenses, but loadPhases() should set it first
-            viewModel.fetchApprovedExpenses()
-            
-            // Load state manager data
-            if let projectId = project.id, let customerId = customerId {
-                Task {
-                    await stateManager.loadAllData(projectId: projectId, customerId: customerId)
-                    await stateManager.loadTeamMembers(projectId: projectId, customerId: customerId)
-                }
-            }
-            
-            // Load phase extensions
-            Task {
-                await viewModel.loadPhaseExtensions()
-            }
-            
-            // Load notifications
-            Task {
-                if let projectId = project.id {
-                    await notificationViewModel.fetchProjectNotifications(
-                        projectId: projectId,
-                        currentUserPhone: phoneNumber,
-                        currentUserRole: role ?? .USER
-                    )
-                }
-            }
-            
             // Reset visibility when view appears
             hasVisiblePhase = false
+            
+            // Load phases first (this also calculates totalApprovedExpenses and loads expenses)
+            viewModel.loadPhases()
+            
+            // Fetch approved expenses separately (for department breakdown) - can run in parallel
+            viewModel.fetchApprovedExpenses()
+            
+            // Load all additional data in parallel for faster loading
+            if let projectId = project.id, let customerId = customerId {
+                Task {
+                    // Load state manager data and phase extensions in parallel
+                    async let stateManagerTask = stateManager.loadAllData(projectId: projectId, customerId: customerId)
+                    async let teamMembersTask = stateManager.loadTeamMembers(projectId: projectId, customerId: customerId)
+                    async let extensionsTask = viewModel.loadPhaseExtensions()
+                    
+                    // Wait for essential data
+                    _ = await (stateManagerTask, teamMembersTask, extensionsTask)
+                    
+                    // Load notifications in background (non-blocking)
+                    Task {
+                        await notificationViewModel.fetchProjectNotifications(
+                            projectId: projectId,
+                            currentUserPhone: phoneNumber,
+                            currentUserRole: role ?? .USER
+                        )
+                    }
+                }
+            } else {
+                // Load phase extensions even if no customerId
+                Task {
+                    await viewModel.loadPhaseExtensions()
+                }
+            }
         }
         .overlay {
             if showingNotifications {

@@ -732,34 +732,51 @@ struct DashboardView: View {
         }
 
         .onAppear {
-            if let projectId = project?.id{
+            if let projectId = project?.id {
                 viewModel.loadDashboardData()
-                // Load state manager data
-                if let customerId = customerId {
-                    Task {
-                        await stateManager.loadAllData(projectId: projectId, customerId: customerId)
-                        // Load team members
-                        await stateManager.loadTeamMembers(projectId: projectId, customerId: customerId)
+                
+                // Load all data in parallel for faster loading
+                Task {
+                    // Load phases first (most critical for UI)
+                    async let phasesTask = loadPhases()
+                    
+                    // Load state manager data in parallel with phases
+                    if let customerId = customerId {
+                        async let stateManagerTask = stateManager.loadAllData(projectId: projectId, customerId: customerId)
+                        async let teamMembersTask = stateManager.loadTeamMembers(projectId: projectId, customerId: customerId)
+                        async let tempApproverTask = fetchTempApproverData()
+                        
+                        // Wait for essential data
+                        _ = await (phasesTask, stateManagerTask, teamMembersTask, tempApproverTask)
+                    } else {
+                        async let tempApproverTask = fetchTempApproverData()
+                        _ = await (phasesTask, tempApproverTask)
                     }
-                }
-            }
-            Task {
-                await loadPhases()
-                await fetchTempApproverData()
-                // Load phase request notifications for admin
-                if role == .ADMIN, let projectId = project?.id {
-                    await phaseRequestNotificationViewModel.loadPendingRequests(
-                        projectId: projectId,
-                        customerId: customerId
-                    )
-                }
-                // Load FCM notifications for APPROVER and ADMIN
-                if (role == .APPROVER || role == .ADMIN), let projectId = project?.id {
-                    await notificationViewModel.fetchProjectNotifications(
-                        projectId: projectId,
-                        currentUserPhone: phoneNumber,
-                        currentUserRole: role ?? .USER
-                    )
+                    
+                    // Load notifications in parallel (non-blocking)
+                    if let projectId = project?.id {
+                        async let phaseRequestsTask: Void = {
+                            if role == .ADMIN {
+                                await phaseRequestNotificationViewModel.loadPendingRequests(
+                                    projectId: projectId,
+                                    customerId: customerId
+                                )
+                            }
+                        }()
+                        
+                        async let notificationsTask: Void = {
+                            if role == .APPROVER || role == .ADMIN {
+                                await notificationViewModel.fetchProjectNotifications(
+                                    projectId: projectId,
+                                    currentUserPhone: phoneNumber,
+                                    currentUserRole: role ?? .USER
+                                )
+                            }
+                        }()
+                        
+                        // Don't wait for notifications - they can load in background
+                        _ = await (phaseRequestsTask, notificationsTask)
+                    }
                 }
             }
         }
@@ -1928,71 +1945,113 @@ struct DashboardView: View {
                 .phasesCollection(customerId: customerId, projectId: projectId)
                 .order(by: "phaseNumber")
                 .getDocuments()
-            var collected: [PhaseSummary] = []
+            
+            // First, parse all phases (lightweight operation)
+            struct PhaseData {
+                let id: String
+                let phase: Phase
+                let startDate: Date?
+                let endDate: Date?
+            }
+            
+            var phaseDataList: [PhaseData] = []
             for doc in snapshot.documents {
                 let phaseId = doc.documentID
                 if let p = try? doc.data(as: Phase.self) {
                     let s = p.startDate.flatMap { phaseDateFormatter.date(from: $0) }
                     let e = p.endDate.flatMap { phaseDateFormatter.date(from: $0) }
-                    
-                    // Load departments from departments subcollection
-                    var departmentList: [DepartmentSummary] = []
-                    var departmentsDict: [String: Double] = [:]
-                    
-                    do {
-                        let departmentsSnapshot = try await FirebasePathHelper.shared
-                            .departmentsCollection(customerId: customerId, projectId: projectId, phaseId: phaseId)
-                            .getDocuments()
-                        
-                        for deptDoc in departmentsSnapshot.documents {
-                            if let department = try? deptDoc.data(as: Department.self) {
-                                let deptId = deptDoc.documentID
-                                let deptBudget = department.totalBudget
-                                
-                                // Add to dictionary for backward compatibility (using phaseId_departmentName format)
-                                let deptKey = String.departmentKey(phaseId: phaseId, departmentName: department.name)
-                                departmentsDict[deptKey] = deptBudget
-                                
-                                // Add to department list
-                                departmentList.append(DepartmentSummary(
-                                    id: deptId,
-                                    name: department.name,
-                                    budget: deptBudget,
-                                    contractorMode: department.contractorMode
-                                ))
-                            }
-                        }
-                    } catch {
-                        print("⚠️ Error loading departments for phase \(phaseId): \(error.localizedDescription)")
-                        // Fallback to phase.departments dictionary (backward compatibility)
-                        departmentsDict = p.departments
-                    }
-                    
-                    collected.append(PhaseSummary(
-                        id: phaseId,
-                        name: p.phaseName,
-                        start: s,
-                        end: e,
-                        departments: departmentsDict,
-                        departmentList: departmentList
-                    ))
+                    phaseDataList.append(PhaseData(id: phaseId, phase: p, startDate: s, endDate: e))
                     phaseEnabledMap[phaseId] = p.isEnabledValue
                 }
             }
+            
+            // Load all departments for all phases in parallel using TaskGroup
+            typealias DepartmentResult = (phaseId: String, departmentList: [DepartmentSummary], departmentsDict: [String: Double])
+            
+            let departmentResults = await withTaskGroup(of: DepartmentResult?.self) { group in
+                var results: [DepartmentResult] = []
+                
+                for phaseData in phaseDataList {
+                    group.addTask {
+                        let phaseId = phaseData.id
+                        var departmentList: [DepartmentSummary] = []
+                        var departmentsDict: [String: Double] = [:]
+                        
+                        do {
+                            let departmentsSnapshot = try await FirebasePathHelper.shared
+                                .departmentsCollection(customerId: customerId, projectId: projectId, phaseId: phaseId)
+                                .getDocuments()
+                            
+                            for deptDoc in departmentsSnapshot.documents {
+                                if let department = try? deptDoc.data(as: Department.self) {
+                                    let deptId = deptDoc.documentID
+                                    let deptBudget = department.totalBudget
+                                    
+                                    // Add to dictionary for backward compatibility (using phaseId_departmentName format)
+                                    let deptKey = String.departmentKey(phaseId: phaseId, departmentName: department.name)
+                                    departmentsDict[deptKey] = deptBudget
+                                    
+                                    // Add to department list
+                                    departmentList.append(DepartmentSummary(
+                                        id: deptId,
+                                        name: department.name,
+                                        budget: deptBudget,
+                                        contractorMode: department.contractorMode
+                                    ))
+                                }
+                            }
+                        } catch {
+                            print("⚠️ Error loading departments for phase \(phaseId): \(error.localizedDescription)")
+                            // Fallback to phase.departments dictionary (backward compatibility)
+                            departmentsDict = phaseData.phase.departments
+                        }
+                        
+                        return DepartmentResult(phaseId: phaseId, departmentList: departmentList, departmentsDict: departmentsDict)
+                    }
+                }
+                
+                for await result in group {
+                    if let result = result {
+                        results.append(result)
+                    }
+                }
+                
+                return results
+            }
+            
+            // Create a dictionary for quick lookup
+            let deptResultsDict = Dictionary(uniqueKeysWithValues: departmentResults.map { ($0.phaseId, ($0.departmentList, $0.departmentsDict)) })
+            
+            // Build PhaseSummary list
+            var collected: [PhaseSummary] = []
+            for phaseData in phaseDataList {
+                let (deptList, deptDict) = deptResultsDict[phaseData.id] ?? ([], phaseData.phase.departments)
+                
+                collected.append(PhaseSummary(
+                    id: phaseData.id,
+                    name: phaseData.phase.phaseName,
+                    start: phaseData.startDate,
+                    end: phaseData.endDate,
+                    departments: deptDict,
+                    departmentList: deptList
+                ))
+            }
+            
             await MainActor.run { 
                 allPhases = collected
                 phasesLoaded = true // Mark phases as loaded
                 // Sync with state manager
                 stateManager.allPhases = collected
             }
-            // Load phase budgets after phases are loaded
-            await loadPhaseBudgets()
-            // Load department spent amounts per phase
-            await loadPhaseDepartmentSpent()
-            // Load extension status for phases
-            await loadPhaseExtensions()
-            // Load anonymous expenses per phase
-            await loadPhaseAnonymousExpenses()
+            
+            // Load additional data in parallel after essential data is loaded
+            async let budgetsTask = loadPhaseBudgets()
+            async let spentTask = loadPhaseDepartmentSpent()
+            async let extensionsTask = loadPhaseExtensions()
+            async let anonymousTask = loadPhaseAnonymousExpenses()
+            
+            // Wait for all additional data to load
+            _ = await (budgetsTask, spentTask, extensionsTask, anonymousTask)
         } catch {
             // Error loading phases
         }

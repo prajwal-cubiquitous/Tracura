@@ -92,8 +92,17 @@ class ProjectDetailViewModel: ObservableObject {
                 // Get customerId using fetchEffectiveUserID which gets ownerID from users collection
                 let customerId = try await FirebasePathHelper.shared.fetchEffectiveUserID()
                 
-                let phasesRef = FirebasePathHelper.shared.phasesCollection(customerId: customerId, projectId: projectId)
-                let snapshot = try await phasesRef.order(by: "phaseNumber").getDocuments()
+                // Load phases and expenses in parallel
+                async let phasesTask = FirebasePathHelper.shared.phasesCollection(customerId: customerId, projectId: projectId)
+                    .order(by: "phaseNumber")
+                    .getDocuments()
+                
+                async let expensesTask = FirebasePathHelper.shared
+                    .expensesCollection(customerId: customerId, projectId: projectId)
+                    .whereField("status", isEqualTo: ExpenseStatus.approved.rawValue)
+                    .getDocuments()
+                
+                let (snapshot, expensesSnapshot) = try await (phasesTask, expensesTask)
                 
                 guard !snapshot.documents.isEmpty else {
                     await MainActor.run {
@@ -101,117 +110,130 @@ class ProjectDetailViewModel: ObservableObject {
                     }
                     return
                 }
-            
-                // Load all approved expenses once using customer-specific path
-                let expensesSnapshot = try await FirebasePathHelper.shared
-                    .expensesCollection(customerId: customerId, projectId: projectId)
-                    .whereField("status", isEqualTo: ExpenseStatus.approved.rawValue)
-                    .getDocuments()
-                
-                var expensesByPhaseId: [String: [Expense]] = [:]
-                var expensesByPhaseAndDepartment: [String: [String: Double]] = [:]
-                var totalApproved: Double = 0 // Track total approved expenses
                 
                 // Process expenses
-                var processedCount = 0
-                var failedCount = 0
+                var expensesByPhaseId: [String: [Expense]] = [:]
+                var expensesByPhaseAndDepartment: [String: [String: Double]] = [:]
+                var totalApproved: Double = 0
+                
                 for expenseDoc in expensesSnapshot.documents {
                     do {
                         let expense = try expenseDoc.data(as: Expense.self)
-                        // Add to total regardless of phaseId
                         totalApproved += expense.amount
-                        processedCount += 1
                         
-                        // Process phase-based expenses
                         if let phaseId = expense.phaseId {
                             if expensesByPhaseId[phaseId] == nil {
                                 expensesByPhaseId[phaseId] = []
                             }
                             expensesByPhaseId[phaseId]?.append(expense)
                             
-                            // Track by phase and department
-                            // Expenses may be stored with format "phaseId_departmentName" or just "departmentName"
-                            // We need to match expenses to phase department keys correctly
                             if expensesByPhaseAndDepartment[phaseId] == nil {
                                 expensesByPhaseAndDepartment[phaseId] = [:]
                             }
                             
-                            // Determine the correct department key
                             let departmentKey: String
                             if expense.department.hasPrefix("\(phaseId)_") {
-                                // Expense already has phaseId prefix - use it directly
                                 departmentKey = expense.department
                             } else {
-                                // Expense has just department name - add phaseId prefix to match phase format
                                 departmentKey = "\(phaseId)_\(expense.department)"
                             }
                             
-                            // Store using the department key (only once, no double counting)
                             expensesByPhaseAndDepartment[phaseId]?[departmentKey, default: 0] += expense.amount
                         }
                     } catch {
-                        failedCount += 1
                         print("⚠️ Failed to decode expense document \(expenseDoc.documentID): \(error)")
                     }
                 }
                 
-                // Processed expenses: \(processedCount) approved, \(failedCount) failed, Total: ₹\(totalApproved)
+                // First, parse all phases (lightweight operation)
+                struct PhaseData {
+                    let id: String
+                    let phase: Phase
+                    let startDate: Date?
+                    let endDate: Date?
+                }
                 
-                // Process phases
-                var phasesList: [PhaseInfo] = []
-                
+                var phaseDataList: [PhaseData] = []
                 for doc in snapshot.documents {
                     let phaseId = doc.documentID
                     if let phase = try? doc.data(as: Phase.self) {
-                        // Parse dates
                         let startDate = phase.startDate.flatMap { self.dateFormatter.date(from: $0) }
                         let endDate = phase.endDate.flatMap { self.dateFormatter.date(from: $0) }
-                        
-                        // Load departments from departments subcollection
-                        var departmentInfos: [DepartmentInfo] = []
-                        var totalBudget: Double = 0
-                        
-                        do {
-                            let departmentsSnapshot = try await FirebasePathHelper.shared
-                                .departmentsCollection(customerId: customerId, projectId: projectId, phaseId: phaseId)
-                                .getDocuments()
+                        phaseDataList.append(PhaseData(id: phaseId, phase: phase, startDate: startDate, endDate: endDate))
+                    }
+                }
+                
+                // Load all departments for all phases in parallel using TaskGroup
+                typealias DepartmentResult = (phaseId: String, departmentInfos: [DepartmentInfo], totalBudget: Double)
+                
+                let departmentResults = await withTaskGroup(of: DepartmentResult?.self) { group in
+                    var results: [DepartmentResult] = []
+                    
+                    for phaseData in phaseDataList {
+                        group.addTask { [expensesByPhaseAndDepartment] in
+                            let phaseId = phaseData.id
+                            var departmentInfos: [DepartmentInfo] = []
+                            var totalBudget: Double = 0
                             
-                            if !departmentsSnapshot.documents.isEmpty {
-                                // Calculate from departments subcollection
-                                for deptDoc in departmentsSnapshot.documents {
-                                    if let department = try? deptDoc.data(as: Department.self) {
-                                        let deptBudget = department.totalBudget
-                                        totalBudget += deptBudget
+                            do {
+                                let departmentsSnapshot = try await FirebasePathHelper.shared
+                                    .departmentsCollection(customerId: customerId, projectId: projectId, phaseId: phaseId)
+                                    .getDocuments()
+                                
+                                if !departmentsSnapshot.documents.isEmpty {
+                                    for deptDoc in departmentsSnapshot.documents {
+                                        if let department = try? deptDoc.data(as: Department.self) {
+                                            let deptBudget = department.totalBudget
+                                            totalBudget += deptBudget
+                                            
+                                            let deptKeyWithPrefix = "\(phaseId)_\(department.name)"
+                                            let deptApproved = expensesByPhaseAndDepartment[phaseId]?[deptKeyWithPrefix] ?? 
+                                                              expensesByPhaseAndDepartment[phaseId]?[department.name] ?? 0
+                                            let deptRemaining = deptBudget - deptApproved
+                                            
+                                            departmentInfos.append(DepartmentInfo(
+                                                name: department.name,
+                                                allocatedBudget: deptBudget,
+                                                approvedAmount: deptApproved,
+                                                remainingAmount: deptRemaining
+                                            ))
+                                        }
+                                    }
+                                } else {
+                                    // Fallback to phase.departments dictionary
+                                    totalBudget = phaseData.phase.departments.values.reduce(0, +)
+                                    
+                                    for (deptKey, deptBudget) in phaseData.phase.departments {
+                                        let displayName: String
+                                        if let underscoreIndex = deptKey.firstIndex(of: "_") {
+                                            displayName = String(deptKey[deptKey.index(after: underscoreIndex)...])
+                                        } else {
+                                            displayName = deptKey
+                                        }
                                         
-                                        // Look up expenses - try both with and without phaseId prefix
-                                        let deptKeyWithPrefix = "\(phaseId)_\(department.name)"
-                                        let deptApproved = expensesByPhaseAndDepartment[phaseId]?[deptKeyWithPrefix] ?? 
-                                                          expensesByPhaseAndDepartment[phaseId]?[department.name] ?? 0
+                                        let deptApproved = expensesByPhaseAndDepartment[phaseId]?[deptKey] ?? 0
                                         let deptRemaining = deptBudget - deptApproved
                                         
                                         departmentInfos.append(DepartmentInfo(
-                                            name: department.name,
+                                            name: displayName,
                                             allocatedBudget: deptBudget,
                                             approvedAmount: deptApproved,
                                             remainingAmount: deptRemaining
                                         ))
                                     }
                                 }
-                            } else {
-                                // Fallback to phase.departments dictionary
-                                totalBudget = phase.departments.values.reduce(0, +)
+                            } catch {
+                                print("⚠️ Error loading departments for phase \(phaseId): \(error.localizedDescription)")
+                                totalBudget = phaseData.phase.departments.values.reduce(0, +)
                                 
-                                // Build department info from dictionary
-                                for (deptKey, deptBudget) in phase.departments {
-                                    // Extract display name by removing phaseId_ prefix
+                                for (deptKey, deptBudget) in phaseData.phase.departments {
                                     let displayName: String
                                     if let underscoreIndex = deptKey.firstIndex(of: "_") {
                                         displayName = String(deptKey[deptKey.index(after: underscoreIndex)...])
                                     } else {
-                                        displayName = deptKey // Old format, use as is
+                                        displayName = deptKey
                                     }
                                     
-                                    // Look up expenses using the original key (with phaseId prefix)
                                     let deptApproved = expensesByPhaseAndDepartment[phaseId]?[deptKey] ?? 0
                                     let deptRemaining = deptBudget - deptApproved
                                     
@@ -223,54 +245,48 @@ class ProjectDetailViewModel: ObservableObject {
                                     ))
                                 }
                             }
-                        } catch {
-                            print("⚠️ Error loading departments for phase \(phaseId): \(error.localizedDescription)")
-                            // Fallback to phase.departments dictionary
-                            totalBudget = phase.departments.values.reduce(0, +)
                             
-                            for (deptKey, deptBudget) in phase.departments {
-                                let displayName: String
-                                if let underscoreIndex = deptKey.firstIndex(of: "_") {
-                                    displayName = String(deptKey[deptKey.index(after: underscoreIndex)...])
-                                } else {
-                                    displayName = deptKey
-                                }
-                                
-                                let deptApproved = expensesByPhaseAndDepartment[phaseId]?[deptKey] ?? 0
-                                let deptRemaining = deptBudget - deptApproved
-                                
-                                departmentInfos.append(DepartmentInfo(
-                                    name: displayName,
-                                    allocatedBudget: deptBudget,
-                                    approvedAmount: deptApproved,
-                                    remainingAmount: deptRemaining
-                                ))
-                            }
+                            departmentInfos.sort { $0.name < $1.name }
+                            
+                            return DepartmentResult(phaseId: phaseId, departmentInfos: departmentInfos, totalBudget: totalBudget)
                         }
-                        
-                        // Sort departments by name
-                        departmentInfos.sort { $0.name < $1.name }
-                        
-                        // Calculate approved amount for this phase
-                        let phaseExpenses = expensesByPhaseId[phaseId] ?? []
-                        let approvedAmount = phaseExpenses.reduce(0) { $0 + $1.amount }
-                        let remainingAmount = totalBudget - approvedAmount
-                        
-                        let phaseInfo = PhaseInfo(
-                            id: phaseId,
-                            phaseName: phase.phaseName,
-                            phaseNumber: phase.phaseNumber,
-                            startDate: startDate,
-                            endDate: endDate,
-                            totalBudget: totalBudget,
-                            approvedAmount: approvedAmount,
-                            remainingAmount: remainingAmount,
-                            departments: departmentInfos,
-                            isEnabled: phase.isEnabledValue
-                        )
-                        
-                        phasesList.append(phaseInfo)
                     }
+                    
+                    for await result in group {
+                        if let result = result {
+                            results.append(result)
+                        }
+                    }
+                    
+                    return results
+                }
+                
+                // Create a dictionary for quick lookup
+                let deptResultsDict = Dictionary(uniqueKeysWithValues: departmentResults.map { ($0.phaseId, ($0.departmentInfos, $0.totalBudget)) })
+                
+                // Build PhaseInfo list
+                var phasesList: [PhaseInfo] = []
+                for phaseData in phaseDataList {
+                    let (departmentInfos, totalBudget) = deptResultsDict[phaseData.id] ?? ([], phaseData.phase.departments.values.reduce(0, +))
+                    
+                    let phaseExpenses = expensesByPhaseId[phaseData.id] ?? []
+                    let approvedAmount = phaseExpenses.reduce(0) { $0 + $1.amount }
+                    let remainingAmount = totalBudget - approvedAmount
+                    
+                    let phaseInfo = PhaseInfo(
+                        id: phaseData.id,
+                        phaseName: phaseData.phase.phaseName,
+                        phaseNumber: phaseData.phase.phaseNumber,
+                        startDate: phaseData.startDate,
+                        endDate: phaseData.endDate,
+                        totalBudget: totalBudget,
+                        approvedAmount: approvedAmount,
+                        remainingAmount: remainingAmount,
+                        departments: departmentInfos,
+                        isEnabled: phaseData.phase.isEnabledValue
+                    )
+                    
+                    phasesList.append(phaseInfo)
                 }
                 
                 await MainActor.run {
@@ -278,7 +294,6 @@ class ProjectDetailViewModel: ObservableObject {
                     self.currentPhase = self.getCurrentPhase(from: phasesList)
                     self.currentPhases = self.getCurrentPhases(from: phasesList)
                     self.expiredPhases = self.getExpiredPhases(from: phasesList)
-                    // Always update totalApprovedExpenses with the calculated value
                     self.totalApprovedExpenses = totalApproved
                     self.isLoading = false
                 }
