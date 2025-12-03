@@ -21,9 +21,21 @@ struct LineItemRowView: View {
     let canDelete: Bool
     let isExpanded: Bool
     let onToggleExpand: () -> Void
+    let contractorMode: ContractorMode
     
     @State private var quantityText: String = ""
     @State private var unitPriceText: String = ""
+    
+    // Filter item types based on contractor mode
+    private var availableItemTypes: [String] {
+        if contractorMode == .labourOnly {
+            // Only show Labour for Labour-Only mode
+            return ["Labour"]
+        } else {
+            // Show all item types for Turnkey mode
+            return DepartmentItemData.itemTypeKeys
+        }
+    }
     
     private func removeFormatting(from value: String) -> String {
         return value.replacingOccurrences(of: ",", with: "")
@@ -180,7 +192,7 @@ struct LineItemRowView: View {
                                 .foregroundColor(.secondary)
                             
                             Menu {
-                                ForEach(DepartmentItemData.itemTypeKeys, id: \.self) { itemType in
+                                ForEach(availableItemTypes, id: \.self) { itemType in
                                     Button(action: {
                                         HapticManager.selection()
                                         lineItem.itemType = itemType
@@ -2028,7 +2040,19 @@ private struct DepartmentInputRow: View {
                             ForEach(ContractorMode.allCases, id: \.self) { mode in
                                 Button(action: {
                                     HapticManager.selection()
+                                    let previousMode = contractorMode
                                     contractorMode = mode
+                                    
+                                    // If switching to Labour-Only, clear non-Labour item types
+                                    if mode == .labourOnly && previousMode == .turnkey {
+                                        for index in lineItems.indices {
+                                            if lineItems[index].itemType != "Labour" && !lineItems[index].itemType.isEmpty {
+                                                lineItems[index].itemType = ""
+                                                lineItems[index].item = ""
+                                                lineItems[index].spec = ""
+                                            }
+                                        }
+                                    }
                                 }) {
                                     Text(mode.displayName)
                                         .font(DesignSystem.Typography.subheadline)
@@ -2091,7 +2115,8 @@ private struct DepartmentInputRow: View {
                                                 expandedLineItemId = lineItem.id
                                             }
                                         }
-                                    }
+                                    },
+                                    contractorMode: contractorMode
                                 )
                             }
                         }

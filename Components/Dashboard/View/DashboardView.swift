@@ -2850,7 +2850,19 @@ private struct AddDepartmentSheet: View {
                             ForEach(ContractorMode.allCases, id: \.self) { mode in
                                 Button(action: {
                                     HapticManager.selection()
+                                    let previousMode = contractorMode
                                     contractorMode = mode
+                                    
+                                    // If switching to Labour-Only, clear non-Labour item types
+                                    if mode == .labourOnly && previousMode == .turnkey {
+                                        for index in lineItems.indices {
+                                            if lineItems[index].itemType != "Labour" && !lineItems[index].itemType.isEmpty {
+                                                lineItems[index].itemType = ""
+                                                lineItems[index].item = ""
+                                                lineItems[index].spec = ""
+                                            }
+                                        }
+                                    }
                                 }) {
                                     Text(mode.displayName)
                                         .font(DesignSystem.Typography.subheadline)
@@ -2913,7 +2925,8 @@ private struct AddDepartmentSheet: View {
                                                 expandedLineItemId = lineItem.id
                                             }
                                         }
-                                    }
+                                    },
+                                    contractorMode: contractorMode
                                 )
                             }
                         }
@@ -6692,7 +6705,19 @@ private struct AddPhaseDepartmentRowView: View {
                                 ForEach(ContractorMode.allCases, id: \.self) { mode in
                                     Button(action: {
                                         HapticManager.selection()
+                                        let previousMode = department.contractorMode
                                         department.contractorMode = mode
+                                        
+                                        // If switching to Labour-Only, clear non-Labour item types
+                                        if mode == .labourOnly && previousMode == .turnkey {
+                                            for index in department.lineItems.indices {
+                                                if department.lineItems[index].itemType != "Labour" && !department.lineItems[index].itemType.isEmpty {
+                                                    department.lineItems[index].itemType = ""
+                                                    department.lineItems[index].item = ""
+                                                    department.lineItems[index].spec = ""
+                                                }
+                                            }
+                                        }
                                     }) {
                                         Text(mode.displayName)
                                             .font(DesignSystem.Typography.subheadline)
@@ -6743,7 +6768,8 @@ private struct AddPhaseDepartmentRowView: View {
                                         isExpanded: expandedLineItemId == lineItem.id,
                                         onToggleExpand: {
                                             onToggleLineItemExpand(lineItem.id)
-                                        }
+                                        },
+                                        contractorMode: department.contractorMode
                                     )
                                     .onChange(of: lineItem.quantity) { _, _ in
                                         updateDepartmentAmount()
