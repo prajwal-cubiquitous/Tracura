@@ -2882,10 +2882,11 @@ private struct AddDepartmentSheet: View {
         VStack(alignment: .leading, spacing: DesignSystem.Spacing.medium) {
             HStack(alignment: .top, spacing: DesignSystem.Spacing.medium) {
                 // Enhanced accent indicator with gradient
-                RoundedRectangle(cornerRadius: 4)
+                RoundedRectangle(cornerRadius: 5)
                     .fill(blueCyanGradient)
-                    .frame(width: 5)
-                    .shadow(color: Color.blue.opacity(0.3), radius: 4, x: 0, y: 2)
+                    .frame(width: 6)
+                    .shadow(color: Color.blue.opacity(0.4), radius: 6, x: 0, y: 3)
+                    .shadow(color: Color.cyan.opacity(0.2), radius: 10, x: 0, y: 5)
                     .padding(.top, 6)
                 
                 VStack(alignment: .leading, spacing: DesignSystem.Spacing.small) {
@@ -2976,13 +2977,14 @@ private struct AddDepartmentSheet: View {
     }
     
     private var departmentNameTextFieldBackground: some View {
-        RoundedRectangle(cornerRadius: 12)
+        RoundedRectangle(cornerRadius: 16)
             .fill(
                 focusedField == .name
                     ? LinearGradient(
                         colors: [
-                            Color.blue.opacity(0.08),
-                            Color.cyan.opacity(0.04)
+                            Color.blue.opacity(0.12),
+                            Color.cyan.opacity(0.08),
+                            Color.blue.opacity(0.05)
                         ],
                         startPoint: .topLeading,
                         endPoint: .bottomTrailing
@@ -2990,7 +2992,8 @@ private struct AddDepartmentSheet: View {
                     : LinearGradient(
                         colors: [
                             Color(.tertiarySystemGroupedBackground),
-                            Color(.tertiarySystemGroupedBackground).opacity(0.7)
+                            Color(.tertiarySystemGroupedBackground).opacity(0.8),
+                            Color(.tertiarySystemGroupedBackground).opacity(0.6)
                         ],
                         startPoint: .topLeading,
                         endPoint: .bottomTrailing
@@ -3020,11 +3023,15 @@ private struct AddDepartmentSheet: View {
             }
         }()
         
-        RoundedRectangle(cornerRadius: 12)
+        RoundedRectangle(cornerRadius: 16)
             .stroke(
                 focusedField == .name
                     ? LinearGradient(
-                        colors: [strokeColor, strokeColor.opacity(0.6)],
+                        colors: [
+                            strokeColor,
+                            strokeColor.opacity(0.7),
+                            strokeColor.opacity(0.5)
+                        ],
                         startPoint: .topLeading,
                         endPoint: .bottomTrailing
                     )
@@ -3038,18 +3045,20 @@ private struct AddDepartmentSheet: View {
     }
     
     private var dragIndicator: some View {
-        RoundedRectangle(cornerRadius: 3)
+        RoundedRectangle(cornerRadius: 4)
             .fill(
                 LinearGradient(
                     colors: [
-                        Color.secondary.opacity(0.3),
+                        Color.secondary.opacity(0.35),
+                        Color.secondary.opacity(0.25),
                         Color.secondary.opacity(0.2)
                     ],
                     startPoint: .leading,
                     endPoint: .trailing
                 )
             )
-            .frame(width: 40, height: 5)
+            .frame(width: 44, height: 5.5)
+            .shadow(color: Color.secondary.opacity(0.1), radius: 2, x: 0, y: 1)
             .padding(.top, DesignSystem.Spacing.medium + 4)
             .padding(.bottom, DesignSystem.Spacing.large)
     }
@@ -3075,7 +3084,7 @@ private struct AddDepartmentSheet: View {
                 .padding(.vertical, DesignSystem.Spacing.medium + 2)
                 .background(departmentNameTextFieldBackground)
                 .overlay(departmentNameTextFieldOverlay)
-                .cornerRadius(12)
+                .clipShape(RoundedRectangle(cornerRadius: 16))
                 .onChange(of: departmentName) { _, _ in
                     validateDepartmentName()
                 }
@@ -3112,32 +3121,35 @@ private struct AddDepartmentSheet: View {
     }
     
     private var departmentNameCardBackground: some View {
-        RoundedRectangle(cornerRadius: DesignSystem.CornerRadius.medium + 2)
+        RoundedRectangle(cornerRadius: DesignSystem.CornerRadius.large + 4)
             .fill(
                 LinearGradient(
                     colors: [
                         Color(.secondarySystemGroupedBackground),
-                        Color(.tertiarySystemGroupedBackground).opacity(0.5)
+                        Color(.tertiarySystemGroupedBackground).opacity(0.6),
+                        Color(.secondarySystemGroupedBackground).opacity(0.8)
                     ],
                     startPoint: .topLeading,
                     endPoint: .bottomTrailing
                 )
             )
             .overlay(
-                RoundedRectangle(cornerRadius: DesignSystem.CornerRadius.medium + 2)
+                RoundedRectangle(cornerRadius: DesignSystem.CornerRadius.large + 4)
                     .stroke(
                         LinearGradient(
                             colors: [
-                                Color.blue.opacity(0.2),
-                                Color.cyan.opacity(0.1)
+                                Color.blue.opacity(0.25),
+                                Color.cyan.opacity(0.15),
+                                Color.blue.opacity(0.1)
                             ],
                             startPoint: .topLeading,
                             endPoint: .bottomTrailing
                         ),
-                        lineWidth: 1.5
+                        lineWidth: 2
                     )
             )
-            .shadow(color: Color.blue.opacity(0.1), radius: 8, x: 0, y: 2)
+            .shadow(color: Color.blue.opacity(0.15), radius: 12, x: 0, y: 4)
+            .shadow(color: Color.blue.opacity(0.05), radius: 20, x: 0, y: 8)
     }
     
     private var contractorModeCard: some View {
@@ -3184,18 +3196,25 @@ private struct AddDepartmentSheet: View {
         }) {
             Text(mode.displayName)
                 .font(.system(size: 16, weight: contractorMode == mode ? .bold : .semibold))
-                .foregroundColor(contractorMode == mode ? .white : .primary)
+                .foregroundColor(contractorMode == mode ? contractorModeTextColor : .primary)
                 .multilineTextAlignment(.center)
                 .padding(.horizontal, DesignSystem.Spacing.large)
-                .padding(.vertical, DesignSystem.Spacing.medium + 2)
+                .padding(.vertical, DesignSystem.Spacing.medium + 4)
                 .frame(maxWidth: .infinity)
                 .background(contractorModeButtonBackground(for: mode))
+                .clipShape(RoundedRectangle(cornerRadius: 18))
                 .overlay(contractorModeButtonOverlay(for: mode))
                 .shadow(
                     color: contractorMode == mode ? contractorModeShadowColor(for: mode) : Color.clear,
-                    radius: contractorMode == mode ? 8 : 0,
+                    radius: contractorMode == mode ? 12 : 0,
                     x: 0,
-                    y: contractorMode == mode ? 4 : 0
+                    y: contractorMode == mode ? 6 : 0
+                )
+                .shadow(
+                    color: contractorMode == mode ? Color.primary.opacity(0.1) : Color.clear,
+                    radius: contractorMode == mode ? 20 : 0,
+                    x: 0,
+                    y: contractorMode == mode ? 8 : 0
                 )
                 .scaleEffect(contractorMode == mode ? 1.02 : 1.0)
         }
@@ -3206,27 +3225,15 @@ private struct AddDepartmentSheet: View {
     @ViewBuilder
     private func contractorModeButtonBackground(for mode: ContractorMode) -> some View {
         if contractorMode == mode {
-            if mode == .labourOnly {
-                // Black gradient for Labour-Only
-                LinearGradient(
-                    colors: [
-                        Color.black,
-                        Color(white: 0.15)
-                    ],
-                    startPoint: .topLeading,
-                    endPoint: .bottomTrailing
-                )
-            } else {
-                // Blue gradient for Turnkey
-                LinearGradient(
-                    colors: [
-                        Color.blue,
-                        Color.blue.opacity(0.8)
-                    ],
-                    startPoint: .topLeading,
-                    endPoint: .bottomTrailing
-                )
-            }
+            // Primary color gradient for both modes (adapts to dark/light mode)
+            LinearGradient(
+                colors: [
+                    Color.primary,
+                    Color.primary.opacity(0.85)
+                ],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
         } else {
             LinearGradient(
                 colors: [
@@ -3241,57 +3248,65 @@ private struct AddDepartmentSheet: View {
     
     @ViewBuilder
     private func contractorModeButtonOverlay(for mode: ContractorMode) -> some View {
-        RoundedRectangle(cornerRadius: 12)
-            .stroke(
-                contractorMode == mode
-                    ? Color.clear
-                    : LinearGradient(
+        if contractorMode != mode {
+            RoundedRectangle(cornerRadius: 18)
+                .stroke(
+                    LinearGradient(
                         colors: [
-                            Color(.separator).opacity(0.4),
+                            Color(.separator).opacity(0.5),
+                            Color(.separator).opacity(0.3),
                             Color(.separator).opacity(0.2)
                         ],
                         startPoint: .topLeading,
                         endPoint: .bottomTrailing
                     ),
-                lineWidth: contractorMode == mode ? 0 : 1.5
-            )
-    }
-    
-    private func contractorModeShadowColor(for mode: ContractorMode) -> Color {
-        if mode == .labourOnly {
-            return Color.black.opacity(0.3)
-        } else {
-            return Color.blue.opacity(0.25)
+                    lineWidth: 2
+                )
         }
     }
     
+    private func contractorModeShadowColor(for mode: ContractorMode) -> Color {
+        // Use primary color shadow that adapts to dark/light mode
+        return Color.primary.opacity(0.25)
+    }
+    
+    private var contractorModeTextColor: Color {
+        // White in light mode, black in dark mode (opposite of primary background)
+        return Color(UIColor { traitCollection in
+            traitCollection.userInterfaceStyle == .dark ? .black : .white
+        })
+    }
+    
     private var contractorModeCardBackground: some View {
-        RoundedRectangle(cornerRadius: DesignSystem.CornerRadius.medium + 2)
+        RoundedRectangle(cornerRadius: DesignSystem.CornerRadius.large + 4)
             .fill(
                 LinearGradient(
                     colors: [
                         Color(.secondarySystemGroupedBackground),
-                        Color(.tertiarySystemGroupedBackground).opacity(0.5)
+                        Color(.tertiarySystemGroupedBackground).opacity(0.6),
+                        Color(.secondarySystemGroupedBackground).opacity(0.8)
                     ],
                     startPoint: .topLeading,
                     endPoint: .bottomTrailing
                 )
             )
             .overlay(
-                RoundedRectangle(cornerRadius: DesignSystem.CornerRadius.medium + 2)
+                RoundedRectangle(cornerRadius: DesignSystem.CornerRadius.large + 4)
                     .stroke(
                         LinearGradient(
                             colors: [
-                                Color.purple.opacity(0.2),
-                                Color.indigo.opacity(0.1)
+                                Color.purple.opacity(0.25),
+                                Color.indigo.opacity(0.15),
+                                Color.purple.opacity(0.1)
                             ],
                             startPoint: .topLeading,
                             endPoint: .bottomTrailing
                         ),
-                        lineWidth: 1.5
+                        lineWidth: 2
                     )
             )
-            .shadow(color: Color.purple.opacity(0.1), radius: 8, x: 0, y: 2)
+            .shadow(color: Color.purple.opacity(0.15), radius: 12, x: 0, y: 4)
+            .shadow(color: Color.purple.opacity(0.05), radius: 20, x: 0, y: 8)
     }
     
     private var lineItemsSection: some View {
@@ -3386,49 +3401,52 @@ private struct AddDepartmentSheet: View {
                         }) {
                             HStack(spacing: DesignSystem.Spacing.medium) {
                                 Image(systemName: "plus.circle.fill")
-                                    .font(.system(size: 18, weight: .bold))
+                                    .font(.system(size: 20, weight: .bold))
                                     .foregroundStyle(orangeAmberGradient)
                                     .symbolRenderingMode(.hierarchical)
                                 Text("Add Line Item")
-                                    .font(.system(size: 16, weight: .bold))
+                                    .font(.system(size: 17, weight: .bold))
                                     .foregroundStyle(
                                         LinearGradient(
-                                            colors: [.orange, amberColor],
+                                            colors: [.orange, amberColor, .orange],
                                             startPoint: .leading,
                                             endPoint: .trailing
                                         )
                                     )
                             }
                             .frame(maxWidth: .infinity)
-                            .padding(.vertical, DesignSystem.Spacing.medium + 4)
+                            .padding(.vertical, DesignSystem.Spacing.large)
                             .background(
-                                RoundedRectangle(cornerRadius: 12)
+                                RoundedRectangle(cornerRadius: 20)
                                     .fill(
                                         LinearGradient(
                                             colors: [
-                                                Color.orange.opacity(0.15),
-                                                amberColor.opacity(0.1)
+                                                Color.orange.opacity(0.18),
+                                                amberColor.opacity(0.12),
+                                                Color.orange.opacity(0.08)
                                             ],
                                             startPoint: .topLeading,
                                             endPoint: .bottomTrailing
                                         )
                                     )
                                     .overlay(
-                                        RoundedRectangle(cornerRadius: 12)
+                                        RoundedRectangle(cornerRadius: 20)
                                             .stroke(
                                                 LinearGradient(
                                                     colors: [
-                                                        Color.orange.opacity(0.3),
-                                                        amberColor.opacity(0.2)
+                                                        Color.orange.opacity(0.35),
+                                                        amberColor.opacity(0.25),
+                                                        Color.orange.opacity(0.2)
                                                     ],
                                                     startPoint: .topLeading,
                                                     endPoint: .bottomTrailing
                                                 ),
-                                                lineWidth: 1.5
+                                                lineWidth: 2
                                             )
                                     )
                             )
-                            .shadow(color: Color.orange.opacity(0.15), radius: 6, x: 0, y: 3)
+                            .shadow(color: Color.orange.opacity(0.2), radius: 10, x: 0, y: 4)
+                            .shadow(color: Color.orange.opacity(0.1), radius: 20, x: 0, y: 8)
                         }
                         .buttonStyle(.plain)
                         
@@ -3474,32 +3492,35 @@ private struct AddDepartmentSheet: View {
     }
     
     private var lineItemsCardBackground: some View {
-        RoundedRectangle(cornerRadius: DesignSystem.CornerRadius.medium + 2)
+        RoundedRectangle(cornerRadius: DesignSystem.CornerRadius.large + 4)
             .fill(
                 LinearGradient(
                     colors: [
                         Color(.secondarySystemGroupedBackground),
-                        Color(.tertiarySystemGroupedBackground).opacity(0.5)
+                        Color(.tertiarySystemGroupedBackground).opacity(0.6),
+                        Color(.secondarySystemGroupedBackground).opacity(0.8)
                     ],
                     startPoint: .topLeading,
                     endPoint: .bottomTrailing
                 )
             )
             .overlay(
-                RoundedRectangle(cornerRadius: DesignSystem.CornerRadius.medium + 2)
+                RoundedRectangle(cornerRadius: DesignSystem.CornerRadius.large + 4)
                     .stroke(
                         LinearGradient(
                             colors: [
-                                Color.orange.opacity(0.2),
-                                amberColor.opacity(0.1)
+                                Color.orange.opacity(0.25),
+                                amberColor.opacity(0.15),
+                                Color.orange.opacity(0.1)
                             ],
                             startPoint: .topLeading,
                             endPoint: .bottomTrailing
                         ),
-                        lineWidth: 1.5
+                        lineWidth: 2
                     )
             )
-            .shadow(color: Color.orange.opacity(0.1), radius: 8, x: 0, y: 2)
+            .shadow(color: Color.orange.opacity(0.15), radius: 12, x: 0, y: 4)
+            .shadow(color: Color.orange.opacity(0.05), radius: 20, x: 0, y: 8)
     }
     
     private var budgetSummaryCard: some View {
