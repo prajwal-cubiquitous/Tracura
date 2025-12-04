@@ -512,7 +512,8 @@ struct DashboardView: View {
                         Task { await loadPhases() }
                     }
                 )
-                .presentationDetents([.medium])
+                .presentationDetents([.medium, .large])
+                .presentationDragIndicator(.visible)
             }
         }
         .sheet(isPresented: $showingAnalytics) {
@@ -2875,61 +2876,216 @@ private struct AddDepartmentSheet: View {
         }
     }
 
-    var body: some View {
-        NavigationView {
-            ScrollView {
-                VStack(spacing: DesignSystem.Spacing.large) {
-                    // Department Name Section
-                    VStack(alignment: .leading, spacing: DesignSystem.Spacing.medium) {
-                        Text("Add a department to \(phaseName)")
-                            .font(DesignSystem.Typography.headline)
-                            .foregroundColor(.primary)
-                        
-                        VStack(alignment: .leading, spacing: DesignSystem.Spacing.small) {
-                            Text("Department Name")
-                                .font(DesignSystem.Typography.caption1)
-                                .foregroundColor(.secondary)
-                                .textCase(.uppercase)
-                            
-                            TextField("Enter department name", text: $departmentName)
-                                .textInputAutocapitalization(.words)
-                                .autocorrectionDisabled()
-                                .focused($focusedField, equals: .name)
-                                .font(DesignSystem.Typography.body)
-                                .padding(.horizontal, DesignSystem.Spacing.medium)
-                                .padding(.vertical, DesignSystem.Spacing.small)
-                                .background(Color(.tertiarySystemGroupedBackground))
-                                .cornerRadius(DesignSystem.CornerRadius.field)
-                                .overlay(
-                                    RoundedRectangle(cornerRadius: DesignSystem.CornerRadius.field)
-                                        .stroke(departmentNameError != nil ? Color.red : Color.clear, lineWidth: 1.5)
-                                )
-                                .onChange(of: departmentName) { _, _ in
-                                    validateDepartmentName()
-                                }
-                            
-                            if let error = departmentNameError {
-                                HStack(spacing: DesignSystem.Spacing.extraSmall) {
-                                    Image(systemName: "exclamationmark.circle.fill")
-                                        .font(.system(size: 12))
-                                        .foregroundColor(.red)
-                                    Text(error)
-                                        .font(DesignSystem.Typography.caption1)
-                                        .foregroundColor(.red)
-                                }
-                                .padding(.top, DesignSystem.Spacing.extraSmall)
-                            }
-                        }
-                    }
-                    .padding(.horizontal, DesignSystem.Spacing.medium)
-                    .padding(.top, DesignSystem.Spacing.medium)
+    // MARK: - Computed Properties for Complex Views
+    
+    private var headerSection: some View {
+        VStack(alignment: .leading, spacing: DesignSystem.Spacing.small) {
+            HStack(alignment: .top, spacing: DesignSystem.Spacing.small) {
+                // Accent indicator
+                RoundedRectangle(cornerRadius: 3)
+                    .fill(blueCyanGradient)
+                    .frame(width: 4)
+                    .padding(.top, 4)
+                
+                VStack(alignment: .leading, spacing: DesignSystem.Spacing.extraSmall) {
+                    Text("Add Department")
+                        .font(.system(size: 28, weight: .bold, design: .default))
+                        .foregroundStyle(primaryGradient)
                     
-                    // Contractor Mode Section
-                    VStack(alignment: .leading, spacing: DesignSystem.Spacing.small) {
-                        Text("Contractor Mode")
-                            .font(DesignSystem.Typography.caption1)
+                    HStack(spacing: DesignSystem.Spacing.extraSmall) {
+                        Image(systemName: "calendar.badge.plus")
+                            .font(.system(size: 13, weight: .semibold))
+                            .foregroundStyle(blueCyanGradient)
+                        Text("to \(phaseName)")
+                            .font(.system(size: 15, weight: .medium))
                             .foregroundColor(.secondary)
-                            .textCase(.uppercase)
+                    }
+                }
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.horizontal, DesignSystem.Spacing.medium)
+        .padding(.bottom, DesignSystem.Spacing.large)
+    }
+    
+    private var blueCyanGradient: LinearGradient {
+        LinearGradient(
+            colors: [Color.blue, Color.cyan],
+            startPoint: .topLeading,
+            endPoint: .bottomTrailing
+        )
+    }
+    
+    private var primaryGradient: LinearGradient {
+        LinearGradient(
+            colors: [.primary, .primary.opacity(0.8)],
+            startPoint: .leading,
+            endPoint: .trailing
+        )
+    }
+    
+    private var purpleIndigoGradient: LinearGradient {
+        LinearGradient(
+            colors: [Color.purple, Color.indigo],
+            startPoint: .topLeading,
+            endPoint: .bottomTrailing
+        )
+    }
+    
+    private var orangeAmberGradient: LinearGradient {
+        LinearGradient(
+            colors: [Color.orange, Color(red: 1.0, green: 0.75, blue: 0.0)], // Amber color
+            startPoint: .topLeading,
+            endPoint: .bottomTrailing
+        )
+    }
+    
+    private var amberColor: Color {
+        Color(red: 1.0, green: 0.75, blue: 0.0) // Amber color
+    }
+    
+    private var greenMintGradient: LinearGradient {
+        LinearGradient(
+            colors: [Color.green, Color.mint],
+            startPoint: .topLeading,
+            endPoint: .bottomTrailing
+        )
+    }
+    
+    private var redPinkGradient: LinearGradient {
+        LinearGradient(
+            colors: [Color.red, Color.pink],
+            startPoint: .topLeading,
+            endPoint: .bottomTrailing
+        )
+    }
+    
+    private var departmentNameTextFieldBackground: some View {
+        RoundedRectangle(cornerRadius: 10)
+            .fill(
+                focusedField == .name
+                    ? Color.blue.opacity(0.05)
+                    : Color(.tertiarySystemGroupedBackground)
+            )
+    }
+    
+    @ViewBuilder
+    private var departmentNameTextFieldOverlay: some View {
+        let strokeColor: Color = {
+            if focusedField == .name {
+                return Color.blue.opacity(0.4)
+            } else if departmentNameError != nil {
+                return Color.red.opacity(0.6)
+            } else {
+                return Color.clear
+            }
+        }()
+        
+        let lineWidth: CGFloat = {
+            if focusedField == .name {
+                return 2
+            } else if departmentNameError != nil {
+                return 1.5
+            } else {
+                return 0
+            }
+        }()
+        
+        RoundedRectangle(cornerRadius: 10)
+            .stroke(strokeColor, lineWidth: lineWidth)
+    }
+    
+    private var dragIndicator: some View {
+        RoundedRectangle(cornerRadius: 2.5)
+            .fill(Color.secondary.opacity(0.25))
+            .frame(width: 36, height: 5)
+            .padding(.top, DesignSystem.Spacing.medium)
+            .padding(.bottom, DesignSystem.Spacing.large)
+    }
+    
+    private var departmentNameCard: some View {
+        VStack(alignment: .leading, spacing: DesignSystem.Spacing.small) {
+            Label {
+                Text("Department Name")
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundColor(.secondary)
+            } icon: {
+                Image(systemName: "building.2.fill")
+                    .font(.system(size: 12, weight: .semibold))
+                    .foregroundStyle(blueCyanGradient)
+            }
+            
+            TextField("Enter department name", text: $departmentName)
+                .textInputAutocapitalization(.words)
+                .autocorrectionDisabled()
+                .focused($focusedField, equals: .name)
+                .font(.system(size: 17, weight: .regular))
+                .padding(.horizontal, DesignSystem.Spacing.medium)
+                .padding(.vertical, DesignSystem.Spacing.medium)
+                .background(departmentNameTextFieldBackground)
+                .overlay(departmentNameTextFieldOverlay)
+                .onChange(of: departmentName) { _, _ in
+                    validateDepartmentName()
+                }
+            
+            if let error = departmentNameError {
+                departmentNameErrorView(error: error)
+            }
+        }
+        .padding(DesignSystem.Spacing.medium)
+        .background(departmentNameCardBackground)
+        .padding(.horizontal, DesignSystem.Spacing.medium)
+        .padding(.bottom, DesignSystem.Spacing.medium)
+    }
+    
+    @ViewBuilder
+    private func departmentNameErrorView(error: String) -> some View {
+        HStack(alignment: .top, spacing: DesignSystem.Spacing.extraSmall) {
+            Image(systemName: "exclamationmark.triangle.fill")
+                .font(.system(size: 14, weight: .semibold))
+                .foregroundColor(.red)
+                .symbolRenderingMode(.hierarchical)
+            Text(error)
+                .font(.system(size: 13, weight: .regular))
+                .foregroundColor(.red)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .padding(.top, DesignSystem.Spacing.extraSmall)
+        .padding(.horizontal, DesignSystem.Spacing.small)
+        .padding(.vertical, DesignSystem.Spacing.extraSmall)
+        .background(
+            RoundedRectangle(cornerRadius: 8)
+                .fill(Color.red.opacity(0.08))
+        )
+    }
+    
+    private var departmentNameCardBackground: some View {
+        RoundedRectangle(cornerRadius: DesignSystem.CornerRadius.medium)
+            .fill(Color(.secondarySystemGroupedBackground))
+            .overlay(
+                RoundedRectangle(cornerRadius: DesignSystem.CornerRadius.medium)
+                    .stroke(
+                        LinearGradient(
+                            colors: [Color.blue.opacity(0.1), Color.cyan.opacity(0.05)],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        ),
+                        lineWidth: 1
+                    )
+            )
+    }
+    
+    private var contractorModeCard: some View {
+        VStack(alignment: .leading, spacing: DesignSystem.Spacing.small) {
+                        Label {
+                            Text("Contractor Mode")
+                                .font(.system(size: 13, weight: .semibold))
+                                .foregroundColor(.secondary)
+                        } icon: {
+                            Image(systemName: "person.2.fill")
+                                .font(.system(size: 12, weight: .semibold))
+                                .foregroundStyle(purpleIndigoGradient)
+                        }
                         
                         HStack(spacing: DesignSystem.Spacing.small) {
                             ForEach(ContractorMode.allCases, id: \.self) { mode in
@@ -2950,45 +3106,97 @@ private struct AddDepartmentSheet: View {
                                     }
                                 }) {
                                     Text(mode.displayName)
-                                        .font(DesignSystem.Typography.subheadline)
-                                        .fontWeight(contractorMode == mode ? .semibold : .regular)
-                                        .foregroundColor(contractorMode == mode ? .blue : .primary)
+                                        .font(.system(size: 15, weight: contractorMode == mode ? .semibold : .regular))
+                                        .foregroundColor(contractorMode == mode ? .white : .primary)
                                         .multilineTextAlignment(.center)
                                         .padding(.horizontal, DesignSystem.Spacing.medium)
                                         .padding(.vertical, DesignSystem.Spacing.medium)
                                         .frame(maxWidth: .infinity)
                                         .background(
-                                            RoundedRectangle(cornerRadius: DesignSystem.CornerRadius.medium)
-                                                .fill(contractorMode == mode ? Color.blue.opacity(0.12) : Color(.tertiarySystemGroupedBackground))
+                                            Group {
+                                                if contractorMode == mode {
+                                                    blueCyanGradient
+                                                } else {
+                                                    LinearGradient(
+                                                        colors: [Color(.tertiarySystemGroupedBackground), Color(.tertiarySystemGroupedBackground)],
+                                                        startPoint: .topLeading,
+                                                        endPoint: .bottomTrailing
+                                                    )
+                                                }
+                                            }
+                                            .clipShape(RoundedRectangle(cornerRadius: 10))
                                         )
                                         .overlay(
-                                            RoundedRectangle(cornerRadius: DesignSystem.CornerRadius.medium)
-                                                .stroke(contractorMode == mode ? Color.blue.opacity(0.3) : Color(.separator), lineWidth: contractorMode == mode ? 1.5 : 1)
+                                            RoundedRectangle(cornerRadius: 10)
+                                                .stroke(
+                                                    contractorMode == mode
+                                                        ? Color.clear
+                                                        : Color(.separator).opacity(0.5),
+                                                    lineWidth: contractorMode == mode ? 0 : 1
+                                                )
+                                        )
+                                        .shadow(
+                                            color: contractorMode == mode
+                                                ? Color.blue.opacity(0.2)
+                                                : Color.clear,
+                                            radius: contractorMode == mode ? 4 : 0,
+                                            x: 0,
+                                            y: 2
                                         )
                                 }
                                 .buttonStyle(.plain)
                             }
                         }
-                    }
-                    .padding(.horizontal, DesignSystem.Spacing.medium)
-                    
-                    // Line Items Section
-                    VStack(alignment: .leading, spacing: DesignSystem.Spacing.medium) {
+        }
+        .padding(DesignSystem.Spacing.medium)
+        .background(contractorModeCardBackground)
+        .padding(.horizontal, DesignSystem.Spacing.medium)
+        .padding(.bottom, DesignSystem.Spacing.medium)
+    }
+    
+    private var contractorModeCardBackground: some View {
+        RoundedRectangle(cornerRadius: DesignSystem.CornerRadius.medium)
+            .fill(Color(.secondarySystemGroupedBackground))
+            .overlay(
+                RoundedRectangle(cornerRadius: DesignSystem.CornerRadius.medium)
+                    .stroke(
+                        LinearGradient(
+                            colors: [Color.purple.opacity(0.1), Color.indigo.opacity(0.05)],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        ),
+                        lineWidth: 1
+                    )
+            )
+    }
+    
+    private var lineItemsSection: some View {
+        VStack(alignment: .leading, spacing: DesignSystem.Spacing.medium) {
                         HStack(alignment: .firstTextBaseline) {
-                            Text("Items")
-                                .font(DesignSystem.Typography.caption1)
-                                .foregroundColor(.secondary)
-                                .textCase(.uppercase)
+                            Label {
+                                Text("Line Items")
+                                    .font(.system(size: 13, weight: .semibold))
+                                    .foregroundColor(.secondary)
+                            } icon: {
+                                Image(systemName: "list.bullet.rectangle.fill")
+                                    .font(.system(size: 12, weight: .semibold))
+                                    .foregroundStyle(orangeAmberGradient)
+                            }
                             
                             Spacer()
                             
-                            Text("sum must equal Department Budget")
-                                .font(DesignSystem.Typography.caption2)
-                                .foregroundColor(.secondary)
-                                .italic()
+                            HStack(spacing: DesignSystem.Spacing.extraSmall) {
+                                Image(systemName: "info.circle.fill")
+                                    .font(.system(size: 10, weight: .medium))
+                                    .foregroundColor(.orange.opacity(0.7))
+                                Text("sum equals budget")
+                                    .font(.system(size: 11, weight: .regular))
+                                    .foregroundColor(.secondary.opacity(0.7))
+                                    .italic()
+                            }
                         }
                         
-                        VStack(spacing: DesignSystem.Spacing.medium) {
+                        VStack(spacing: DesignSystem.Spacing.small) {
                             ForEach($lineItems) { $lineItem in
                                 LineItemRowView(
                                     lineItem: $lineItem,
@@ -3019,13 +3227,11 @@ private struct AddDepartmentSheet: View {
                         
                         Button(action: {
                             HapticManager.selection()
-                            // Collapse all when adding new
                             expandedLineItemId = nil
                             let newItem = DepartmentLineItem()
                             lineItems.append(newItem)
-                            // Expand the new item after animation completes
                             Task { @MainActor in
-                                try? await Task.sleep(nanoseconds: 200_000_000) // 0.2 seconds
+                                try? await Task.sleep(nanoseconds: 200_000_000)
                                 withAnimation(DesignSystem.Animation.standardSpring) {
                                     expandedLineItemId = newItem.id
                                 }
@@ -3033,91 +3239,238 @@ private struct AddDepartmentSheet: View {
                         }) {
                             HStack(spacing: DesignSystem.Spacing.small) {
                                 Image(systemName: "plus.circle.fill")
-                                    .font(.system(size: 16, weight: .medium))
-                                Text("Add row")
-                                    .font(DesignSystem.Typography.callout)
-                                    .fontWeight(.medium)
+                                    .font(.system(size: 16, weight: .semibold))
+                                    .foregroundStyle(orangeAmberGradient)
+                                Text("Add Line Item")
+                                    .font(.system(size: 15, weight: .semibold))
                             }
-                            .foregroundColor(.blue)
+                            .foregroundColor(.orange)
                             .frame(maxWidth: .infinity)
-                            .padding(.vertical, DesignSystem.Spacing.small)
+                            .padding(.vertical, DesignSystem.Spacing.medium)
+                            .background(
+                                RoundedRectangle(cornerRadius: 10)
+                                    .fill(
+                                        LinearGradient(
+                                            colors: [
+                                                Color.orange.opacity(0.12),
+                                                amberColor.opacity(0.08)
+                                            ],
+                                            startPoint: .topLeading,
+                                            endPoint: .bottomTrailing
+                                        )
+                                    )
+                                    .overlay(
+                                        RoundedRectangle(cornerRadius: 10)
+                                            .stroke(Color.orange.opacity(0.2), lineWidth: 1)
+                                    )
+                            )
                         }
                         .buttonStyle(.plain)
                         
-                        // Total Display
+                        // Total Display with Gradient
                         Divider()
+                            .background(
+                                LinearGradient(
+                                    colors: [Color.clear, Color.orange.opacity(0.2), Color.clear],
+                                    startPoint: .leading,
+                                    endPoint: .trailing
+                                )
+                            )
                             .padding(.vertical, DesignSystem.Spacing.small)
                         
                         HStack {
-                            Text("Total")
-                                .font(DesignSystem.Typography.headline)
-                                .fontWeight(.semibold)
-                                .foregroundColor(.primary)
+                            HStack(spacing: DesignSystem.Spacing.extraSmall) {
+                                Image(systemName: "sum")
+                                    .font(.system(size: 14, weight: .semibold))
+                                    .foregroundColor(.orange.opacity(0.8))
+                                Text("Total")
+                                    .font(.system(size: 17, weight: .semibold))
+                                    .foregroundColor(.primary)
+                            }
                             
                             Spacer()
                             
                             Text(totalDepartmentBudget.formattedCurrency)
-                                .font(DesignSystem.Typography.title3)
-                                .fontWeight(.bold)
-                                .foregroundColor(.green)
+                                .font(.system(size: 20, weight: .bold))
+                                .foregroundStyle(greenMintGradient)
                         }
                     }
-                    .padding(DesignSystem.Spacing.medium)
-                    .background(Color(.secondarySystemGroupedBackground))
-                    .cornerRadius(DesignSystem.CornerRadius.medium)
-                    .padding(.horizontal, DesignSystem.Spacing.medium)
-                    
-                    // Department Budget Summary
-                    VStack(alignment: .leading, spacing: DesignSystem.Spacing.small) {
+        .padding(DesignSystem.Spacing.medium)
+        .background(lineItemsCardBackground)
+        .padding(.horizontal, DesignSystem.Spacing.medium)
+        .padding(.bottom, DesignSystem.Spacing.medium)
+    }
+    
+    private var lineItemsCardBackground: some View {
+        RoundedRectangle(cornerRadius: DesignSystem.CornerRadius.medium)
+            .fill(Color(.secondarySystemGroupedBackground))
+            .overlay(
+                RoundedRectangle(cornerRadius: DesignSystem.CornerRadius.medium)
+                    .stroke(
+                        LinearGradient(
+                            colors: [Color.orange.opacity(0.1), amberColor.opacity(0.05)],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        ),
+                        lineWidth: 1
+                    )
+            )
+    }
+    
+    private var budgetSummaryCard: some View {
+        VStack(alignment: .leading, spacing: DesignSystem.Spacing.small) {
                         HStack {
-                            Text("Department Budget")
-                                .font(DesignSystem.Typography.subheadline)
-                                .foregroundColor(.secondary)
+                            Label {
+                                Text("Department Budget")
+                                    .font(.system(size: 15, weight: .semibold))
+                                    .foregroundColor(.secondary)
+                            } icon: {
+                                Image(systemName: "indianrupeesign.circle.fill")
+                                    .font(.system(size: 18, weight: .semibold))
+                                    .foregroundStyle(greenMintGradient)
+                            }
                             
                             Spacer()
                             
                             Text(totalDepartmentBudget.formattedCurrency)
-                                .font(DesignSystem.Typography.title2)
-                                .fontWeight(.bold)
-                                .foregroundColor(.green)
+                                .font(.system(size: 26, weight: .bold))
+                                .foregroundStyle(greenMintGradient)
+                                .shadow(color: Color.green.opacity(0.2), radius: 2, x: 0, y: 1)
                         }
                     }
-                    .padding(DesignSystem.Spacing.medium)
-                    .background(Color(.tertiarySystemGroupedBackground))
-                    .cornerRadius(DesignSystem.CornerRadius.medium)
-                    .padding(.horizontal, DesignSystem.Spacing.medium)
-                    
-                    if let error = errorMessage {
-                        HStack(spacing: DesignSystem.Spacing.small) {
-                            Image(systemName: "exclamationmark.circle.fill")
-                                .font(.system(size: 14))
-                                .foregroundColor(.red)
-                            Text(error)
-                                .font(DesignSystem.Typography.caption1)
-                                .foregroundColor(.red)
-                        }
-                        .padding(DesignSystem.Spacing.medium)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .background(Color.red.opacity(0.1))
-                        .cornerRadius(DesignSystem.CornerRadius.small)
-                        .padding(.horizontal, DesignSystem.Spacing.medium)
-                    }
+        .padding(DesignSystem.Spacing.medium)
+        .background(budgetSummaryCardBackground)
+        .padding(.horizontal, DesignSystem.Spacing.medium)
+        .padding(.bottom, DesignSystem.Spacing.medium)
+    }
+    
+    private var budgetSummaryCardBackground: some View {
+        RoundedRectangle(cornerRadius: DesignSystem.CornerRadius.medium)
+            .fill(
+                LinearGradient(
+                    colors: [
+                        Color.green.opacity(0.12),
+                        Color.mint.opacity(0.08)
+                    ],
+                    startPoint: .topLeading,
+                    endPoint: .bottomTrailing
+                )
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: DesignSystem.CornerRadius.medium)
+                    .stroke(
+                        LinearGradient(
+                            colors: [
+                                Color.green.opacity(0.3),
+                                Color.mint.opacity(0.2)
+                            ],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        ),
+                        lineWidth: 1.5
+                    )
+            )
+            .shadow(
+                color: Color.green.opacity(0.15),
+                radius: 8,
+                x: 0,
+                y: 4
+            )
+    }
+    
+    @ViewBuilder
+    private var errorMessageCard: some View {
+        if let error = errorMessage {
+            errorMessageView(error: error)
+        }
+    }
+    
+    private var errorMessageCardBackground: some View {
+        RoundedRectangle(cornerRadius: DesignSystem.CornerRadius.medium)
+            .fill(
+                LinearGradient(
+                    colors: [
+                        Color.red.opacity(0.12),
+                        Color.pink.opacity(0.08)
+                    ],
+                    startPoint: .topLeading,
+                    endPoint: .bottomTrailing
+                )
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: DesignSystem.CornerRadius.medium)
+                    .stroke(
+                        LinearGradient(
+                            colors: [
+                                Color.red.opacity(0.3),
+                                Color.pink.opacity(0.2)
+                            ],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        ),
+                        lineWidth: 1.5
+                    )
+            )
+    }
+    
+    private func errorMessageView(error: String) -> some View {
+        HStack(alignment: .top, spacing: DesignSystem.Spacing.small) {
+            Image(systemName: "exclamationmark.triangle.fill")
+                .font(.system(size: 18, weight: .semibold))
+                .foregroundStyle(redPinkGradient)
+                .symbolRenderingMode(.hierarchical)
+                .padding(.top, 2)
+            
+            Text(error)
+                .font(.system(size: 14, weight: .medium))
+                .foregroundColor(.red)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(DesignSystem.Spacing.medium)
+        .background(errorMessageCardBackground)
+        .padding(.horizontal, DesignSystem.Spacing.medium)
+        .padding(.bottom, DesignSystem.Spacing.medium)
+    }
+    
+    var body: some View {
+        NavigationView {
+            ScrollView {
+                VStack(spacing: 0) {
+                    dragIndicator
+                    headerSection
+                    departmentNameCard
+                    contractorModeCard
+                    lineItemsSection
+                    errorMessageCard
                 }
                 .padding(.bottom, DesignSystem.Spacing.extraLarge)
             }
             .background(Color(.systemGroupedBackground))
-            .navigationTitle("Add Department")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("Cancel") { dismiss() }
-                        .foregroundColor(.blue)
+                    Button("Cancel") {
+                        dismiss()
+                    }
+                    .font(.system(size: 17, weight: .regular))
+                    .foregroundStyle(blueCyanGradient)
                 }
                 ToolbarItem(placement: .confirmationAction) {
-                    Button("Create Department") { save() }
-                        .disabled(!isFormValid || isSaving)
-                        .fontWeight(.semibold)
-                        .foregroundColor(.green)
+                    Button("Create") {
+                        save()
+                    }
+                    .disabled(!isFormValid || isSaving)
+                    .font(.system(size: 17, weight: .semibold))
+                    .foregroundStyle(
+                        isFormValid && !isSaving
+                            ? greenMintGradient
+                            : LinearGradient(
+                                colors: [Color.gray, Color.gray],
+                                startPoint: .leading,
+                                endPoint: .trailing
+                            )
+                    )
                 }
             }
             .onAppear {
@@ -4650,7 +5003,8 @@ private struct AllPhasesView: View {
                         onPhaseAdded?()
                     }
                 )
-                .presentationDetents([.medium])
+                .presentationDetents([.medium, .large])
+                .presentationDragIndicator(.visible)
             }
         }
         .sheet(item: $selectedDepartment) { selection in
@@ -4681,7 +5035,8 @@ private struct AllPhasesView: View {
                         loadPhaseBudgets()
                     }
                 )
-                .presentationDetents([.medium])
+                .presentationDetents([.medium, .large])
+                .presentationDragIndicator(.visible)
             }
         }
         .sheet(item: $phaseToEdit) { phase in
@@ -5827,40 +6182,55 @@ private struct AddPhaseSheet: View {
         NavigationView {
             ScrollView {
                 VStack(spacing: DesignSystem.Spacing.large) {
+                    // Drag Indicator
+                    RoundedRectangle(cornerRadius: 2.5)
+                        .fill(Color.secondary.opacity(0.3))
+                        .frame(width: 36, height: 5)
+                        .padding(.top, DesignSystem.Spacing.small)
+                        .padding(.bottom, DesignSystem.Spacing.extraSmall)
+                    
                     // Phase Name Section
                     VStack(alignment: .leading, spacing: DesignSystem.Spacing.medium) {
-                        Text("Phase Name")
-                            .font(DesignSystem.Typography.caption1)
-                            .foregroundColor(.secondary)
-                            .textCase(.uppercase)
+                        Text("Add Phase")
+                            .font(DesignSystem.Typography.title2)
+                            .fontWeight(.bold)
+                            .foregroundColor(.primary)
+                            .padding(.bottom, DesignSystem.Spacing.extraSmall)
                         
-                        TextField("Enter phase name", text: $phaseName)
-                            .textInputAutocapitalization(.words)
-                            .autocorrectionDisabled()
-                            .focused($focusedField, equals: .phaseName)
-                            .font(DesignSystem.Typography.body)
-                            .padding(.horizontal, DesignSystem.Spacing.medium)
-                            .padding(.vertical, DesignSystem.Spacing.small)
-                            .background(Color(.tertiarySystemGroupedBackground))
-                            .cornerRadius(DesignSystem.CornerRadius.field)
-                            .overlay(
-                                RoundedRectangle(cornerRadius: DesignSystem.CornerRadius.field)
-                                    .stroke(phaseNameError != nil ? Color.red : Color.clear, lineWidth: 1.5)
-                            )
-                            .onChange(of: phaseName) { _, _ in
-                                validatePhaseName()
+                        VStack(alignment: .leading, spacing: DesignSystem.Spacing.small) {
+                            Text("Phase Name")
+                                .font(DesignSystem.Typography.caption1)
+                                .foregroundColor(.secondary)
+                                .textCase(.uppercase)
+                            
+                            TextField("Enter phase name", text: $phaseName)
+                                .textInputAutocapitalization(.words)
+                                .autocorrectionDisabled()
+                                .focused($focusedField, equals: .phaseName)
+                                .font(DesignSystem.Typography.body)
+                                .padding(.horizontal, DesignSystem.Spacing.medium)
+                                .padding(.vertical, DesignSystem.Spacing.small)
+                                .background(Color(.tertiarySystemGroupedBackground))
+                                .cornerRadius(DesignSystem.CornerRadius.field)
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: DesignSystem.CornerRadius.field)
+                                        .stroke(phaseNameError != nil ? Color.red : Color.clear, lineWidth: 1.5)
+                                )
+                                .onChange(of: phaseName) { _, _ in
+                                    validatePhaseName()
+                                }
+                            
+                            if let error = phaseNameError {
+                                HStack(spacing: DesignSystem.Spacing.extraSmall) {
+                                    Image(systemName: "exclamationmark.circle.fill")
+                                        .font(.system(size: 12))
+                                        .foregroundColor(.red)
+                                    Text(error)
+                                        .font(DesignSystem.Typography.caption1)
+                                        .foregroundColor(.red)
+                                }
+                                .padding(.top, DesignSystem.Spacing.extraSmall)
                             }
-                        
-                        if let error = phaseNameError {
-                            HStack(spacing: DesignSystem.Spacing.extraSmall) {
-                                Image(systemName: "exclamationmark.circle.fill")
-                                    .font(.system(size: 12))
-                                    .foregroundColor(.red)
-                                Text(error)
-                                    .font(DesignSystem.Typography.caption1)
-                                    .foregroundColor(.red)
-                            }
-                            .padding(.top, DesignSystem.Spacing.extraSmall)
                         }
                     }
                     .padding(.horizontal, DesignSystem.Spacing.medium)
