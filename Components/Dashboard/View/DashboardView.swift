@@ -2879,33 +2879,48 @@ private struct AddDepartmentSheet: View {
     // MARK: - Computed Properties for Complex Views
     
     private var headerSection: some View {
-        VStack(alignment: .leading, spacing: DesignSystem.Spacing.small) {
-            HStack(alignment: .top, spacing: DesignSystem.Spacing.small) {
-                // Accent indicator
-                RoundedRectangle(cornerRadius: 3)
+        VStack(alignment: .leading, spacing: DesignSystem.Spacing.medium) {
+            HStack(alignment: .top, spacing: DesignSystem.Spacing.medium) {
+                // Enhanced accent indicator with gradient
+                RoundedRectangle(cornerRadius: 4)
                     .fill(blueCyanGradient)
-                    .frame(width: 4)
-                    .padding(.top, 4)
+                    .frame(width: 5)
+                    .shadow(color: Color.blue.opacity(0.3), radius: 4, x: 0, y: 2)
+                    .padding(.top, 6)
                 
-                VStack(alignment: .leading, spacing: DesignSystem.Spacing.extraSmall) {
+                VStack(alignment: .leading, spacing: DesignSystem.Spacing.small) {
                     Text("Add Department")
-                        .font(.system(size: 28, weight: .bold, design: .default))
-                        .foregroundStyle(primaryGradient)
+                        .font(.system(size: 32, weight: .bold, design: .rounded))
+                        .foregroundStyle(
+                            LinearGradient(
+                                colors: [.primary, .primary.opacity(0.7)],
+                                startPoint: .leading,
+                                endPoint: .trailing
+                            )
+                        )
                     
-                    HStack(spacing: DesignSystem.Spacing.extraSmall) {
+                    HStack(spacing: DesignSystem.Spacing.small) {
                         Image(systemName: "calendar.badge.plus")
-                            .font(.system(size: 13, weight: .semibold))
+                            .font(.system(size: 14, weight: .bold))
                             .foregroundStyle(blueCyanGradient)
+                            .symbolRenderingMode(.hierarchical)
                         Text("to \(phaseName)")
-                            .font(.system(size: 15, weight: .medium))
-                            .foregroundColor(.secondary)
+                            .font(.system(size: 16, weight: .semibold))
+                            .foregroundStyle(
+                                LinearGradient(
+                                    colors: [.secondary, .secondary.opacity(0.7)],
+                                    startPoint: .leading,
+                                    endPoint: .trailing
+                                )
+                            )
                     }
                 }
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(.horizontal, DesignSystem.Spacing.medium)
-        .padding(.bottom, DesignSystem.Spacing.large)
+        .padding(.top, DesignSystem.Spacing.small)
+        .padding(.bottom, DesignSystem.Spacing.large + 4)
     }
     
     private var blueCyanGradient: LinearGradient {
@@ -2961,11 +2976,25 @@ private struct AddDepartmentSheet: View {
     }
     
     private var departmentNameTextFieldBackground: some View {
-        RoundedRectangle(cornerRadius: 10)
+        RoundedRectangle(cornerRadius: 12)
             .fill(
                 focusedField == .name
-                    ? Color.blue.opacity(0.05)
-                    : Color(.tertiarySystemGroupedBackground)
+                    ? LinearGradient(
+                        colors: [
+                            Color.blue.opacity(0.08),
+                            Color.cyan.opacity(0.04)
+                        ],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    )
+                    : LinearGradient(
+                        colors: [
+                            Color(.tertiarySystemGroupedBackground),
+                            Color(.tertiarySystemGroupedBackground).opacity(0.7)
+                        ],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    )
             )
     }
     
@@ -2973,7 +3002,7 @@ private struct AddDepartmentSheet: View {
     private var departmentNameTextFieldOverlay: some View {
         let strokeColor: Color = {
             if focusedField == .name {
-                return Color.blue.opacity(0.4)
+                return Color.blue.opacity(0.5)
             } else if departmentNameError != nil {
                 return Color.red.opacity(0.6)
             } else {
@@ -2983,23 +3012,45 @@ private struct AddDepartmentSheet: View {
         
         let lineWidth: CGFloat = {
             if focusedField == .name {
-                return 2
+                return 2.5
             } else if departmentNameError != nil {
-                return 1.5
+                return 2
             } else {
                 return 0
             }
         }()
         
-        RoundedRectangle(cornerRadius: 10)
-            .stroke(strokeColor, lineWidth: lineWidth)
+        RoundedRectangle(cornerRadius: 12)
+            .stroke(
+                focusedField == .name
+                    ? LinearGradient(
+                        colors: [strokeColor, strokeColor.opacity(0.6)],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    )
+                    : LinearGradient(
+                        colors: [strokeColor, strokeColor],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    ),
+                lineWidth: lineWidth
+            )
     }
     
     private var dragIndicator: some View {
-        RoundedRectangle(cornerRadius: 2.5)
-            .fill(Color.secondary.opacity(0.25))
-            .frame(width: 36, height: 5)
-            .padding(.top, DesignSystem.Spacing.medium)
+        RoundedRectangle(cornerRadius: 3)
+            .fill(
+                LinearGradient(
+                    colors: [
+                        Color.secondary.opacity(0.3),
+                        Color.secondary.opacity(0.2)
+                    ],
+                    startPoint: .leading,
+                    endPoint: .trailing
+                )
+            )
+            .frame(width: 40, height: 5)
+            .padding(.top, DesignSystem.Spacing.medium + 4)
             .padding(.bottom, DesignSystem.Spacing.large)
     }
     
@@ -3019,11 +3070,12 @@ private struct AddDepartmentSheet: View {
                 .textInputAutocapitalization(.words)
                 .autocorrectionDisabled()
                 .focused($focusedField, equals: .name)
-                .font(.system(size: 17, weight: .regular))
-                .padding(.horizontal, DesignSystem.Spacing.medium)
-                .padding(.vertical, DesignSystem.Spacing.medium)
+                .font(.system(size: 18, weight: .medium))
+                .padding(.horizontal, DesignSystem.Spacing.large)
+                .padding(.vertical, DesignSystem.Spacing.medium + 2)
                 .background(departmentNameTextFieldBackground)
                 .overlay(departmentNameTextFieldOverlay)
+                .cornerRadius(12)
                 .onChange(of: departmentName) { _, _ in
                     validateDepartmentName()
                 }
@@ -3060,93 +3112,52 @@ private struct AddDepartmentSheet: View {
     }
     
     private var departmentNameCardBackground: some View {
-        RoundedRectangle(cornerRadius: DesignSystem.CornerRadius.medium)
-            .fill(Color(.secondarySystemGroupedBackground))
+        RoundedRectangle(cornerRadius: DesignSystem.CornerRadius.medium + 2)
+            .fill(
+                LinearGradient(
+                    colors: [
+                        Color(.secondarySystemGroupedBackground),
+                        Color(.tertiarySystemGroupedBackground).opacity(0.5)
+                    ],
+                    startPoint: .topLeading,
+                    endPoint: .bottomTrailing
+                )
+            )
             .overlay(
-                RoundedRectangle(cornerRadius: DesignSystem.CornerRadius.medium)
+                RoundedRectangle(cornerRadius: DesignSystem.CornerRadius.medium + 2)
                     .stroke(
                         LinearGradient(
-                            colors: [Color.blue.opacity(0.1), Color.cyan.opacity(0.05)],
+                            colors: [
+                                Color.blue.opacity(0.2),
+                                Color.cyan.opacity(0.1)
+                            ],
                             startPoint: .topLeading,
                             endPoint: .bottomTrailing
                         ),
-                        lineWidth: 1
+                        lineWidth: 1.5
                     )
             )
+            .shadow(color: Color.blue.opacity(0.1), radius: 8, x: 0, y: 2)
     }
     
     private var contractorModeCard: some View {
-        VStack(alignment: .leading, spacing: DesignSystem.Spacing.small) {
-                        Label {
-                            Text("Contractor Mode")
-                                .font(.system(size: 13, weight: .semibold))
-                                .foregroundColor(.secondary)
-                        } icon: {
-                            Image(systemName: "person.2.fill")
-                                .font(.system(size: 12, weight: .semibold))
-                                .foregroundStyle(purpleIndigoGradient)
-                        }
-                        
-                        HStack(spacing: DesignSystem.Spacing.small) {
-                            ForEach(ContractorMode.allCases, id: \.self) { mode in
-                                Button(action: {
-                                    HapticManager.selection()
-                                    let previousMode = contractorMode
-                                    contractorMode = mode
-                                    
-                                    // If switching to Labour-Only, clear non-Labour item types
-                                    if mode == .labourOnly && previousMode == .turnkey {
-                                        for index in lineItems.indices {
-                                            if lineItems[index].itemType != "Labour" && !lineItems[index].itemType.isEmpty {
-                                                lineItems[index].itemType = ""
-                                                lineItems[index].item = ""
-                                                lineItems[index].spec = ""
-                                            }
-                                        }
-                                    }
-                                }) {
-                                    Text(mode.displayName)
-                                        .font(.system(size: 15, weight: contractorMode == mode ? .semibold : .regular))
-                                        .foregroundColor(contractorMode == mode ? .white : .primary)
-                                        .multilineTextAlignment(.center)
-                                        .padding(.horizontal, DesignSystem.Spacing.medium)
-                                        .padding(.vertical, DesignSystem.Spacing.medium)
-                                        .frame(maxWidth: .infinity)
-                                        .background(
-                                            Group {
-                                                if contractorMode == mode {
-                                                    blueCyanGradient
-                                                } else {
-                                                    LinearGradient(
-                                                        colors: [Color(.tertiarySystemGroupedBackground), Color(.tertiarySystemGroupedBackground)],
-                                                        startPoint: .topLeading,
-                                                        endPoint: .bottomTrailing
-                                                    )
-                                                }
-                                            }
-                                            .clipShape(RoundedRectangle(cornerRadius: 10))
-                                        )
-                                        .overlay(
-                                            RoundedRectangle(cornerRadius: 10)
-                                                .stroke(
-                                                    contractorMode == mode
-                                                        ? Color.clear
-                                                        : Color(.separator).opacity(0.5),
-                                                    lineWidth: contractorMode == mode ? 0 : 1
-                                                )
-                                        )
-                                        .shadow(
-                                            color: contractorMode == mode
-                                                ? Color.blue.opacity(0.2)
-                                                : Color.clear,
-                                            radius: contractorMode == mode ? 4 : 0,
-                                            x: 0,
-                                            y: 2
-                                        )
-                                }
-                                .buttonStyle(.plain)
-                            }
-                        }
+        VStack(alignment: .leading, spacing: DesignSystem.Spacing.medium) {
+            Label {
+                Text("Contractor Mode")
+                    .font(.system(size: 13, weight: .bold))
+                    .foregroundColor(.secondary)
+            } icon: {
+                Image(systemName: "person.2.fill")
+                    .font(.system(size: 12, weight: .bold))
+                    .foregroundStyle(purpleIndigoGradient)
+                    .symbolRenderingMode(.hierarchical)
+            }
+            
+            HStack(spacing: DesignSystem.Spacing.small) {
+                ForEach(ContractorMode.allCases, id: \.self) { mode in
+                    contractorModeButton(for: mode)
+                }
+            }
         }
         .padding(DesignSystem.Spacing.medium)
         .background(contractorModeCardBackground)
@@ -3154,20 +3165,133 @@ private struct AddDepartmentSheet: View {
         .padding(.bottom, DesignSystem.Spacing.medium)
     }
     
+    private func contractorModeButton(for mode: ContractorMode) -> some View {
+        Button(action: {
+            HapticManager.selection()
+            let previousMode = contractorMode
+            contractorMode = mode
+            
+            // If switching to Labour-Only, clear non-Labour item types
+            if mode == .labourOnly && previousMode == .turnkey {
+                for index in lineItems.indices {
+                    if lineItems[index].itemType != "Labour" && !lineItems[index].itemType.isEmpty {
+                        lineItems[index].itemType = ""
+                        lineItems[index].item = ""
+                        lineItems[index].spec = ""
+                    }
+                }
+            }
+        }) {
+            Text(mode.displayName)
+                .font(.system(size: 16, weight: contractorMode == mode ? .bold : .semibold))
+                .foregroundColor(contractorMode == mode ? .white : .primary)
+                .multilineTextAlignment(.center)
+                .padding(.horizontal, DesignSystem.Spacing.large)
+                .padding(.vertical, DesignSystem.Spacing.medium + 2)
+                .frame(maxWidth: .infinity)
+                .background(contractorModeButtonBackground(for: mode))
+                .overlay(contractorModeButtonOverlay(for: mode))
+                .shadow(
+                    color: contractorMode == mode ? contractorModeShadowColor(for: mode) : Color.clear,
+                    radius: contractorMode == mode ? 8 : 0,
+                    x: 0,
+                    y: contractorMode == mode ? 4 : 0
+                )
+                .scaleEffect(contractorMode == mode ? 1.02 : 1.0)
+        }
+        .buttonStyle(.plain)
+        .animation(.spring(response: 0.3, dampingFraction: 0.7), value: contractorMode)
+    }
+    
+    @ViewBuilder
+    private func contractorModeButtonBackground(for mode: ContractorMode) -> some View {
+        if contractorMode == mode {
+            if mode == .labourOnly {
+                // Black gradient for Labour-Only
+                LinearGradient(
+                    colors: [
+                        Color.black,
+                        Color(white: 0.15)
+                    ],
+                    startPoint: .topLeading,
+                    endPoint: .bottomTrailing
+                )
+            } else {
+                // Blue gradient for Turnkey
+                LinearGradient(
+                    colors: [
+                        Color.blue,
+                        Color.blue.opacity(0.8)
+                    ],
+                    startPoint: .topLeading,
+                    endPoint: .bottomTrailing
+                )
+            }
+        } else {
+            LinearGradient(
+                colors: [
+                    Color(.tertiarySystemGroupedBackground),
+                    Color(.tertiarySystemGroupedBackground).opacity(0.8)
+                ],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
+        }
+    }
+    
+    @ViewBuilder
+    private func contractorModeButtonOverlay(for mode: ContractorMode) -> some View {
+        RoundedRectangle(cornerRadius: 12)
+            .stroke(
+                contractorMode == mode
+                    ? Color.clear
+                    : LinearGradient(
+                        colors: [
+                            Color(.separator).opacity(0.4),
+                            Color(.separator).opacity(0.2)
+                        ],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    ),
+                lineWidth: contractorMode == mode ? 0 : 1.5
+            )
+    }
+    
+    private func contractorModeShadowColor(for mode: ContractorMode) -> Color {
+        if mode == .labourOnly {
+            return Color.black.opacity(0.3)
+        } else {
+            return Color.blue.opacity(0.25)
+        }
+    }
+    
     private var contractorModeCardBackground: some View {
-        RoundedRectangle(cornerRadius: DesignSystem.CornerRadius.medium)
-            .fill(Color(.secondarySystemGroupedBackground))
+        RoundedRectangle(cornerRadius: DesignSystem.CornerRadius.medium + 2)
+            .fill(
+                LinearGradient(
+                    colors: [
+                        Color(.secondarySystemGroupedBackground),
+                        Color(.tertiarySystemGroupedBackground).opacity(0.5)
+                    ],
+                    startPoint: .topLeading,
+                    endPoint: .bottomTrailing
+                )
+            )
             .overlay(
-                RoundedRectangle(cornerRadius: DesignSystem.CornerRadius.medium)
+                RoundedRectangle(cornerRadius: DesignSystem.CornerRadius.medium + 2)
                     .stroke(
                         LinearGradient(
-                            colors: [Color.purple.opacity(0.1), Color.indigo.opacity(0.05)],
+                            colors: [
+                                Color.purple.opacity(0.2),
+                                Color.indigo.opacity(0.1)
+                            ],
                             startPoint: .topLeading,
                             endPoint: .bottomTrailing
                         ),
-                        lineWidth: 1
+                        lineWidth: 1.5
                     )
             )
+            .shadow(color: Color.purple.opacity(0.1), radius: 8, x: 0, y: 2)
     }
     
     private var lineItemsSection: some View {
@@ -3175,23 +3299,46 @@ private struct AddDepartmentSheet: View {
                         HStack(alignment: .firstTextBaseline) {
                             Label {
                                 Text("Line Items")
-                                    .font(.system(size: 13, weight: .semibold))
-                                    .foregroundColor(.secondary)
+                                    .font(.system(size: 14, weight: .bold))
+                                    .foregroundStyle(
+                                        LinearGradient(
+                                            colors: [.secondary, .secondary.opacity(0.7)],
+                                            startPoint: .leading,
+                                            endPoint: .trailing
+                                        )
+                                    )
                             } icon: {
                                 Image(systemName: "list.bullet.rectangle.fill")
-                                    .font(.system(size: 12, weight: .semibold))
+                                    .font(.system(size: 14, weight: .bold))
                                     .foregroundStyle(orangeAmberGradient)
+                                    .symbolRenderingMode(.hierarchical)
                             }
                             
                             Spacer()
                             
-                            HStack(spacing: DesignSystem.Spacing.extraSmall) {
+                            HStack(spacing: DesignSystem.Spacing.small) {
                                 Image(systemName: "info.circle.fill")
-                                    .font(.system(size: 10, weight: .medium))
-                                    .foregroundColor(.orange.opacity(0.7))
+                                    .font(.system(size: 11, weight: .semibold))
+                                    .foregroundStyle(
+                                        LinearGradient(
+                                            colors: [.orange, amberColor],
+                                            startPoint: .topLeading,
+                                            endPoint: .bottomTrailing
+                                        )
+                                    )
+                                    .symbolRenderingMode(.hierarchical)
                                 Text("sum equals budget")
-                                    .font(.system(size: 11, weight: .regular))
-                                    .foregroundColor(.secondary.opacity(0.7))
+                                    .font(.system(size: 12, weight: .medium))
+                                    .foregroundStyle(
+                                        LinearGradient(
+                                            colors: [
+                                                .secondary.opacity(0.8),
+                                                .secondary.opacity(0.6)
+                                            ],
+                                            startPoint: .leading,
+                                            endPoint: .trailing
+                                        )
+                                    )
                                     .italic()
                             }
                         }
@@ -3237,33 +3384,51 @@ private struct AddDepartmentSheet: View {
                                 }
                             }
                         }) {
-                            HStack(spacing: DesignSystem.Spacing.small) {
+                            HStack(spacing: DesignSystem.Spacing.medium) {
                                 Image(systemName: "plus.circle.fill")
-                                    .font(.system(size: 16, weight: .semibold))
+                                    .font(.system(size: 18, weight: .bold))
                                     .foregroundStyle(orangeAmberGradient)
+                                    .symbolRenderingMode(.hierarchical)
                                 Text("Add Line Item")
-                                    .font(.system(size: 15, weight: .semibold))
+                                    .font(.system(size: 16, weight: .bold))
+                                    .foregroundStyle(
+                                        LinearGradient(
+                                            colors: [.orange, amberColor],
+                                            startPoint: .leading,
+                                            endPoint: .trailing
+                                        )
+                                    )
                             }
-                            .foregroundColor(.orange)
                             .frame(maxWidth: .infinity)
-                            .padding(.vertical, DesignSystem.Spacing.medium)
+                            .padding(.vertical, DesignSystem.Spacing.medium + 4)
                             .background(
-                                RoundedRectangle(cornerRadius: 10)
+                                RoundedRectangle(cornerRadius: 12)
                                     .fill(
                                         LinearGradient(
                                             colors: [
-                                                Color.orange.opacity(0.12),
-                                                amberColor.opacity(0.08)
+                                                Color.orange.opacity(0.15),
+                                                amberColor.opacity(0.1)
                                             ],
                                             startPoint: .topLeading,
                                             endPoint: .bottomTrailing
                                         )
                                     )
                                     .overlay(
-                                        RoundedRectangle(cornerRadius: 10)
-                                            .stroke(Color.orange.opacity(0.2), lineWidth: 1)
+                                        RoundedRectangle(cornerRadius: 12)
+                                            .stroke(
+                                                LinearGradient(
+                                                    colors: [
+                                                        Color.orange.opacity(0.3),
+                                                        amberColor.opacity(0.2)
+                                                    ],
+                                                    startPoint: .topLeading,
+                                                    endPoint: .bottomTrailing
+                                                ),
+                                                lineWidth: 1.5
+                                            )
                                     )
                             )
+                            .shadow(color: Color.orange.opacity(0.15), radius: 6, x: 0, y: 3)
                         }
                         .buttonStyle(.plain)
                         
@@ -3278,22 +3443,29 @@ private struct AddDepartmentSheet: View {
                             )
                             .padding(.vertical, DesignSystem.Spacing.small)
                         
-                        HStack {
-                            HStack(spacing: DesignSystem.Spacing.extraSmall) {
-                                Image(systemName: "sum")
-                                    .font(.system(size: 14, weight: .semibold))
-                                    .foregroundColor(.orange.opacity(0.8))
-                                Text("Total")
-                                    .font(.system(size: 17, weight: .semibold))
-                                    .foregroundColor(.primary)
+                        GeometryReader { geometry in
+                            HStack {
+                                HStack(spacing: DesignSystem.Spacing.extraSmall) {
+                                    Image(systemName: "sum")
+                                        .font(.system(size: 14, weight: .bold))
+                                        .foregroundStyle(orangeAmberGradient)
+                                        .symbolRenderingMode(.hierarchical)
+                                    Text("Total")
+                                        .font(.system(size: 17, weight: .bold))
+                                        .foregroundColor(.primary)
+                                }
+                                
+                                Spacer(minLength: DesignSystem.Spacing.small)
+                                
+                                Text(totalDepartmentBudget.formattedCurrency)
+                                    .font(.system(size: min(geometry.size.width * 0.12, 24), weight: .bold))
+                                    .foregroundStyle(greenMintGradient)
+                                    .lineLimit(1)
+                                    .minimumScaleFactor(0.6)
+                                    .multilineTextAlignment(.trailing)
                             }
-                            
-                            Spacer()
-                            
-                            Text(totalDepartmentBudget.formattedCurrency)
-                                .font(.system(size: 20, weight: .bold))
-                                .foregroundStyle(greenMintGradient)
                         }
+                        .frame(height: 32)
                     }
         .padding(DesignSystem.Spacing.medium)
         .background(lineItemsCardBackground)
@@ -3302,19 +3474,32 @@ private struct AddDepartmentSheet: View {
     }
     
     private var lineItemsCardBackground: some View {
-        RoundedRectangle(cornerRadius: DesignSystem.CornerRadius.medium)
-            .fill(Color(.secondarySystemGroupedBackground))
+        RoundedRectangle(cornerRadius: DesignSystem.CornerRadius.medium + 2)
+            .fill(
+                LinearGradient(
+                    colors: [
+                        Color(.secondarySystemGroupedBackground),
+                        Color(.tertiarySystemGroupedBackground).opacity(0.5)
+                    ],
+                    startPoint: .topLeading,
+                    endPoint: .bottomTrailing
+                )
+            )
             .overlay(
-                RoundedRectangle(cornerRadius: DesignSystem.CornerRadius.medium)
+                RoundedRectangle(cornerRadius: DesignSystem.CornerRadius.medium + 2)
                     .stroke(
                         LinearGradient(
-                            colors: [Color.orange.opacity(0.1), amberColor.opacity(0.05)],
+                            colors: [
+                                Color.orange.opacity(0.2),
+                                amberColor.opacity(0.1)
+                            ],
                             startPoint: .topLeading,
                             endPoint: .bottomTrailing
                         ),
-                        lineWidth: 1
+                        lineWidth: 1.5
                     )
             )
+            .shadow(color: Color.orange.opacity(0.1), radius: 8, x: 0, y: 2)
     }
     
     private var budgetSummaryCard: some View {
@@ -3451,22 +3636,27 @@ private struct AddDepartmentSheet: View {
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Cancel") {
+                        HapticManager.selection()
                         dismiss()
                     }
-                    .font(.system(size: 17, weight: .regular))
+                    .font(.system(size: 17, weight: .medium))
                     .foregroundStyle(blueCyanGradient)
                 }
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Create") {
+                        HapticManager.impact(.medium)
                         save()
                     }
                     .disabled(!isFormValid || isSaving)
-                    .font(.system(size: 17, weight: .semibold))
+                    .font(.system(size: 17, weight: .bold))
                     .foregroundStyle(
                         isFormValid && !isSaving
                             ? greenMintGradient
                             : LinearGradient(
-                                colors: [Color.gray, Color.gray],
+                                colors: [
+                                    Color.gray.opacity(0.5),
+                                    Color.gray.opacity(0.3)
+                                ],
                                 startPoint: .leading,
                                 endPoint: .trailing
                             )
