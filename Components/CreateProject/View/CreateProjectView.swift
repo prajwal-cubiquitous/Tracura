@@ -121,49 +121,75 @@ struct LineItemRowView: View {
                 onToggleExpand()
             }) {
                 HStack(spacing: DesignSystem.Spacing.medium) {
-                    // Chevron
+                    // Chevron with gradient
                     Image(systemName: isExpanded ? "chevron.up" : "chevron.down")
-                        .font(.system(size: 12, weight: .semibold))
-                        .foregroundColor(.secondary)
-                        .frame(width: 20)
+                        .font(.system(size: 14, weight: .semibold))
+                        .foregroundStyle(
+                            LinearGradient(
+                                colors: [.orange, Color(red: 1.0, green: 0.75, blue: 0.0)],
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            )
+                        )
+                        .frame(width: 24)
+                        .symbolRenderingMode(.hierarchical)
                     
                     // Item Summary
-                    VStack(alignment: .leading, spacing: 2) {
+                    VStack(alignment: .leading, spacing: 4) {
                         if !lineItem.itemType.isEmpty {
                             Text(lineItem.itemType)
-                                .font(DesignSystem.Typography.subheadline)
-                                .fontWeight(.medium)
+                                .font(.system(size: 16, weight: .semibold))
                                 .foregroundColor(.primary)
+                                .lineLimit(1)
+                                .minimumScaleFactor(0.8)
+                                .truncationMode(.tail)
                         } else {
                             Text("Line Item")
-                                .font(DesignSystem.Typography.subheadline)
+                                .font(.system(size: 16, weight: .medium))
                                 .foregroundColor(.secondary)
+                                .lineLimit(1)
                         }
                         
                         if !lineItem.item.isEmpty {
-                            HStack(spacing: 4) {
+                            HStack(spacing: 6) {
                                 Text(lineItem.item)
-                                    .font(DesignSystem.Typography.caption1)
+                                    .font(.system(size: 13, weight: .regular))
                                     .foregroundColor(.secondary)
+                                    .lineLimit(1)
+                                    .minimumScaleFactor(0.85)
+                                    .truncationMode(.tail)
                                 if !lineItem.spec.isEmpty {
                                     Text("•")
-                                        .font(DesignSystem.Typography.caption1)
-                                        .foregroundColor(.secondary)
+                                        .font(.system(size: 13, weight: .regular))
+                                        .foregroundColor(.secondary.opacity(0.6))
                                     Text(lineItem.spec)
-                                        .font(DesignSystem.Typography.caption1)
+                                        .font(.system(size: 13, weight: .regular))
                                         .foregroundColor(.secondary)
+                                        .lineLimit(1)
+                                        .minimumScaleFactor(0.85)
+                                        .truncationMode(.tail)
                                 }
                             }
                         }
                     }
+                    .frame(maxWidth: .infinity, alignment: .leading)
                     
                     Spacer()
                     
-                    // Total Budget
+                    // Total Budget with gradient
                     Text(lineItem.total.formattedCurrency)
-                        .font(DesignSystem.Typography.headline)
-                        .fontWeight(.bold)
-                        .foregroundColor(.green)
+                        .font(.system(size: 18, weight: .bold))
+                        .foregroundStyle(
+                            LinearGradient(
+                                colors: [.green, .mint],
+                                startPoint: .leading,
+                                endPoint: .trailing
+                            )
+                        )
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.7)
+                        .truncationMode(.tail)
+                        .fixedSize(horizontal: false, vertical: true)
                     
                     // Delete Button
                     if canDelete {
@@ -171,18 +197,25 @@ struct LineItemRowView: View {
                             HapticManager.selection()
                             onDelete()
                         }) {
-                            Image(systemName: "trash")
-                                .foregroundColor(.red)
-                                .font(.system(size: 14, weight: .medium))
-                                .frame(width: 28, height: 28)
-                                .background(Color.red.opacity(0.1))
+                            Image(systemName: "trash.fill")
+                                .foregroundColor(.white)
+                                .font(.system(size: 12, weight: .semibold))
+                                .frame(width: 32, height: 32)
+                                .background(
+                                    LinearGradient(
+                                        colors: [.red, .red.opacity(0.8)],
+                                        startPoint: .topLeading,
+                                        endPoint: .bottomTrailing
+                                    )
+                                )
                                 .clipShape(Circle())
+                                .shadow(color: Color.red.opacity(0.3), radius: 4, x: 0, y: 2)
                         }
                         .buttonStyle(.plain)
                         .padding(.leading, DesignSystem.Spacing.small)
                     }
                 }
-                .padding(DesignSystem.Spacing.medium)
+                .padding(DesignSystem.Spacing.large)
                 .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
@@ -190,10 +223,25 @@ struct LineItemRowView: View {
             // Expanded Content
             if isExpanded {
                 VStack(alignment: .leading, spacing: DesignSystem.Spacing.medium) {
+                    // Gradient Divider
                     Divider()
-                        .padding(.horizontal, DesignSystem.Spacing.medium)
+                        .background(
+                            LinearGradient(
+                                colors: [
+                                    Color.clear,
+                                    Color.orange.opacity(0.2),
+                                    Color(red: 1.0, green: 0.75, blue: 0.0).opacity(0.15),
+                                    Color.orange.opacity(0.2),
+                                    Color.clear
+                                ],
+                                startPoint: .leading,
+                                endPoint: .trailing
+                            )
+                        )
+                        .frame(height: 1.5)
+                        .padding(.horizontal, DesignSystem.Spacing.large)
                     
-                    VStack(alignment: .leading, spacing: DesignSystem.Spacing.medium) {
+                    VStack(alignment: .leading, spacing: DesignSystem.Spacing.large) {
                         // Item Type
                         VStack(alignment: .leading, spacing: DesignSystem.Spacing.extraSmall) {
                             Text("Item Type")
@@ -229,17 +277,44 @@ struct LineItemRowView: View {
                             } label: {
                                 HStack {
                                     Text(lineItem.itemType.isEmpty ? "Select Item Type" : lineItem.itemType)
-                                        .font(DesignSystem.Typography.body)
+                                        .font(.system(size: 16, weight: .medium))
                                         .foregroundColor(lineItem.itemType.isEmpty ? .secondary : .primary)
+                                        .lineLimit(1)
+                                        .minimumScaleFactor(0.85)
+                                        .truncationMode(.tail)
                                     Spacer()
                                     Image(systemName: "chevron.down")
-                                        .font(.system(size: 12, weight: .medium))
+                                        .font(.system(size: 12, weight: .semibold))
                                         .foregroundColor(.secondary)
+                                        .frame(width: 16)
                                 }
-                                .padding(.horizontal, DesignSystem.Spacing.medium)
-                                .padding(.vertical, DesignSystem.Spacing.small)
-                                .background(Color(.tertiarySystemGroupedBackground))
-                                .cornerRadius(DesignSystem.CornerRadius.field)
+                                .padding(.horizontal, DesignSystem.Spacing.large)
+                                .padding(.vertical, DesignSystem.Spacing.medium)
+                                .background(
+                                    LinearGradient(
+                                        colors: [
+                                            Color(.tertiarySystemGroupedBackground),
+                                            Color(.tertiarySystemGroupedBackground).opacity(0.8)
+                                        ],
+                                        startPoint: .topLeading,
+                                        endPoint: .bottomTrailing
+                                    )
+                                )
+                                .clipShape(RoundedRectangle(cornerRadius: 14))
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: 14)
+                                        .stroke(
+                                            LinearGradient(
+                                                colors: [
+                                                    Color(.separator).opacity(0.3),
+                                                    Color(.separator).opacity(0.1)
+                                                ],
+                                                startPoint: .topLeading,
+                                                endPoint: .bottomTrailing
+                                            ),
+                                            lineWidth: 1
+                                        )
+                                )
                             }
                         }
                         
@@ -272,17 +347,44 @@ struct LineItemRowView: View {
                                 } label: {
                                     HStack {
                                         Text(lineItem.item.isEmpty ? "Select Item" : lineItem.item)
-                                            .font(DesignSystem.Typography.body)
+                                            .font(.system(size: 16, weight: .medium))
                                             .foregroundColor(lineItem.item.isEmpty ? .secondary : .primary)
+                                            .lineLimit(1)
+                                            .minimumScaleFactor(0.85)
+                                            .truncationMode(.tail)
                                         Spacer()
                                         Image(systemName: "chevron.down")
-                                            .font(.system(size: 12, weight: .medium))
+                                            .font(.system(size: 12, weight: .semibold))
                                             .foregroundColor(.secondary)
+                                            .frame(width: 16)
                                     }
-                                    .padding(.horizontal, DesignSystem.Spacing.medium)
-                                    .padding(.vertical, DesignSystem.Spacing.small)
-                                    .background(Color(.tertiarySystemGroupedBackground))
-                                    .cornerRadius(DesignSystem.CornerRadius.field)
+                                    .padding(.horizontal, DesignSystem.Spacing.large)
+                                    .padding(.vertical, DesignSystem.Spacing.medium)
+                                    .background(
+                                        LinearGradient(
+                                            colors: [
+                                                Color(.tertiarySystemGroupedBackground),
+                                                Color(.tertiarySystemGroupedBackground).opacity(0.8)
+                                            ],
+                                            startPoint: .topLeading,
+                                            endPoint: .bottomTrailing
+                                        )
+                                    )
+                                    .clipShape(RoundedRectangle(cornerRadius: 14))
+                                    .overlay(
+                                        RoundedRectangle(cornerRadius: 14)
+                                            .stroke(
+                                                LinearGradient(
+                                                    colors: [
+                                                        Color(.separator).opacity(0.3),
+                                                        Color(.separator).opacity(0.1)
+                                                    ],
+                                                    startPoint: .topLeading,
+                                                    endPoint: .bottomTrailing
+                                                ),
+                                                lineWidth: 1
+                                            )
+                                    )
                                 }
                                 .disabled(lineItem.itemType.isEmpty)
                                 .opacity(lineItem.itemType.isEmpty ? 0.6 : 1.0)
@@ -306,17 +408,44 @@ struct LineItemRowView: View {
                                     } label: {
                                         HStack {
                                             Text(lineItem.spec.isEmpty ? "Select Spec" : lineItem.spec)
-                                                .font(DesignSystem.Typography.body)
+                                                .font(.system(size: 16, weight: .medium))
                                                 .foregroundColor(lineItem.spec.isEmpty ? .secondary : .primary)
+                                                .lineLimit(1)
+                                                .minimumScaleFactor(0.85)
+                                                .truncationMode(.tail)
                                             Spacer()
                                             Image(systemName: "chevron.down")
-                                                .font(.system(size: 12, weight: .medium))
+                                                .font(.system(size: 12, weight: .semibold))
                                                 .foregroundColor(.secondary)
+                                                .frame(width: 16)
                                         }
-                                        .padding(.horizontal, DesignSystem.Spacing.medium)
-                                        .padding(.vertical, DesignSystem.Spacing.small)
-                                        .background(Color(.tertiarySystemGroupedBackground))
-                                        .cornerRadius(DesignSystem.CornerRadius.field)
+                                        .padding(.horizontal, DesignSystem.Spacing.large)
+                                        .padding(.vertical, DesignSystem.Spacing.medium)
+                                        .background(
+                                            LinearGradient(
+                                                colors: [
+                                                    Color(.tertiarySystemGroupedBackground),
+                                                    Color(.tertiarySystemGroupedBackground).opacity(0.8)
+                                                ],
+                                                startPoint: .topLeading,
+                                                endPoint: .bottomTrailing
+                                            )
+                                        )
+                                        .clipShape(RoundedRectangle(cornerRadius: 14))
+                                        .overlay(
+                                            RoundedRectangle(cornerRadius: 14)
+                                                .stroke(
+                                                    LinearGradient(
+                                                        colors: [
+                                                            Color(.separator).opacity(0.3),
+                                                            Color(.separator).opacity(0.1)
+                                                        ],
+                                                        startPoint: .topLeading,
+                                                        endPoint: .bottomTrailing
+                                                    ),
+                                                    lineWidth: 1
+                                                )
+                                        )
                                     }
                                     .disabled(lineItem.item.isEmpty)
                                     .opacity(lineItem.item.isEmpty ? 0.6 : 1.0)
@@ -342,12 +471,35 @@ struct LineItemRowView: View {
                                         }
                                     ))
                                     .keyboardType(.decimalPad)
-                                    .font(DesignSystem.Typography.body)
+                                    .font(DesignSystem.Typography.caption1)
                                     .multilineTextAlignment(.trailing)
                                     .padding(.horizontal, DesignSystem.Spacing.medium)
                                     .padding(.vertical, DesignSystem.Spacing.small)
-                                    .background(Color(.tertiarySystemGroupedBackground))
-                                    .cornerRadius(DesignSystem.CornerRadius.field)
+                                    .background(
+                                        LinearGradient(
+                                            colors: [
+                                                Color(.tertiarySystemGroupedBackground),
+                                                Color(.tertiarySystemGroupedBackground).opacity(0.8)
+                                            ],
+                                            startPoint: .topLeading,
+                                            endPoint: .bottomTrailing
+                                        )
+                                    )
+                                    .clipShape(RoundedRectangle(cornerRadius: 14))
+                                    .overlay(
+                                        RoundedRectangle(cornerRadius: 14)
+                                            .stroke(
+                                                LinearGradient(
+                                                    colors: [
+                                                        Color(.separator).opacity(0.3),
+                                                        Color(.separator).opacity(0.1)
+                                                    ],
+                                                    startPoint: .topLeading,
+                                                    endPoint: .bottomTrailing
+                                                ),
+                                                lineWidth: 1
+                                            )
+                                    )
                                     .onAppear {
                                         quantityText = lineItem.quantity
                                     }
@@ -379,18 +531,47 @@ struct LineItemRowView: View {
                                             Text(lineItem.itemType.isEmpty ? "Item Type" : (lineItem.uom.isEmpty ? "Select UOM" : lineItem.uom))
                                                 .font(DesignSystem.Typography.caption1)
                                                 .foregroundColor(lineItem.uom.isEmpty ? .secondary : .primary)
+                                                .lineLimit(1)
+                                                .minimumScaleFactor(0.85)
+                                                .truncationMode(.tail)
                                             Spacer()
                                             Image(systemName: "chevron.down")
                                                 .font(.system(size: 12, weight: .medium))
                                                 .foregroundColor(.secondary)
+                                                .frame(width: 16)
                                         }
                                         .padding(.horizontal, DesignSystem.Spacing.medium)
                                         .padding(.vertical, DesignSystem.Spacing.small)
-                                        .background(Color(.tertiarySystemGroupedBackground))
-                                        .cornerRadius(DesignSystem.CornerRadius.field)
+                                        .background(
+                                            LinearGradient(
+                                                colors: [
+                                                    Color(.tertiarySystemGroupedBackground),
+                                                    Color(.tertiarySystemGroupedBackground).opacity(0.8)
+                                                ],
+                                                startPoint: .topLeading,
+                                                endPoint: .bottomTrailing
+                                            )
+                                        )
+                                        .clipShape(RoundedRectangle(cornerRadius: 14))
                                         .overlay(
-                                            RoundedRectangle(cornerRadius: DesignSystem.CornerRadius.field)
-                                                .stroke(uomError != nil ? Color.red : Color.clear, lineWidth: 1.5)
+                                            RoundedRectangle(cornerRadius: 14)
+                                                .stroke(
+                                                    uomError != nil
+                                                        ? LinearGradient(
+                                                            colors: [.red, .red.opacity(0.6)],
+                                                            startPoint: .topLeading,
+                                                            endPoint: .bottomTrailing
+                                                        )
+                                                        : LinearGradient(
+                                                            colors: [
+                                                                Color(.separator).opacity(0.3),
+                                                                Color(.separator).opacity(0.1)
+                                                            ],
+                                                            startPoint: .topLeading,
+                                                            endPoint: .bottomTrailing
+                                                        ),
+                                                    lineWidth: uomError != nil ? 2 : 1
+                                                )
                                         )
                                     }
                                     .disabled(lineItem.itemType.isEmpty)
@@ -425,33 +606,103 @@ struct LineItemRowView: View {
                                     }
                                 ))
                                 .keyboardType(.decimalPad)
-                                .font(DesignSystem.Typography.body)
+                                .font(DesignSystem.Typography.caption1)
                                 .multilineTextAlignment(.trailing)
                                 .padding(.horizontal, DesignSystem.Spacing.medium)
                                 .padding(.vertical, DesignSystem.Spacing.small)
-                                .background(Color(.tertiarySystemGroupedBackground))
-                                .cornerRadius(DesignSystem.CornerRadius.field)
+                                .background(
+                                    LinearGradient(
+                                        colors: [
+                                            Color(.tertiarySystemGroupedBackground),
+                                            Color(.tertiarySystemGroupedBackground).opacity(0.8)
+                                        ],
+                                        startPoint: .topLeading,
+                                        endPoint: .bottomTrailing
+                                    )
+                                )
+                                .clipShape(RoundedRectangle(cornerRadius: 14))
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: 14)
+                                        .stroke(
+                                            LinearGradient(
+                                                colors: [
+                                                    Color(.separator).opacity(0.3),
+                                                    Color(.separator).opacity(0.1)
+                                                ],
+                                                startPoint: .topLeading,
+                                                endPoint: .bottomTrailing
+                                            ),
+                                            lineWidth: 1
+                                        )
+                                )
                                 .onAppear {
                                     unitPriceText = lineItem.unitPrice
                                 }
                             }
                         }
                         
-                        // Total
+                        // Total with enhanced styling
                         HStack {
-                            Text("Total")
-                                .font(DesignSystem.Typography.subheadline)
-                                .fontWeight(.semibold)
-                                .foregroundColor(.secondary)
+                            HStack(spacing: DesignSystem.Spacing.extraSmall) {
+                                Image(systemName: "sum")
+                                    .font(.system(size: 14, weight: .bold))
+                                    .foregroundStyle(
+                                        LinearGradient(
+                                            colors: [.orange, Color(red: 1.0, green: 0.75, blue: 0.0)],
+                                            startPoint: .topLeading,
+                                            endPoint: .bottomTrailing
+                                        )
+                                    )
+                                    .symbolRenderingMode(.hierarchical)
+                                Text("Total")
+                                    .font(.system(size: 17, weight: .semibold))
+                                    .foregroundColor(.primary)
+                            }
                             
                             Spacer()
                             
                             Text(lineItem.total.formattedCurrency)
-                                .font(DesignSystem.Typography.headline)
-                                .fontWeight(.bold)
-                                .foregroundColor(.green)
+                                .font(.system(size: 20, weight: .bold))
+                                .foregroundStyle(
+                                    LinearGradient(
+                                        colors: [.green, .mint],
+                                        startPoint: .leading,
+                                        endPoint: .trailing
+                                    )
+                                )
+                                .lineLimit(1)
+                                .minimumScaleFactor(0.7)
+                                .truncationMode(.tail)
+                                .fixedSize(horizontal: false, vertical: true)
                         }
-                        .padding(.top, DesignSystem.Spacing.extraSmall)
+                        .padding(.top, DesignSystem.Spacing.small)
+                        .padding(.vertical, DesignSystem.Spacing.medium)
+                        .padding(.horizontal, DesignSystem.Spacing.medium)
+                        .background(
+                            LinearGradient(
+                                colors: [
+                                    Color.green.opacity(0.08),
+                                    Color.mint.opacity(0.05)
+                                ],
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            )
+                        )
+                        .clipShape(RoundedRectangle(cornerRadius: 14))
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 14)
+                                .stroke(
+                                    LinearGradient(
+                                        colors: [
+                                            Color.green.opacity(0.2),
+                                            Color.mint.opacity(0.1)
+                                        ],
+                                        startPoint: .topLeading,
+                                        endPoint: .bottomTrailing
+                                    ),
+                                    lineWidth: 1.5
+                                )
+                        )
                         
                         // Note for Labour
                         if lineItem.itemType == "Labour" {
@@ -466,14 +717,39 @@ struct LineItemRowView: View {
                             .padding(.top, DesignSystem.Spacing.extraSmall)
                         }
                     }
-                    .padding(.horizontal, DesignSystem.Spacing.medium)
-                    .padding(.bottom, DesignSystem.Spacing.medium)
+                    .padding(.horizontal, DesignSystem.Spacing.large)
+                    .padding(.bottom, DesignSystem.Spacing.large)
                 }
                 .transition(.opacity.combined(with: .move(edge: .top)))
             }
         }
-        .background(Color(.secondarySystemGroupedBackground))
-        .cornerRadius(DesignSystem.CornerRadius.medium)
+        .background(
+            LinearGradient(
+                colors: [
+                    Color(.secondarySystemGroupedBackground),
+                    Color(.tertiarySystemGroupedBackground).opacity(0.5)
+                ],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
+        )
+        .clipShape(RoundedRectangle(cornerRadius: 20))
+        .overlay(
+            RoundedRectangle(cornerRadius: 20)
+                .stroke(
+                    LinearGradient(
+                        colors: [
+                            Color.orange.opacity(0.15),
+                            Color(red: 1.0, green: 0.75, blue: 0.0).opacity(0.08)
+                        ],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    ),
+                    lineWidth: 1.5
+                )
+        )
+        .shadow(color: Color.orange.opacity(0.1), radius: 10, x: 0, y: 4)
+        .shadow(color: Color.orange.opacity(0.05), radius: 20, x: 0, y: 8)
     }
 }
 
@@ -1648,24 +1924,41 @@ struct PhaseCardView: View {
                         Text("Phase \(phaseNumber)/\(totalPhases)")
                             .font(DesignSystem.Typography.headline)
                             .foregroundColor(.primary)
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.9)
+                            .truncationMode(.tail)
                         
                         Spacer()
                         
-                        // Completion indicator
+                        // Completion indicator with gradient
                         if hasRequiredFields {
                             Image(systemName: "checkmark.circle.fill")
-                                .foregroundColor(.green)
-                                .font(.system(size: 18))
+                                .foregroundStyle(
+                                    LinearGradient(
+                                        colors: [.green, .mint],
+                                        startPoint: .topLeading,
+                                        endPoint: .bottomTrailing
+                                    )
+                                )
+                                .font(.system(size: 20))
+                                .symbolRenderingMode(.hierarchical)
                         } else {
                             Image(systemName: "circle")
-                                .foregroundColor(.secondary)
-                                .font(.system(size: 18))
+                                .foregroundColor(.secondary.opacity(0.5))
+                                .font(.system(size: 20))
                         }
                         
-                        // Expand/Collapse chevron
+                        // Expand/Collapse chevron with gradient
                         Image(systemName: isExpanded ? "chevron.up" : "chevron.down")
-                            .font(.system(size: 14, weight: .semibold))
-                            .foregroundColor(.secondary)
+                            .font(.system(size: 14, weight: .bold))
+                            .foregroundStyle(
+                                LinearGradient(
+                                    colors: [.blue, .cyan],
+                                    startPoint: .topLeading,
+                                    endPoint: .bottomTrailing
+                                )
+                            )
+                            .symbolRenderingMode(.hierarchical)
                             .animation(.easeInOut(duration: 0.2), value: isExpanded)
                         
                         // Delete Phase Button
@@ -1674,9 +1967,19 @@ struct PhaseCardView: View {
                                 HapticManager.selection()
                                 onDelete()
                             }) {
-                                Image(systemName: "trash")
-                                    .foregroundColor(.red)
-                                    .font(.system(size: 16))
+                                Image(systemName: "trash.fill")
+                                    .foregroundColor(.white)
+                                    .font(.system(size: 14, weight: .semibold))
+                                    .frame(width: 32, height: 32)
+                                    .background(
+                                        LinearGradient(
+                                            colors: [.red, .red.opacity(0.8)],
+                                            startPoint: .topLeading,
+                                            endPoint: .bottomTrailing
+                                        )
+                                    )
+                                    .clipShape(Circle())
+                                    .shadow(color: Color.red.opacity(0.3), radius: 4, x: 0, y: 2)
                             }
                             .buttonStyle(.plain)
                             .padding(.leading, DesignSystem.Spacing.small)
@@ -1686,18 +1989,33 @@ struct PhaseCardView: View {
                     // Phase Budget - Always visible in collapsed state
                     HStack(spacing: DesignSystem.Spacing.small) {
                         Image(systemName: "indianrupeesign.circle.fill")
-                            .foregroundColor(.blue)
-                            .font(DesignSystem.Typography.caption1)
+                            .foregroundStyle(
+                                LinearGradient(
+                                    colors: [.blue, .cyan],
+                                    startPoint: .topLeading,
+                                    endPoint: .bottomTrailing
+                                )
+                            )
+                            .font(.system(size: 14))
                             .symbolRenderingMode(.hierarchical)
                         
                         Text("Budget:")
-                            .font(DesignSystem.Typography.caption1)
+                            .font(.system(size: 13, weight: .medium))
                             .foregroundColor(.secondary)
                         
                         Text(viewModel.phaseBudgetFormatted(for: phase.id))
-                            .font(DesignSystem.Typography.subheadline)
-                            .fontWeight(.semibold)
-                            .foregroundColor(.primary)
+                            .font(.system(size: 16, weight: .bold))
+                            .foregroundStyle(
+                                LinearGradient(
+                                    colors: [.green, .mint],
+                                    startPoint: .leading,
+                                    endPoint: .trailing
+                                )
+                            )
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.8)
+                            .truncationMode(.tail)
+                            .fixedSize(horizontal: false, vertical: true)
                         
                         Spacer()
                     }
@@ -1710,7 +2028,22 @@ struct PhaseCardView: View {
             // Expandable Content
             if isExpanded {
                 VStack(alignment: .leading, spacing: DesignSystem.Spacing.medium) {
+                    // Gradient Divider
                     Divider()
+                        .background(
+                            LinearGradient(
+                                colors: [
+                                    Color.clear,
+                                    Color.blue.opacity(0.2),
+                                    Color.cyan.opacity(0.15),
+                                    Color.blue.opacity(0.2),
+                                    Color.clear
+                                ],
+                                startPoint: .leading,
+                                endPoint: .trailing
+                            )
+                        )
+                        .frame(height: 1.5)
                         .padding(.horizontal, DesignSystem.Spacing.medium)
                     
                     // Phase Name
@@ -1720,11 +2053,39 @@ struct PhaseCardView: View {
                             .foregroundColor(.secondary)
 
                         TextField("Enter phase name", text: $phase.phaseName)
-                            .font(DesignSystem.Typography.body)
-                            .fieldStyle()
+                            .font(.system(size: 16, weight: .medium))
+                            .padding(.horizontal, DesignSystem.Spacing.large)
+                            .padding(.vertical, DesignSystem.Spacing.medium)
+                            .background(
+                                LinearGradient(
+                                    colors: [
+                                        Color(.tertiarySystemGroupedBackground),
+                                        Color(.tertiarySystemGroupedBackground).opacity(0.8)
+                                    ],
+                                    startPoint: .topLeading,
+                                    endPoint: .bottomTrailing
+                                )
+                            )
+                            .clipShape(RoundedRectangle(cornerRadius: 14))
                             .overlay(
-                                RoundedRectangle(cornerRadius: DesignSystem.CornerRadius.field)
-                                    .stroke(viewModel.phaseNameError(for: phase.id) != nil ? Color.red : Color.clear, lineWidth: 1)
+                                RoundedRectangle(cornerRadius: 14)
+                                    .stroke(
+                                        viewModel.phaseNameError(for: phase.id) != nil
+                                            ? LinearGradient(
+                                                colors: [.red, .red.opacity(0.6)],
+                                                startPoint: .topLeading,
+                                                endPoint: .bottomTrailing
+                                            )
+                                            : LinearGradient(
+                                                colors: [
+                                                    Color(.separator).opacity(0.3),
+                                                    Color(.separator).opacity(0.1)
+                                                ],
+                                                startPoint: .topLeading,
+                                                endPoint: .bottomTrailing
+                                            ),
+                                        lineWidth: viewModel.phaseNameError(for: phase.id) != nil ? 2 : 1
+                                    )
                             )
                         
                         if let error = viewModel.phaseNameError(for: phase.id) {
@@ -2912,14 +3273,39 @@ private struct CreateProjectAddPhaseSheet: View {
                                 .textInputAutocapitalization(.words)
                                 .autocorrectionDisabled()
                                 .focused($focusedField, equals: .phaseName)
-                                .font(DesignSystem.Typography.body)
-                                .padding(.horizontal, DesignSystem.Spacing.medium)
-                                .padding(.vertical, DesignSystem.Spacing.small)
-                                .background(Color(.tertiarySystemGroupedBackground))
-                                .cornerRadius(DesignSystem.CornerRadius.field)
+                                .font(.system(size: 16, weight: .medium))
+                                .padding(.horizontal, DesignSystem.Spacing.large)
+                                .padding(.vertical, DesignSystem.Spacing.medium)
+                                .background(
+                                    LinearGradient(
+                                        colors: [
+                                            Color(.tertiarySystemGroupedBackground),
+                                            Color(.tertiarySystemGroupedBackground).opacity(0.8)
+                                        ],
+                                        startPoint: .topLeading,
+                                        endPoint: .bottomTrailing
+                                    )
+                                )
+                                .clipShape(RoundedRectangle(cornerRadius: 14))
                                 .overlay(
-                                    RoundedRectangle(cornerRadius: DesignSystem.CornerRadius.field)
-                                        .stroke(phaseNameError != nil ? Color.red : Color.clear, lineWidth: 1.5)
+                                    RoundedRectangle(cornerRadius: 14)
+                                        .stroke(
+                                            phaseNameError != nil
+                                                ? LinearGradient(
+                                                    colors: [.red, .red.opacity(0.6)],
+                                                    startPoint: .topLeading,
+                                                    endPoint: .bottomTrailing
+                                                )
+                                                : LinearGradient(
+                                                    colors: [
+                                                        Color(.separator).opacity(0.3),
+                                                        Color(.separator).opacity(0.1)
+                                                    ],
+                                                    startPoint: .topLeading,
+                                                    endPoint: .bottomTrailing
+                                                ),
+                                            lineWidth: phaseNameError != nil ? 2 : 1
+                                        )
                                 )
                                 .onChange(of: phaseName) { _, _ in
                                     validatePhaseName()

@@ -2891,7 +2891,7 @@ private struct AddDepartmentSheet: View {
                 
                 VStack(alignment: .leading, spacing: DesignSystem.Spacing.small) {
                     Text("Add Department")
-                        .font(.system(size: 32, weight: .bold, design: .rounded))
+                        .font(.system(size: 16, weight: .bold, design: .rounded))
                         .foregroundStyle(
                             LinearGradient(
                                 colors: [.primary, .primary.opacity(0.7)],
@@ -3542,6 +3542,10 @@ private struct AddDepartmentSheet: View {
                                 .font(.system(size: 26, weight: .bold))
                                 .foregroundStyle(greenMintGradient)
                                 .shadow(color: Color.green.opacity(0.2), radius: 2, x: 0, y: 1)
+                                .lineLimit(1)
+                                .minimumScaleFactor(0.7)
+                                .truncationMode(.tail)
+                                .fixedSize(horizontal: false, vertical: true)
                         }
                     }
         .padding(DesignSystem.Spacing.medium)
