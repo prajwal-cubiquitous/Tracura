@@ -4,6 +4,7 @@
 //
 //  Created for template data storage
 //  Edit this file to add, modify, or remove templates
+//  All template data including phases, departments, and line items are stored here
 //
 
 import Foundation
@@ -28,13 +29,10 @@ struct TemplateDataStore {
     
     // MARK: - Template Data Dictionary
     // Edit this dictionary to add, modify, or remove templates
-    // Each template is stored as a dictionary with the following keys:
-    // - "id": Unique identifier (String)
-    // - "icon": SF Symbol name (String)
-    // - "title": Template name (String)
-    // - "description": Template description (String)
-    // - "phasesCount": Number of phases (Int)
-    // - "departmentsCount": Total number of departments (Int)
+    // Structure: Template -> Phases -> Departments -> Line Items
+    // Each line item contains: itemType, item, spec, quantity, uom, unitPrice
+    // Each department contains: name, contractorMode ("Turnkey" or "Labour-Only"), lineItems
+    // Each phase contains: phaseName, startDateDays (days from today), endDateDays (days from today), departments
     static let templateData: [String: [String: Any]] = [
         "residential_building": [
             "id": "residential_building",
@@ -42,7 +40,151 @@ struct TemplateDataStore {
             "title": "Residential Building",
             "description": "Standard template for residential building construction projects",
             "phasesCount": 2,
-            "departmentsCount": 5
+            "departmentsCount": 5,
+            "phases": [
+                [
+                    "phaseName": "Foundation & Structure",
+                    "startDateDays": 0,
+                    "endDateDays": 90,
+                    "departments": [
+                        [
+                            "name": "Civil",
+                            "contractorMode": "Turnkey",
+                            "lineItems": [
+                                ["itemType": "Raw material", "item": "Cement", "spec": "OPC 53", "quantity": "500", "uom": "", "unitPrice": "380"],
+                                ["itemType": "Raw material", "item": "Cement", "spec": "OPC 43", "quantity": "200", "uom": "", "unitPrice": "360"],
+                                ["itemType": "Raw material", "item": "Cement", "spec": "PPC", "quantity": "100", "uom": "", "unitPrice": "350"],
+                                ["itemType": "Raw material", "item": "Steel", "spec": "Fe500 • 6 mm", "quantity": "10", "uom": "", "unitPrice": "58000"],
+                                ["itemType": "Raw material", "item": "Steel", "spec": "Fe500 • 8 mm", "quantity": "15", "uom": "", "unitPrice": "59000"],
+                                ["itemType": "Raw material", "item": "Steel", "spec": "Fe500 • 10 mm", "quantity": "20", "uom": "", "unitPrice": "60000"],
+                                ["itemType": "Raw material", "item": "Steel", "spec": "Fe500 • 12 mm", "quantity": "25", "uom": "", "unitPrice": "62000"],
+                                ["itemType": "Raw material", "item": "Steel", "spec": "Fe500 • 16 mm", "quantity": "30", "uom": "", "unitPrice": "62000"],
+                                ["itemType": "Raw material", "item": "Steel", "spec": "Fe500 • 20 mm", "quantity": "15", "uom": "", "unitPrice": "62000"],
+                                ["itemType": "Raw material", "item": "Sand", "spec": "M-Sand • Zone I", "quantity": "100", "uom": "", "unitPrice": "800"],
+                                ["itemType": "Raw material", "item": "Sand", "spec": "M-Sand • Zone II", "quantity": "150", "uom": "", "unitPrice": "800"],
+                                ["itemType": "Raw material", "item": "Sand", "spec": "River Sand (Coarse)", "quantity": "200", "uom": "", "unitPrice": "1200"],
+                                ["itemType": "Raw material", "item": "Sand", "spec": "River Sand (Fine)", "quantity": "100", "uom": "", "unitPrice": "1100"],
+                                ["itemType": "Machines & eq", "item": "JCB", "spec": "Per-day hire", "quantity": "15", "uom": "", "unitPrice": "12000"],
+                                ["itemType": "Machines & eq", "item": "JCB", "spec": "Per-hour hire", "quantity": "50", "uom": "", "unitPrice": "1500"],
+                                ["itemType": "Machines & eq", "item": "Tractor / Trolley", "spec": "Per-trip", "quantity": "80", "uom": "", "unitPrice": "800"],
+                                ["itemType": "Machines & eq", "item": "Tractor / Trolley", "spec": "Per-day", "quantity": "20", "uom": "", "unitPrice": "2500"],
+                                ["itemType": "Machines & eq", "item": "Concrete Mixer", "spec": "Per-day hire", "quantity": "20", "uom": "", "unitPrice": "1500"],
+                                ["itemType": "Machines & eq", "item": "Vibrator", "spec": "Per-day hire", "quantity": "15", "uom": "", "unitPrice": "800"],
+                                ["itemType": "Labour", "item": "Men & Women", "spec": "Unskilled", "quantity": "20", "uom": "", "unitPrice": "500"],
+                                ["itemType": "Labour", "item": "Men & Women", "spec": "Semi-skilled", "quantity": "10", "uom": "", "unitPrice": "650"],
+                                ["itemType": "Labour", "item": "Men & Women", "spec": "Skilled", "quantity": "12", "uom": "", "unitPrice": "750"],
+                                ["itemType": "Labour", "item": "Men & Women", "spec": "Mason", "quantity": "8", "uom": "", "unitPrice": "900"],
+                                ["itemType": "Labour", "item": "Men & Women", "spec": "Helper", "quantity": "15", "uom": "", "unitPrice": "550"]
+                            ]
+                        ],
+                        [
+                            "name": "Electrical",
+                            "contractorMode": "Turnkey",
+                            "lineItems": [
+                                ["itemType": "Electrical", "item": "Wires & Cables", "spec": "1.5 sq mm", "quantity": "500", "uom": "", "unitPrice": "75"],
+                                ["itemType": "Electrical", "item": "Wires & Cables", "spec": "2.5 sq mm", "quantity": "800", "uom": "", "unitPrice": "95"],
+                                ["itemType": "Electrical", "item": "Wires & Cables", "spec": "4 sq mm", "quantity": "400", "uom": "", "unitPrice": "145"],
+                                ["itemType": "Electrical", "item": "Wires & Cables", "spec": "6 sq mm", "quantity": "200", "uom": "", "unitPrice": "220"],
+                                ["itemType": "Electrical", "item": "Wires & Cables", "spec": "10 sq mm", "quantity": "100", "uom": "", "unitPrice": "350"],
+                                ["itemType": "Electrical", "item": "Wires & Cables", "spec": "16 sq mm", "quantity": "50", "uom": "", "unitPrice": "550"],
+                                ["itemType": "Electrical", "item": "Wires & Cables", "spec": "25 sq mm", "quantity": "30", "uom": "", "unitPrice": "850"],
+                                ["itemType": "Electrical", "item": "Switches & Sockets", "spec": "Single pole", "quantity": "40", "uom": "", "unitPrice": "120"],
+                                ["itemType": "Electrical", "item": "Switches & Sockets", "spec": "Double pole", "quantity": "30", "uom": "", "unitPrice": "150"],
+                                ["itemType": "Electrical", "item": "Switches & Sockets", "spec": "Triple pole", "quantity": "20", "uom": "", "unitPrice": "180"],
+                                ["itemType": "Electrical", "item": "Switches & Sockets", "spec": "5A socket", "quantity": "25", "uom": "", "unitPrice": "200"],
+                                ["itemType": "Electrical", "item": "Switches & Sockets", "spec": "15A socket", "quantity": "15", "uom": "", "unitPrice": "250"],
+                                ["itemType": "Electrical", "item": "Switches & Sockets", "spec": "Modular switches", "quantity": "60", "uom": "", "unitPrice": "180"],
+                                ["itemType": "Electrical", "item": "MCB & DB", "spec": "6A MCB", "quantity": "15", "uom": "", "unitPrice": "350"],
+                                ["itemType": "Electrical", "item": "MCB & DB", "spec": "10A MCB", "quantity": "20", "uom": "", "unitPrice": "400"],
+                                ["itemType": "Electrical", "item": "MCB & DB", "spec": "16A MCB", "quantity": "20", "uom": "", "unitPrice": "450"],
+                                ["itemType": "Electrical", "item": "MCB & DB", "spec": "20A MCB", "quantity": "15", "uom": "", "unitPrice": "550"],
+                                ["itemType": "Electrical", "item": "MCB & DB", "spec": "32A MCB", "quantity": "10", "uom": "", "unitPrice": "650"],
+                                ["itemType": "Electrical", "item": "MCB & DB", "spec": "Distribution Board", "quantity": "4", "uom": "", "unitPrice": "8500"],
+                                ["itemType": "Electrical", "item": "Lighting", "spec": "LED Bulb", "quantity": "60", "uom": "", "unitPrice": "350"],
+                                ["itemType": "Electrical", "item": "Lighting", "spec": "LED Tube", "quantity": "40", "uom": "", "unitPrice": "650"],
+                                ["itemType": "Electrical", "item": "Lighting", "spec": "LED Panel", "quantity": "50", "uom": "", "unitPrice": "1200"],
+                                ["itemType": "Electrical", "item": "Lighting", "spec": "LED Strip", "quantity": "30", "uom": "", "unitPrice": "450"],
+                                ["itemType": "Electrical", "item": "Lighting", "spec": "CFL", "quantity": "20", "uom": "", "unitPrice": "280"],
+                                ["itemType": "Electrical", "item": "Lighting", "spec": "Halogen", "quantity": "15", "uom": "", "unitPrice": "400"],
+                                ["itemType": "Electrical", "item": "Conduits & Accessories", "spec": "20mm PVC", "quantity": "200", "uom": "", "unitPrice": "70"],
+                                ["itemType": "Electrical", "item": "Conduits & Accessories", "spec": "25mm PVC", "quantity": "300", "uom": "", "unitPrice": "85"],
+                                ["itemType": "Electrical", "item": "Conduits & Accessories", "spec": "32mm PVC", "quantity": "150", "uom": "", "unitPrice": "120"],
+                                ["itemType": "Electrical", "item": "Conduits & Accessories", "spec": "40mm PVC", "quantity": "100", "uom": "", "unitPrice": "150"],
+                                ["itemType": "Electrical", "item": "Conduits & Accessories", "spec": "Elbow", "quantity": "80", "uom": "", "unitPrice": "45"],
+                                ["itemType": "Electrical", "item": "Conduits & Accessories", "spec": "Coupler", "quantity": "60", "uom": "", "unitPrice": "35"],
+                                ["itemType": "Electrical", "item": "Conduits & Accessories", "spec": "Bend", "quantity": "50", "uom": "", "unitPrice": "55"],
+                                ["itemType": "Labour", "item": "Men & Women", "spec": "Skilled", "quantity": "4", "uom": "", "unitPrice": "850"],
+                                ["itemType": "Labour", "item": "Men & Women", "spec": "Semi-skilled", "quantity": "3", "uom": "", "unitPrice": "650"],
+                                ["itemType": "Labour", "item": "Men & Women", "spec": "Helper", "quantity": "5", "uom": "", "unitPrice": "550"]
+                            ]
+                        ]
+                    ]
+                ],
+                [
+                    "phaseName": "Finishing & Interior",
+                    "startDateDays": 91,
+                    "endDateDays": 180,
+                    "departments": [
+                        [
+                            "name": "Civil",
+                            "contractorMode": "Turnkey",
+                            "lineItems": [
+                                ["itemType": "Raw material", "item": "Cement", "spec": "OPC 43", "quantity": "200", "uom": "", "unitPrice": "360"],
+                                ["itemType": "Raw material", "item": "Cement", "spec": "PPC", "quantity": "100", "uom": "", "unitPrice": "350"],
+                                ["itemType": "Raw material", "item": "Sand", "spec": "River Sand (Fine)", "quantity": "100", "uom": "", "unitPrice": "1100"],
+                                ["itemType": "Raw material", "item": "Sand", "spec": "M-Sand • Zone II", "quantity": "80", "uom": "", "unitPrice": "800"],
+                                ["itemType": "Tiles", "item": "Floor Tiles", "spec": "Vitrified", "quantity": "250", "uom": "", "unitPrice": "85"],
+                                ["itemType": "Tiles", "item": "Wall Tiles", "spec": "Ceramic", "quantity": "180", "uom": "", "unitPrice": "95"],
+                                ["itemType": "Paint", "item": "Interior Paint", "spec": "Premium", "quantity": "120", "uom": "", "unitPrice": "520"],
+                                ["itemType": "Paint", "item": "Exterior Paint", "spec": "Weatherproof", "quantity": "80", "uom": "", "unitPrice": "680"],
+                                ["itemType": "Machines & eq", "item": "Concrete Mixer", "spec": "Per-day hire", "quantity": "10", "uom": "", "unitPrice": "1500"],
+                                ["itemType": "Machines & eq", "item": "Vibrator", "spec": "Per-day hire", "quantity": "8", "uom": "", "unitPrice": "800"],
+                                ["itemType": "Labour", "item": "Men & Women", "spec": "Unskilled", "quantity": "10", "uom": "", "unitPrice": "500"],
+                                ["itemType": "Labour", "item": "Men & Women", "spec": "Semi-skilled", "quantity": "5", "uom": "", "unitPrice": "650"],
+                                ["itemType": "Labour", "item": "Men & Women", "spec": "Skilled", "quantity": "8", "uom": "", "unitPrice": "750"],
+                                ["itemType": "Labour", "item": "Men & Women", "spec": "Mason", "quantity": "6", "uom": "", "unitPrice": "900"],
+                                ["itemType": "Labour", "item": "Men & Women", "spec": "Helper", "quantity": "8", "uom": "", "unitPrice": "550"]
+                            ]
+                        ],
+                        [
+                            "name": "Plumbing",
+                            "contractorMode": "Turnkey",
+                            "lineItems": [
+                                ["itemType": "Plumbing", "item": "CPVC Pipes", "spec": "1 inch", "quantity": "250", "uom": "", "unitPrice": "145"],
+                                ["itemType": "Plumbing", "item": "Fittings", "spec": "Standard", "quantity": "120", "uom": "", "unitPrice": "55"],
+                                ["itemType": "Plumbing", "item": "Fixtures", "spec": "Premium", "quantity": "25", "uom": "", "unitPrice": "2200"],
+                                ["itemType": "Labour", "item": "Men & Women", "spec": "Skilled", "quantity": "3", "uom": "", "unitPrice": "850"]
+                            ]
+                        ],
+                        [
+                            "name": "Electrical",
+                            "contractorMode": "Turnkey",
+                            "lineItems": [
+                                ["itemType": "Electrical", "item": "Wires & Cables", "spec": "1.5 sq mm", "quantity": "300", "uom": "", "unitPrice": "75"],
+                                ["itemType": "Electrical", "item": "Wires & Cables", "spec": "2.5 sq mm", "quantity": "400", "uom": "", "unitPrice": "95"],
+                                ["itemType": "Electrical", "item": "Wires & Cables", "spec": "4 sq mm", "quantity": "200", "uom": "", "unitPrice": "145"],
+                                ["itemType": "Electrical", "item": "Switches & Sockets", "spec": "Single pole", "quantity": "25", "uom": "", "unitPrice": "120"],
+                                ["itemType": "Electrical", "item": "Switches & Sockets", "spec": "Modular switches", "quantity": "40", "uom": "", "unitPrice": "180"],
+                                ["itemType": "Electrical", "item": "Switches & Sockets", "spec": "15A socket", "quantity": "20", "uom": "", "unitPrice": "250"],
+                                ["itemType": "Electrical", "item": "MCB & DB", "spec": "16A MCB", "quantity": "15", "uom": "", "unitPrice": "450"],
+                                ["itemType": "Electrical", "item": "MCB & DB", "spec": "20A MCB", "quantity": "10", "uom": "", "unitPrice": "550"],
+                                ["itemType": "Electrical", "item": "Lighting", "spec": "LED Bulb", "quantity": "80", "uom": "", "unitPrice": "350"],
+                                ["itemType": "Electrical", "item": "Lighting", "spec": "LED Tube", "quantity": "25", "uom": "", "unitPrice": "650"],
+                                ["itemType": "Electrical", "item": "Lighting", "spec": "LED Panel", "quantity": "30", "uom": "", "unitPrice": "1200"],
+                                ["itemType": "Electrical", "item": "Lighting", "spec": "LED Strip", "quantity": "20", "uom": "", "unitPrice": "450"],
+                                ["itemType": "Electrical", "item": "Lighting", "spec": "CFL", "quantity": "15", "uom": "", "unitPrice": "280"],
+                                ["itemType": "Electrical", "item": "Conduits & Accessories", "spec": "20mm PVC", "quantity": "150", "uom": "", "unitPrice": "70"],
+                                ["itemType": "Electrical", "item": "Conduits & Accessories", "spec": "25mm PVC", "quantity": "200", "uom": "", "unitPrice": "85"],
+                                ["itemType": "Electrical", "item": "Conduits & Accessories", "spec": "Elbow", "quantity": "50", "uom": "", "unitPrice": "45"],
+                                ["itemType": "Electrical", "item": "Conduits & Accessories", "spec": "Coupler", "quantity": "40", "uom": "", "unitPrice": "35"],
+                                ["itemType": "Labour", "item": "Men & Women", "spec": "Skilled", "quantity": "2", "uom": "", "unitPrice": "850"],
+                                ["itemType": "Labour", "item": "Men & Women", "spec": "Semi-skilled", "quantity": "2", "uom": "", "unitPrice": "650"],
+                                ["itemType": "Labour", "item": "Men & Women", "spec": "Helper", "quantity": "3", "uom": "", "unitPrice": "550"]
+                            ]
+                        ]
+                    ]
+                ]
+            ]
         ],
         "commercial_office": [
             "id": "commercial_office",
@@ -50,7 +192,156 @@ struct TemplateDataStore {
             "title": "Commercial Office",
             "description": "Template for commercial office space construction and fit-out",
             "phasesCount": 2,
-            "departmentsCount": 6
+            "departmentsCount": 6,
+            "phases": [
+                [
+                    "phaseName": "Shell & Core",
+                    "startDateDays": 0,
+                    "endDateDays": 120,
+                    "departments": [
+                        [
+                            "name": "Civil",
+                            "contractorMode": "Turnkey",
+                            "lineItems": [
+                                ["itemType": "Raw material", "item": "Cement", "spec": "OPC 53", "quantity": "800", "uom": "", "unitPrice": "380"],
+                                ["itemType": "Raw material", "item": "Cement", "spec": "OPC 43", "quantity": "300", "uom": "", "unitPrice": "360"],
+                                ["itemType": "Raw material", "item": "Cement", "spec": "PPC", "quantity": "200", "uom": "", "unitPrice": "350"],
+                                ["itemType": "Raw material", "item": "Steel", "spec": "Fe500 • 10 mm", "quantity": "40", "uom": "", "unitPrice": "60000"],
+                                ["itemType": "Raw material", "item": "Steel", "spec": "Fe500 • 12 mm", "quantity": "50", "uom": "", "unitPrice": "62000"],
+                                ["itemType": "Raw material", "item": "Steel", "spec": "Fe500 • 16 mm", "quantity": "60", "uom": "", "unitPrice": "62000"],
+                                ["itemType": "Raw material", "item": "Steel", "spec": "Fe500 • 20 mm", "quantity": "50", "uom": "", "unitPrice": "62000"],
+                                ["itemType": "Raw material", "item": "Sand", "spec": "M-Sand • Zone I", "quantity": "200", "uom": "", "unitPrice": "800"],
+                                ["itemType": "Raw material", "item": "Sand", "spec": "M-Sand • Zone II", "quantity": "300", "uom": "", "unitPrice": "800"],
+                                ["itemType": "Raw material", "item": "Sand", "spec": "River Sand (Coarse)", "quantity": "250", "uom": "", "unitPrice": "1200"],
+                                ["itemType": "Raw material", "item": "Sand", "spec": "River Sand (Fine)", "quantity": "150", "uom": "", "unitPrice": "1100"],
+                                ["itemType": "Machines & eq", "item": "JCB", "spec": "Per-day hire", "quantity": "25", "uom": "", "unitPrice": "12000"],
+                                ["itemType": "Machines & eq", "item": "JCB", "spec": "Per-hour hire", "quantity": "100", "uom": "", "unitPrice": "1500"],
+                                ["itemType": "Machines & eq", "item": "Tractor / Trolley", "spec": "Per-trip", "quantity": "120", "uom": "", "unitPrice": "800"],
+                                ["itemType": "Machines & eq", "item": "Tractor / Trolley", "spec": "Per-day", "quantity": "30", "uom": "", "unitPrice": "2500"],
+                                ["itemType": "Machines & eq", "item": "Concrete Mixer", "spec": "Per-day hire", "quantity": "30", "uom": "", "unitPrice": "1500"],
+                                ["itemType": "Machines & eq", "item": "Vibrator", "spec": "Per-day hire", "quantity": "25", "uom": "", "unitPrice": "800"],
+                                ["itemType": "Labour", "item": "Men & Women", "spec": "Unskilled", "quantity": "30", "uom": "", "unitPrice": "500"],
+                                ["itemType": "Labour", "item": "Men & Women", "spec": "Semi-skilled", "quantity": "15", "uom": "", "unitPrice": "650"],
+                                ["itemType": "Labour", "item": "Men & Women", "spec": "Skilled", "quantity": "20", "uom": "", "unitPrice": "750"],
+                                ["itemType": "Labour", "item": "Men & Women", "spec": "Mason", "quantity": "15", "uom": "", "unitPrice": "900"],
+                                ["itemType": "Labour", "item": "Men & Women", "spec": "Helper", "quantity": "25", "uom": "", "unitPrice": "550"]
+                            ]
+                        ],
+                        [
+                            "name": "Electrical",
+                            "contractorMode": "Turnkey",
+                            "lineItems": [
+                                ["itemType": "Electrical", "item": "Wires & Cables", "spec": "2.5 sq mm", "quantity": "1000", "uom": "", "unitPrice": "95"],
+                                ["itemType": "Electrical", "item": "Wires & Cables", "spec": "4 sq mm", "quantity": "1500", "uom": "", "unitPrice": "145"],
+                                ["itemType": "Electrical", "item": "Wires & Cables", "spec": "6 sq mm", "quantity": "800", "uom": "", "unitPrice": "220"],
+                                ["itemType": "Electrical", "item": "Wires & Cables", "spec": "10 sq mm", "quantity": "400", "uom": "", "unitPrice": "350"],
+                                ["itemType": "Electrical", "item": "Wires & Cables", "spec": "16 sq mm", "quantity": "200", "uom": "", "unitPrice": "550"],
+                                ["itemType": "Electrical", "item": "Wires & Cables", "spec": "25 sq mm", "quantity": "100", "uom": "", "unitPrice": "850"],
+                                ["itemType": "Electrical", "item": "Switches & Sockets", "spec": "Single pole", "quantity": "80", "uom": "", "unitPrice": "120"],
+                                ["itemType": "Electrical", "item": "Switches & Sockets", "spec": "Double pole", "quantity": "60", "uom": "", "unitPrice": "150"],
+                                ["itemType": "Electrical", "item": "Switches & Sockets", "spec": "Triple pole", "quantity": "40", "uom": "", "unitPrice": "180"],
+                                ["itemType": "Electrical", "item": "Switches & Sockets", "spec": "5A socket", "quantity": "50", "uom": "", "unitPrice": "200"],
+                                ["itemType": "Electrical", "item": "Switches & Sockets", "spec": "15A socket", "quantity": "30", "uom": "", "unitPrice": "250"],
+                                ["itemType": "Electrical", "item": "Switches & Sockets", "spec": "Modular switches", "quantity": "100", "uom": "", "unitPrice": "180"],
+                                ["itemType": "Electrical", "item": "MCB & DB", "spec": "6A MCB", "quantity": "25", "uom": "", "unitPrice": "350"],
+                                ["itemType": "Electrical", "item": "MCB & DB", "spec": "10A MCB", "quantity": "40", "uom": "", "unitPrice": "400"],
+                                ["itemType": "Electrical", "item": "MCB & DB", "spec": "16A MCB", "quantity": "50", "uom": "", "unitPrice": "450"],
+                                ["itemType": "Electrical", "item": "MCB & DB", "spec": "20A MCB", "quantity": "50", "uom": "", "unitPrice": "550"],
+                                ["itemType": "Electrical", "item": "MCB & DB", "spec": "32A MCB", "quantity": "30", "uom": "", "unitPrice": "650"],
+                                ["itemType": "Electrical", "item": "MCB & DB", "spec": "Distribution Board", "quantity": "12", "uom": "", "unitPrice": "8500"],
+                                ["itemType": "Electrical", "item": "Lighting", "spec": "LED Bulb", "quantity": "150", "uom": "", "unitPrice": "350"],
+                                ["itemType": "Electrical", "item": "Lighting", "spec": "LED Tube", "quantity": "100", "uom": "", "unitPrice": "650"],
+                                ["itemType": "Electrical", "item": "Lighting", "spec": "LED Panel", "quantity": "80", "uom": "", "unitPrice": "1200"],
+                                ["itemType": "Electrical", "item": "Lighting", "spec": "LED Strip", "quantity": "60", "uom": "", "unitPrice": "450"],
+                                ["itemType": "Electrical", "item": "Lighting", "spec": "CFL", "quantity": "40", "uom": "", "unitPrice": "280"],
+                                ["itemType": "Electrical", "item": "Lighting", "spec": "Halogen", "quantity": "30", "uom": "", "unitPrice": "400"],
+                                ["itemType": "Electrical", "item": "Conduits & Accessories", "spec": "20mm PVC", "quantity": "400", "uom": "", "unitPrice": "70"],
+                                ["itemType": "Electrical", "item": "Conduits & Accessories", "spec": "25mm PVC", "quantity": "500", "uom": "", "unitPrice": "85"],
+                                ["itemType": "Electrical", "item": "Conduits & Accessories", "spec": "32mm PVC", "quantity": "500", "uom": "", "unitPrice": "120"],
+                                ["itemType": "Electrical", "item": "Conduits & Accessories", "spec": "40mm PVC", "quantity": "300", "uom": "", "unitPrice": "150"],
+                                ["itemType": "Electrical", "item": "Conduits & Accessories", "spec": "Elbow", "quantity": "200", "uom": "", "unitPrice": "45"],
+                                ["itemType": "Electrical", "item": "Conduits & Accessories", "spec": "Coupler", "quantity": "150", "uom": "", "unitPrice": "35"],
+                                ["itemType": "Electrical", "item": "Conduits & Accessories", "spec": "Bend", "quantity": "100", "uom": "", "unitPrice": "55"],
+                                ["itemType": "Labour", "item": "Men & Women", "spec": "Unskilled", "quantity": "10", "uom": "", "unitPrice": "500"],
+                                ["itemType": "Labour", "item": "Men & Women", "spec": "Semi-skilled", "quantity": "5", "uom": "", "unitPrice": "650"],
+                                ["itemType": "Labour", "item": "Men & Women", "spec": "Skilled", "quantity": "8", "uom": "", "unitPrice": "850"],
+                                ["itemType": "Labour", "item": "Men & Women", "spec": "Helper", "quantity": "12", "uom": "", "unitPrice": "550"]
+                            ]
+                        ],
+                        [
+                            "name": "HVAC",
+                            "contractorMode": "Turnkey",
+                            "lineItems": [
+                                ["itemType": "Machines & eq", "item": "JCB", "spec": "Per-day hire", "quantity": "10", "uom": "", "unitPrice": "12000"],
+                                ["itemType": "Labour", "item": "Men & Women", "spec": "Skilled", "quantity": "6", "uom": "", "unitPrice": "900"],
+                                ["itemType": "Labour", "item": "Men & Women", "spec": "Helper", "quantity": "8", "uom": "", "unitPrice": "550"]
+                            ]
+                        ]
+                    ]
+                ],
+                [
+                    "phaseName": "Interior Fit-out",
+                    "startDateDays": 121,
+                    "endDateDays": 210,
+                    "departments": [
+                        [
+                            "name": "Civil",
+                            "contractorMode": "Turnkey",
+                            "lineItems": [
+                                ["itemType": "Raw material", "item": "Cement", "spec": "OPC 43", "quantity": "150", "uom": "", "unitPrice": "360"],
+                                ["itemType": "Raw material", "item": "Sand", "spec": "River Sand (Fine)", "quantity": "80", "uom": "", "unitPrice": "1100"],
+                                ["itemType": "Tiles", "item": "Floor Tiles", "spec": "Vitrified", "quantity": "400", "uom": "", "unitPrice": "95"],
+                                ["itemType": "Paint", "item": "Interior Paint", "spec": "Premium", "quantity": "150", "uom": "", "unitPrice": "520"],
+                                ["itemType": "Labour", "item": "Men & Women", "spec": "Mason", "quantity": "8", "uom": "", "unitPrice": "900"],
+                                ["itemType": "Labour", "item": "Men & Women", "spec": "Skilled", "quantity": "10", "uom": "", "unitPrice": "750"]
+                            ]
+                        ],
+                        [
+                            "name": "Electrical",
+                            "contractorMode": "Turnkey",
+                            "lineItems": [
+                                ["itemType": "Electrical", "item": "Wires & Cables", "spec": "1.5 sq mm", "quantity": "400", "uom": "", "unitPrice": "75"],
+                                ["itemType": "Electrical", "item": "Wires & Cables", "spec": "2.5 sq mm", "quantity": "600", "uom": "", "unitPrice": "95"],
+                                ["itemType": "Electrical", "item": "Wires & Cables", "spec": "4 sq mm", "quantity": "300", "uom": "", "unitPrice": "145"],
+                                ["itemType": "Electrical", "item": "Switches & Sockets", "spec": "Single pole", "quantity": "60", "uom": "", "unitPrice": "120"],
+                                ["itemType": "Electrical", "item": "Switches & Sockets", "spec": "Double pole", "quantity": "50", "uom": "", "unitPrice": "150"],
+                                ["itemType": "Electrical", "item": "Switches & Sockets", "spec": "Triple pole", "quantity": "40", "uom": "", "unitPrice": "180"],
+                                ["itemType": "Electrical", "item": "Switches & Sockets", "spec": "5A socket", "quantity": "40", "uom": "", "unitPrice": "200"],
+                                ["itemType": "Electrical", "item": "Switches & Sockets", "spec": "15A socket", "quantity": "80", "uom": "", "unitPrice": "250"],
+                                ["itemType": "Electrical", "item": "Switches & Sockets", "spec": "Modular switches", "quantity": "120", "uom": "", "unitPrice": "180"],
+                                ["itemType": "Electrical", "item": "MCB & DB", "spec": "10A MCB", "quantity": "30", "uom": "", "unitPrice": "400"],
+                                ["itemType": "Electrical", "item": "MCB & DB", "spec": "16A MCB", "quantity": "40", "uom": "", "unitPrice": "450"],
+                                ["itemType": "Electrical", "item": "MCB & DB", "spec": "20A MCB", "quantity": "30", "uom": "", "unitPrice": "550"],
+                                ["itemType": "Electrical", "item": "Lighting", "spec": "LED Bulb", "quantity": "100", "uom": "", "unitPrice": "350"],
+                                ["itemType": "Electrical", "item": "Lighting", "spec": "LED Tube", "quantity": "80", "uom": "", "unitPrice": "650"],
+                                ["itemType": "Electrical", "item": "Lighting", "spec": "LED Panel", "quantity": "250", "uom": "", "unitPrice": "1200"],
+                                ["itemType": "Electrical", "item": "Lighting", "spec": "LED Strip", "quantity": "150", "uom": "", "unitPrice": "450"],
+                                ["itemType": "Electrical", "item": "Lighting", "spec": "CFL", "quantity": "50", "uom": "", "unitPrice": "280"],
+                                ["itemType": "Electrical", "item": "Lighting", "spec": "Halogen", "quantity": "30", "uom": "", "unitPrice": "400"],
+                                ["itemType": "Electrical", "item": "Conduits & Accessories", "spec": "20mm PVC", "quantity": "300", "uom": "", "unitPrice": "70"],
+                                ["itemType": "Electrical", "item": "Conduits & Accessories", "spec": "25mm PVC", "quantity": "400", "uom": "", "unitPrice": "85"],
+                                ["itemType": "Electrical", "item": "Conduits & Accessories", "spec": "32mm PVC", "quantity": "200", "uom": "", "unitPrice": "120"],
+                                ["itemType": "Electrical", "item": "Conduits & Accessories", "spec": "Elbow", "quantity": "150", "uom": "", "unitPrice": "45"],
+                                ["itemType": "Electrical", "item": "Conduits & Accessories", "spec": "Coupler", "quantity": "120", "uom": "", "unitPrice": "35"],
+                                ["itemType": "Electrical", "item": "Conduits & Accessories", "spec": "Bend", "quantity": "100", "uom": "", "unitPrice": "55"],
+                                ["itemType": "Labour", "item": "Men & Women", "spec": "Skilled", "quantity": "5", "uom": "", "unitPrice": "850"],
+                                ["itemType": "Labour", "item": "Men & Women", "spec": "Semi-skilled", "quantity": "3", "uom": "", "unitPrice": "650"],
+                                ["itemType": "Labour", "item": "Men & Women", "spec": "Helper", "quantity": "6", "uom": "", "unitPrice": "550"]
+                            ]
+                        ],
+                        [
+                            "name": "Plumbing",
+                            "contractorMode": "Turnkey",
+                            "lineItems": [
+                                ["itemType": "Plumbing", "item": "CPVC Pipes", "spec": "1 inch", "quantity": "180", "uom": "", "unitPrice": "145"],
+                                ["itemType": "Plumbing", "item": "Fittings", "spec": "Standard", "quantity": "100", "uom": "", "unitPrice": "55"],
+                                ["itemType": "Plumbing", "item": "Fixtures", "spec": "Premium", "quantity": "35", "uom": "", "unitPrice": "2200"],
+                                ["itemType": "Labour", "item": "Men & Women", "spec": "Skilled", "quantity": "4", "uom": "", "unitPrice": "850"]
+                            ]
+                        ]
+                    ]
+                ]
+            ]
         ],
         "road_infrastructure": [
             "id": "road_infrastructure",
@@ -58,7 +349,70 @@ struct TemplateDataStore {
             "title": "Road Infrastructure",
             "description": "Template for road construction and infrastructure projects",
             "phasesCount": 2,
-            "departmentsCount": 4
+            "departmentsCount": 4,
+            "phases": [
+                [
+                    "phaseName": "Earthwork & Base",
+                    "startDateDays": 0,
+                    "endDateDays": 60,
+                    "departments": [
+                        [
+                            "name": "Civil",
+                            "contractorMode": "Turnkey",
+                            "lineItems": [
+                                ["itemType": "Raw material", "item": "Sand", "spec": "M-Sand • Zone I", "quantity": "800", "uom": "", "unitPrice": "800"],
+                                ["itemType": "Raw material", "item": "Sand", "spec": "River Sand (Coarse)", "quantity": "600", "uom": "", "unitPrice": "1200"],
+                                ["itemType": "Raw material", "item": "Cement", "spec": "OPC 53", "quantity": "400", "uom": "", "unitPrice": "380"],
+                                ["itemType": "Machines & eq", "item": "JCB", "spec": "Per-day hire", "quantity": "40", "uom": "", "unitPrice": "12000"],
+                                ["itemType": "Machines & eq", "item": "Tractor / Trolley", "spec": "Per-trip", "quantity": "200", "uom": "", "unitPrice": "800"],
+                                ["itemType": "Machines & eq", "item": "Concrete Mixer", "spec": "Per-day hire", "quantity": "25", "uom": "", "unitPrice": "1500"],
+                                ["itemType": "Labour", "item": "Men & Women", "spec": "Skilled", "quantity": "15", "uom": "", "unitPrice": "750"],
+                                ["itemType": "Labour", "item": "Men & Women", "spec": "Helper", "quantity": "30", "uom": "", "unitPrice": "550"]
+                            ]
+                        ],
+                        [
+                            "name": "Labour",
+                            "contractorMode": "Labour-Only",
+                            "lineItems": [
+                                ["itemType": "Labour", "item": "Men & Women", "spec": "Semi-skilled", "quantity": "8", "uom": "", "unitPrice": "650"],
+                                ["itemType": "Labour", "item": "Men & Women", "spec": "Helper", "quantity": "25", "uom": "", "unitPrice": "550"]
+                            ]
+                        ]
+                    ]
+                ],
+                [
+                    "phaseName": "Pavement & Marking",
+                    "startDateDays": 61,
+                    "endDateDays": 120,
+                    "departments": [
+                        [
+                            "name": "Civil",
+                            "contractorMode": "Turnkey",
+                            "lineItems": [
+                                ["itemType": "Raw material", "item": "Cement", "spec": "OPC 53", "quantity": "600", "uom": "", "unitPrice": "380"],
+                                ["itemType": "Raw material", "item": "Sand", "spec": "M-Sand • Zone II", "quantity": "400", "uom": "", "unitPrice": "800"],
+                                ["itemType": "Raw material", "item": "Steel", "spec": "Fe500 • 12 mm", "quantity": "20", "uom": "", "unitPrice": "62000"],
+                                ["itemType": "Paint", "item": "Road Marking Paint", "spec": "Thermoplastic", "quantity": "150", "uom": "", "unitPrice": "220"],
+                                ["itemType": "Machines & eq", "item": "JCB", "spec": "Per-day hire", "quantity": "20", "uom": "", "unitPrice": "12000"],
+                                ["itemType": "Machines & eq", "item": "Concrete Mixer", "spec": "Per-day hire", "quantity": "30", "uom": "", "unitPrice": "1500"],
+                                ["itemType": "Machines & eq", "item": "Vibrator", "spec": "Per-day hire", "quantity": "25", "uom": "", "unitPrice": "800"],
+                                ["itemType": "Labour", "item": "Men & Women", "spec": "Mason", "quantity": "10", "uom": "", "unitPrice": "900"],
+                                ["itemType": "Labour", "item": "Men & Women", "spec": "Skilled", "quantity": "12", "uom": "", "unitPrice": "750"]
+                            ]
+                        ],
+                        [
+                            "name": "Electrical",
+                            "contractorMode": "Turnkey",
+                            "lineItems": [
+                                ["itemType": "Electrical", "item": "Wires & Cables", "spec": "4 sq mm", "quantity": "300", "uom": "", "unitPrice": "145"],
+                                ["itemType": "Electrical", "item": "Lighting", "spec": "LED Bulb", "quantity": "100", "uom": "", "unitPrice": "350"],
+                                ["itemType": "Electrical", "item": "MCB & DB", "spec": "Distribution Board", "quantity": "5", "uom": "", "unitPrice": "8500"],
+                                ["itemType": "Labour", "item": "Men & Women", "spec": "Skilled", "quantity": "3", "uom": "", "unitPrice": "850"]
+                            ]
+                        ]
+                    ]
+                ]
+            ]
         ],
         "renovation": [
             "id": "renovation",
@@ -66,15 +420,71 @@ struct TemplateDataStore {
             "title": "Renovation",
             "description": "Template for building renovation and remodeling projects",
             "phasesCount": 2,
-            "departmentsCount": 4
-        ],
-        "Checking": [
-            "id": "Checking",
-            "icon": "hammer.fill",
-            "title": "Checking",
-            "description": "Template for building renovation and remodeling projects",
-            "phasesCount": 2,
-            "departmentsCount": 4
+            "departmentsCount": 4,
+            "phases": [
+                [
+                    "phaseName": "Demolition & Preparation",
+                    "startDateDays": 0,
+                    "endDateDays": 30,
+                    "departments": [
+                        [
+                            "name": "Civil",
+                            "contractorMode": "Labour-Only",
+                            "lineItems": [
+                                ["itemType": "Machines & eq", "item": "JCB", "spec": "Per-day hire", "quantity": "8", "uom": "", "unitPrice": "12000"],
+                                ["itemType": "Machines & eq", "item": "Tractor / Trolley", "spec": "Per-trip", "quantity": "30", "uom": "", "unitPrice": "800"],
+                                ["itemType": "Labour", "item": "Men & Women", "spec": "Skilled", "quantity": "6", "uom": "", "unitPrice": "750"],
+                                ["itemType": "Labour", "item": "Men & Women", "spec": "Helper", "quantity": "12", "uom": "", "unitPrice": "550"]
+                            ]
+                        ]
+                    ]
+                ],
+                [
+                    "phaseName": "Renovation Work",
+                    "startDateDays": 31,
+                    "endDateDays": 90,
+                    "departments": [
+                        [
+                            "name": "Civil",
+                            "contractorMode": "Turnkey",
+                            "lineItems": [
+                                ["itemType": "Raw material", "item": "Cement", "spec": "OPC 43", "quantity": "150", "uom": "", "unitPrice": "360"],
+                                ["itemType": "Raw material", "item": "Sand", "spec": "River Sand (Fine)", "quantity": "100", "uom": "", "unitPrice": "1100"],
+                                ["itemType": "Tiles", "item": "Wall Tiles", "spec": "Ceramic", "quantity": "180", "uom": "", "unitPrice": "95"],
+                                ["itemType": "Tiles", "item": "Floor Tiles", "spec": "Vitrified", "quantity": "120", "uom": "", "unitPrice": "85"],
+                                ["itemType": "Paint", "item": "Interior Paint", "spec": "Premium", "quantity": "90", "uom": "", "unitPrice": "520"],
+                                ["itemType": "Paint", "item": "Exterior Paint", "spec": "Weatherproof", "quantity": "60", "uom": "", "unitPrice": "680"],
+                                ["itemType": "Labour", "item": "Men & Women", "spec": "Mason", "quantity": "5", "uom": "", "unitPrice": "900"],
+                                ["itemType": "Labour", "item": "Men & Women", "spec": "Skilled", "quantity": "6", "uom": "", "unitPrice": "750"]
+                            ]
+                        ],
+                        [
+                            "name": "Electrical",
+                            "contractorMode": "Turnkey",
+                            "lineItems": [
+                                ["itemType": "Electrical", "item": "Wires & Cables", "spec": "2.5 sq mm", "quantity": "400", "uom": "", "unitPrice": "95"],
+                                ["itemType": "Electrical", "item": "Wires & Cables", "spec": "4 sq mm", "quantity": "200", "uom": "", "unitPrice": "145"],
+                                ["itemType": "Electrical", "item": "Switches & Sockets", "spec": "Modular switches", "quantity": "40", "uom": "", "unitPrice": "180"],
+                                ["itemType": "Electrical", "item": "MCB & DB", "spec": "Distribution Board", "quantity": "2", "uom": "", "unitPrice": "8500"],
+                                ["itemType": "Electrical", "item": "MCB & DB", "spec": "16A MCB", "quantity": "15", "uom": "", "unitPrice": "450"],
+                                ["itemType": "Electrical", "item": "Lighting", "spec": "LED Bulb", "quantity": "60", "uom": "", "unitPrice": "350"],
+                                ["itemType": "Electrical", "item": "Conduits & Accessories", "spec": "25mm PVC", "quantity": "200", "uom": "", "unitPrice": "85"],
+                                ["itemType": "Labour", "item": "Men & Women", "spec": "Skilled", "quantity": "3", "uom": "", "unitPrice": "850"]
+                            ]
+                        ],
+                        [
+                            "name": "Plumbing",
+                            "contractorMode": "Turnkey",
+                            "lineItems": [
+                                ["itemType": "Plumbing", "item": "CPVC Pipes", "spec": "1 inch", "quantity": "120", "uom": "", "unitPrice": "145"],
+                                ["itemType": "Plumbing", "item": "Fittings", "spec": "Standard", "quantity": "80", "uom": "", "unitPrice": "55"],
+                                ["itemType": "Plumbing", "item": "Fixtures", "spec": "Standard", "quantity": "18", "uom": "", "unitPrice": "2000"],
+                                ["itemType": "Labour", "item": "Men & Women", "spec": "Skilled", "quantity": "2", "uom": "", "unitPrice": "850"]
+                            ]
+                        ]
+                    ]
+                ]
+            ]
         ]
     ]
     
@@ -102,9 +512,234 @@ struct TemplateDataStore {
         .sorted { $0.title < $1.title }
     }
     
+    // MARK: - Get Default UOM based on ItemType and Item
+    static func getDefaultUOM(itemType: String, item: String, spec: String = "") -> String {
+        // If UOM options are available, get the first/default one
+        let availableUOMs = DepartmentItemData.uomOptions(for: itemType)
+        
+        // Smart defaults based on itemType and item
+        switch itemType {
+        case "Raw material":
+            switch item.lowercased() {
+            case "cement":
+                return availableUOMs.contains("Bag") ? "Bag" : (availableUOMs.first ?? "")
+            case "steel":
+                return availableUOMs.contains("KG") ? "KG" : (availableUOMs.first ?? "")
+            case "sand":
+                return availableUOMs.contains("m³") ? "m³" : (availableUOMs.contains("Cft") ? "Cft" : (availableUOMs.first ?? ""))
+            case "aggregates":
+                return availableUOMs.contains("m³") ? "m³" : (availableUOMs.contains("Cft") ? "Cft" : (availableUOMs.first ?? ""))
+            case "bricks":
+                return availableUOMs.contains("Nos") ? "Nos" : (availableUOMs.first ?? "")
+            case "water":
+                return availableUOMs.contains("Litre") ? "Litre" : (availableUOMs.first ?? "")
+            default:
+                return availableUOMs.first ?? ""
+            }
+            
+        case "Labour":
+            // Check spec for labour type
+            if spec.lowercased().contains("per-day") || spec.lowercased().contains("per day") {
+                return availableUOMs.contains("Per Day") ? "Per Day" : (availableUOMs.first ?? "")
+            } else if spec.lowercased().contains("per-hour") || spec.lowercased().contains("per hour") {
+                return availableUOMs.contains("Per Hour") ? "Per Hour" : (availableUOMs.first ?? "")
+            }
+            return availableUOMs.contains("Per Day") ? "Per Day" : (availableUOMs.first ?? "")
+            
+        case "Machines & eq":
+            // Check spec for hire type
+            if spec.lowercased().contains("per-day") || spec.lowercased().contains("per day") {
+                return availableUOMs.contains("Per Day") ? "Per Day" : (availableUOMs.first ?? "")
+            } else if spec.lowercased().contains("per-hour") || spec.lowercased().contains("per hour") {
+                return availableUOMs.contains("Per Hour") ? "Per Hour" : (availableUOMs.first ?? "")
+            } else if spec.lowercased().contains("per-trip") || spec.lowercased().contains("per trip") {
+                return availableUOMs.contains("Per Trip") ? "Per Trip" : (availableUOMs.first ?? "")
+            }
+            return availableUOMs.contains("Per Day") ? "Per Day" : (availableUOMs.first ?? "")
+            
+        case "Electrical":
+            switch item.lowercased() {
+            case "wires & cables", "wires", "cables":
+                return availableUOMs.contains("m") ? "m" : (availableUOMs.contains("Rft") ? "Rft" : (availableUOMs.first ?? ""))
+            case "switches & sockets", "switches", "sockets":
+                return availableUOMs.contains("Nos") ? "Nos" : (availableUOMs.contains("Piece") ? "Piece" : (availableUOMs.first ?? ""))
+            case "mcb & db", "mcb", "db":
+                return availableUOMs.contains("Nos") ? "Nos" : (availableUOMs.contains("Piece") ? "Piece" : (availableUOMs.first ?? ""))
+            case "lighting":
+                return availableUOMs.contains("Nos") ? "Nos" : (availableUOMs.contains("Piece") ? "Piece" : (availableUOMs.first ?? ""))
+            case "conduits & accessories", "conduits", "accessories":
+                return availableUOMs.contains("m") ? "m" : (availableUOMs.contains("Rft") ? "Rft" : (availableUOMs.first ?? ""))
+            default:
+                return availableUOMs.first ?? ""
+            }
+            
+        case "Plumbing":
+            switch item.lowercased() {
+            case "pipes", "cpvc pipes", "pvc pipes":
+                return availableUOMs.contains("m") ? "m" : (availableUOMs.contains("Rft") ? "Rft" : (availableUOMs.first ?? ""))
+            case "fittings":
+                return availableUOMs.contains("Nos") ? "Nos" : (availableUOMs.contains("Piece") ? "Piece" : (availableUOMs.first ?? ""))
+            case "fixtures":
+                return availableUOMs.contains("Nos") ? "Nos" : (availableUOMs.contains("Set") ? "Set" : (availableUOMs.first ?? ""))
+            case "valves":
+                return availableUOMs.contains("Nos") ? "Nos" : (availableUOMs.contains("Piece") ? "Piece" : (availableUOMs.first ?? ""))
+            case "water tanks":
+                return availableUOMs.contains("Nos") ? "Nos" : (availableUOMs.contains("Unit") ? "Unit" : (availableUOMs.first ?? ""))
+            default:
+                return availableUOMs.first ?? ""
+            }
+            
+        case "Tiles", "Tiles & Granite":
+            // For Tiles, use Tiles & Granite UOM options
+            let tilesUOMs = DepartmentItemData.uomOptions(for: "Tiles & Granite")
+            return tilesUOMs.contains("Sqft") ? "Sqft" : (tilesUOMs.contains("Sqmt") ? "Sqmt" : (tilesUOMs.first ?? ""))
+            
+        case "Paint", "Painting":
+            // For Paint, use Painting UOM options
+            let paintUOMs = DepartmentItemData.uomOptions(for: "Painting")
+            return paintUOMs.contains("Litre") ? "Litre" : (paintUOMs.first ?? "")
+            
+        default:
+            // Return first available UOM for the itemType
+            return availableUOMs.first ?? ""
+        }
+    }
+    
+    // MARK: - Convert Dictionary to ProjectTemplate
+    static func convertToProjectTemplate(templateDict: [String: Any]) -> ProjectTemplate? {
+        guard let id = templateDict["id"] as? String,
+              let name = templateDict["title"] as? String,
+              let description = templateDict["description"] as? String,
+              let icon = templateDict["icon"] as? String,
+              let phasesArray = templateDict["phases"] as? [[String: Any]] else {
+            print("⚠️ TemplateData: Failed to convert template - missing required fields")
+            return nil
+        }
+        
+        let location = templateDict["location"] as? String ?? ""
+        let currency = templateDict["currency"] as? String ?? "INR"
+        let allowTemplateOverrides = templateDict["allowTemplateOverrides"] as? Bool ?? false
+        
+        var convertedPhases: [ProjectTemplate.TemplatePhase] = []
+        
+        for (phaseIndex, phaseDict) in phasesArray.enumerated() {
+            guard let phaseName = phaseDict["phaseName"] as? String,
+                  let startDateDays = phaseDict["startDateDays"] as? Int,
+                  let endDateDays = phaseDict["endDateDays"] as? Int,
+                  let departmentsArray = phaseDict["departments"] as? [[String: Any]] else {
+                print("⚠️ TemplateData: Failed to convert phase \(phaseIndex) - missing required fields")
+                continue
+            }
+            
+            let startDate = Calendar.current.date(byAdding: .day, value: startDateDays, to: Date()) ?? Date()
+            let endDate = Calendar.current.date(byAdding: .day, value: endDateDays, to: Date()) ?? Date()
+            
+            var convertedDepartments: [ProjectTemplate.TemplateDepartment] = []
+            
+            for (deptIndex, deptDict) in departmentsArray.enumerated() {
+                guard let deptName = deptDict["name"] as? String,
+                      let contractorModeStr = deptDict["contractorMode"] as? String,
+                      let lineItemsArray = deptDict["lineItems"] as? [[String: Any]] else {
+                    print("⚠️ TemplateData: Failed to convert department \(deptIndex) in phase \(phaseIndex) - missing required fields")
+                    continue
+                }
+                
+                let contractorMode: ContractorMode = contractorModeStr == "Turnkey" ? .turnkey : .labourOnly
+                
+                var convertedLineItems: [ProjectTemplate.TemplateLineItem] = []
+                
+                for (itemIndex, lineItemDict) in lineItemsArray.enumerated() {
+                    guard let itemType = lineItemDict["itemType"] as? String,
+                          let item = lineItemDict["item"] as? String,
+                          let spec = lineItemDict["spec"] as? String,
+                          let quantity = lineItemDict["quantity"] as? String,
+                          let unitPrice = lineItemDict["unitPrice"] as? String else {
+                        print("⚠️ TemplateData: Failed to convert line item \(itemIndex) in department \(deptIndex) - missing required fields")
+                        continue
+                    }
+                    
+                    // Get UOM from dictionary, or auto-populate based on itemType and item
+                    var uom = lineItemDict["uom"] as? String ?? ""
+                    if uom.isEmpty {
+                        uom = getDefaultUOM(itemType: itemType, item: item, spec: spec)
+                        if !uom.isEmpty {
+                            print("      📏 Auto-populated UOM '\(uom)' for \(itemType) -> \(item)")
+                        }
+                    }
+                    
+                    let templateLineItem = ProjectTemplate.TemplateLineItem(
+                        itemType: itemType,
+                        item: item,
+                        spec: spec,
+                        quantity: quantity,
+                        uom: uom,
+                        unitPrice: unitPrice
+                    )
+                    convertedLineItems.append(templateLineItem)
+                }
+                
+                let templateDepartment = ProjectTemplate.TemplateDepartment(
+                    name: deptName,
+                    contractorMode: contractorMode,
+                    lineItems: convertedLineItems
+                )
+                convertedDepartments.append(templateDepartment)
+            }
+            
+            let templatePhase = ProjectTemplate.TemplatePhase(
+                phaseName: phaseName,
+                startDate: startDate,
+                endDate: endDate,
+                departments: convertedDepartments
+            )
+            convertedPhases.append(templatePhase)
+        }
+        
+        let template = ProjectTemplate(
+            id: id,
+            name: name,
+            description: description,
+            icon: icon,
+            location: location,
+            currency: currency,
+            plannedDate: Date(),
+            phases: convertedPhases,
+            allowTemplateOverrides: allowTemplateOverrides
+        )
+        
+        let totalLineItems = convertedPhases.reduce(0) { total, phase in
+            total + phase.departments.reduce(0) { deptTotal, dept in
+                deptTotal + dept.lineItems.count
+            }
+        }
+        print("✅ TemplateData: Successfully converted template '\(name)' with \(convertedPhases.count) phases and \(totalLineItems) total line items")
+        
+        return template
+    }
+    
     // MARK: - Get Project Template by ID
     static func getProjectTemplate(for id: String) -> ProjectTemplate? {
-        return ProjectTemplate.predefinedTemplates.first { $0.id == id }
+        // First try to get from dictionary data
+        // templateData is [String: [String: Any]], so templateData[id] returns [String: Any]?
+        if let templateDict = templateData[id] {
+            print("📋 TemplateData: Found template '\(id)' in dictionary, converting...")
+            if let template = convertToProjectTemplate(templateDict: templateDict) {
+                return template
+            } else {
+                print("❌ TemplateData: Failed to convert template '\(id)' from dictionary")
+            }
+        } else {
+            print("⚠️ TemplateData: Template '\(id)' not found in dictionary, trying predefined templates...")
+        }
+        
+        // Fallback to predefined templates if not found in dictionary
+        if let predefinedTemplate = ProjectTemplate.predefinedTemplates.first(where: { $0.id == id }) {
+            print("✅ TemplateData: Found template '\(id)' in predefined templates")
+            return predefinedTemplate
+        }
+        
+        print("❌ TemplateData: Template '\(id)' not found in dictionary or predefined templates")
+        return nil
     }
     
     // MARK: - Search Templates

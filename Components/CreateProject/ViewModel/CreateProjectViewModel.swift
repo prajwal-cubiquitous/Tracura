@@ -1078,6 +1078,8 @@ class CreateProjectViewModel: ObservableObject {
     
     // MARK: - Load Template
     func loadTemplate(_ template: ProjectTemplate) {
+        print("📥 CreateProjectViewModel: Loading template '\(template.id)' with \(template.phases.count) phases")
+        
         // Clear existing form data
         projectName = ""
         client = ""
@@ -1105,7 +1107,9 @@ class CreateProjectViewModel: ObservableObject {
             // Load departments from template
             var departments: [DepartmentItem] = []
             
-            for templateDept in templatePhase.departments {
+            print("  📋 Phase \(index + 1): '\(templatePhase.phaseName)' with \(templatePhase.departments.count) departments")
+            
+            for (deptIndex, templateDept) in templatePhase.departments.enumerated() {
                 var deptItem = DepartmentItem()
                 deptItem.name = templateDept.name
                 deptItem.contractorMode = templateDept.contractorMode
@@ -1113,18 +1117,41 @@ class CreateProjectViewModel: ObservableObject {
                 // Load line items from template
                 var lineItems: [DepartmentLineItem] = []
                 
+                print("    🏢 Department \(deptIndex + 1): '\(templateDept.name)' (\(templateDept.contractorMode.displayName)) with \(templateDept.lineItems.count) line items")
+                
                 for templateLineItem in templateDept.lineItems {
                     var lineItem = DepartmentLineItem()
                     lineItem.itemType = templateLineItem.itemType
                     lineItem.item = templateLineItem.item
                     lineItem.spec = templateLineItem.spec
                     lineItem.quantity = templateLineItem.quantity
-                    lineItem.uom = templateLineItem.uom
+                    
+                    // Auto-populate UOM if empty
+                    if templateLineItem.uom.isEmpty {
+                        lineItem.uom = TemplateDataStore.getDefaultUOM(
+                            itemType: templateLineItem.itemType,
+                            item: templateLineItem.item,
+                            spec: templateLineItem.spec
+                        )
+                        if !lineItem.uom.isEmpty {
+                            print("      📏 Auto-populated UOM '\(lineItem.uom)' for \(templateLineItem.itemType) -> \(templateLineItem.item)")
+                        }
+                    } else {
+                        lineItem.uom = templateLineItem.uom
+                    }
+                    
                     lineItem.unitPrice = templateLineItem.unitPrice
                     lineItems.append(lineItem)
                 }
                 
                 deptItem.lineItems = lineItems.isEmpty ? [DepartmentLineItem()] : lineItems
+                
+                // Calculate department budget from line items
+                let departmentBudget = deptItem.totalBudget
+                deptItem.amount = formatIndianNumber(departmentBudget)
+                
+                print("      💰 Department '\(templateDept.name)' budget: \(deptItem.amount) (calculated from \(lineItems.count) line items)")
+                
                 departments.append(deptItem)
             }
             
@@ -1133,6 +1160,7 @@ class CreateProjectViewModel: ObservableObject {
         }
         
         phases = loadedPhases.isEmpty ? [PhaseItem(phaseNumber: 1)] : loadedPhases
+        print("✅ CreateProjectViewModel: Successfully loaded \(phases.count) phases with \(phases.reduce(0) { $0 + $1.departments.count }) total departments")
     }
     
     // MARK: - Phase Management

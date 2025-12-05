@@ -24,7 +24,7 @@ enum ContractorMode: String, CaseIterable, Codable {
 }
 
 // MARK: - Department Line Item (UI Model)
-struct DepartmentLineItem: Identifiable, Codable {
+struct DepartmentLineItem: Identifiable, Codable, Equatable {
     let id: UUID
     var itemType: String = ""
     var item: String = ""

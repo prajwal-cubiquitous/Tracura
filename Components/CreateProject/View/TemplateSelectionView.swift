@@ -63,8 +63,12 @@ struct TemplateSelectionView: View {
                                     HapticManager.selection()
                                     // Get the full ProjectTemplate and pass it to the callback
                                     if let projectTemplate = templateItem.projectTemplate {
+                                        print("✅ TemplateSelectionView: Selected template '\(templateItem.id)' with \(projectTemplate.phases.count) phases")
                                         onSelectTemplate(projectTemplate)
                                         dismiss()
+                                    } else {
+                                        print("❌ TemplateSelectionView: Failed to load template '\(templateItem.id)' - projectTemplate is nil")
+                                        // Show error or fallback behavior
                                     }
                                 }
                             }
