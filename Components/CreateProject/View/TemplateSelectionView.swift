@@ -14,34 +14,26 @@ struct TemplateSelectionView: View {
     
     @State private var searchText: String = ""
     
-    private var filteredTemplates: [ProjectTemplate] {
-        if searchText.isEmpty {
-            return ProjectTemplate.predefinedTemplates
-        }
-        return ProjectTemplate.predefinedTemplates.filter { template in
-            template.name.localizedCaseInsensitiveContains(searchText) ||
-            template.description.localizedCaseInsensitiveContains(searchText)
-        }
+    private var filteredTemplates: [TemplateDisplayItem] {
+        return TemplateDataStore.searchTemplates(query: searchText)
     }
     
     var body: some View {
         NavigationView {
             VStack(spacing: 0) {
                 // Search Bar
-                if !ProjectTemplate.predefinedTemplates.isEmpty {
-                    HStack {
-                        Image(systemName: "magnifyingglass")
-                            .foregroundColor(.secondary)
-                        
-                        TextField("Search templates...", text: $searchText)
-                            .textFieldStyle(.plain)
-                    }
-                    .padding()
-                    .background(Color(.tertiarySystemGroupedBackground))
-                    .cornerRadius(10)
-                    .padding(.horizontal)
-                    .padding(.top, 8)
+                HStack {
+                    Image(systemName: "magnifyingglass")
+                        .foregroundColor(.secondary)
+                    
+                    TextField("Search templates...", text: $searchText)
+                        .textFieldStyle(.plain)
                 }
+                .padding()
+                .background(Color(.tertiarySystemGroupedBackground))
+                .cornerRadius(10)
+                .padding(.horizontal)
+                .padding(.top, 8)
                 
                 // Templates List
                 if filteredTemplates.isEmpty {
@@ -66,11 +58,14 @@ struct TemplateSelectionView: View {
                 } else {
                     ScrollView {
                         LazyVStack(spacing: DesignSystem.Spacing.medium) {
-                            ForEach(filteredTemplates) { template in
-                                TemplateCardView(template: template) {
+                            ForEach(filteredTemplates) { templateItem in
+                                TemplateCardView(templateItem: templateItem) {
                                     HapticManager.selection()
-                                    onSelectTemplate(template)
-                                    dismiss()
+                                    // Get the full ProjectTemplate and pass it to the callback
+                                    if let projectTemplate = templateItem.projectTemplate {
+                                        onSelectTemplate(projectTemplate)
+                                        dismiss()
+                                    }
                                 }
                             }
                         }
@@ -105,7 +100,7 @@ struct TemplateSelectionView: View {
 
 // MARK: - Template Card View
 struct TemplateCardView: View {
-    let template: ProjectTemplate
+    let templateItem: TemplateDisplayItem
     let onSelect: () -> Void
     
     var body: some View {
@@ -114,23 +109,23 @@ struct TemplateCardView: View {
                 // Header
                 HStack(alignment: .top, spacing: DesignSystem.Spacing.medium) {
                     // Icon
-                    Image(systemName: template.icon)
+                    Image(systemName: templateItem.icon)
                         .font(.system(size: 32))
-                        .foregroundColor(.accentColor)
+                        .foregroundColor(.white)
                         .frame(width: 56, height: 56)
                         .background(
                             Circle()
-                                .fill(Color.accentColor.opacity(0.1))
+                                .fill(Color.accentColor)
                         )
                     
                     // Title and Description
                     VStack(alignment: .leading, spacing: DesignSystem.Spacing.extraSmall) {
-                        Text(template.name)
+                        Text(templateItem.title)
                             .font(DesignSystem.Typography.headline)
                             .fontWeight(.semibold)
                             .foregroundColor(.primary)
                         
-                        Text(template.description)
+                        Text(templateItem.description)
                             .font(DesignSystem.Typography.subheadline)
                             .foregroundColor(.secondary)
                             .lineLimit(2)
@@ -149,21 +144,20 @@ struct TemplateCardView: View {
                 VStack(alignment: .leading, spacing: DesignSystem.Spacing.small) {
                     // Phases Count
                     HStack(spacing: DesignSystem.Spacing.small) {
-                        Image(systemName: "arrow.triangle.2.circlepath")
+                        Image(systemName: "arrow.counterclockwise")
                             .font(.caption)
                             .foregroundColor(.secondary)
-                        Text("\(template.phases.count) Phase\(template.phases.count == 1 ? "" : "s")")
+                        Text("\(templateItem.phasesCount) Phase\(templateItem.phasesCount == 1 ? "" : "s")")
                             .font(DesignSystem.Typography.caption1)
                             .foregroundColor(.secondary)
                     }
                     
                     // Departments Count
-                    let totalDepartments = template.phases.reduce(0) { $0 + $1.departments.count }
                     HStack(spacing: DesignSystem.Spacing.small) {
                         Image(systemName: "building.2")
                             .font(.caption)
                             .foregroundColor(.secondary)
-                        Text("\(totalDepartments) Department\(totalDepartments == 1 ? "" : "s")")
+                        Text("\(templateItem.departmentsCount) Department\(templateItem.departmentsCount == 1 ? "" : "s")")
                             .font(DesignSystem.Typography.caption1)
                             .foregroundColor(.secondary)
                     }
