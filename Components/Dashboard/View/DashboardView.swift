@@ -2705,7 +2705,9 @@ private struct AddDepartmentSheet: View {
     @State private var budgetText: String = ""
     @State private var contractorMode: ContractorMode = .labourOnly
     @State private var lineItems: [DepartmentLineItem] = [DepartmentLineItem()]
-    @State private var expandedLineItemId: UUID? = nil
+    @State private var showingLineItemSheet = false
+    @State private var editingLineItem: DepartmentLineItem?
+    @State private var isNewLineItem = false
     @State private var isSaving = false
     @State private var errorMessage: String?
     @State private var departmentNameError: String?
@@ -3364,40 +3366,46 @@ private struct AddDepartmentSheet: View {
                                     lineItem: $lineItem,
                                     onDelete: {
                                         if lineItems.count > 1 {
-                                            if expandedLineItemId == lineItem.id {
-                                                expandedLineItemId = nil
-                                            }
                                             lineItems.removeAll { $0.id == lineItem.id }
                                         }
                                     },
                                     canDelete: lineItems.count > 1,
-                                    isExpanded: expandedLineItemId == lineItem.id,
-                                    onToggleExpand: {
-                                        withAnimation(DesignSystem.Animation.standardSpring) {
-                                            if expandedLineItemId == lineItem.id {
-                                                expandedLineItemId = nil
-                                            } else {
-                                                expandedLineItemId = lineItem.id
-                                            }
-                                        }
-                                    },
                                     contractorMode: contractorMode,
-                                    uomError: shouldShowValidationErrors && lineItem.uom.trimmingCharacters(in: .whitespaces).isEmpty ? "UOM is required" : nil
+                                    onEdit: {
+                                        editingLineItem = lineItem
+                                        isNewLineItem = false
+                                        showingLineItemSheet = true
+                                    }
+                                )
+                            }
+                        }
+                        .sheet(isPresented: $showingLineItemSheet) {
+                            if let editingItem = editingLineItem,
+                               let index = lineItems.firstIndex(where: { $0.id == editingItem.id }) {
+                                LineItemEditSheet(
+                                    lineItem: $lineItems[index],
+                                    contractorMode: contractorMode,
+                                    isNewItem: isNewLineItem,
+                                    onSave: {
+                                        // Budget updates automatically
+                                    },
+                                    onCancel: {
+                                        // If it's a new item and user cancels, remove it
+                                        if isNewLineItem, let editingItem = editingLineItem {
+                                            lineItems.removeAll { $0.id == editingItem.id }
+                                        }
+                                    }
                                 )
                             }
                         }
                         
                         Button(action: {
                             HapticManager.selection()
-                            expandedLineItemId = nil
                             let newItem = DepartmentLineItem()
                             lineItems.append(newItem)
-                            Task { @MainActor in
-                                try? await Task.sleep(nanoseconds: 200_000_000)
-                                withAnimation(DesignSystem.Animation.standardSpring) {
-                                    expandedLineItemId = newItem.id
-                                }
-                            }
+                            editingLineItem = newItem
+                            isNewLineItem = true
+                            showingLineItemSheet = true
                         }) {
                             HStack(spacing: DesignSystem.Spacing.medium) {
                                 Image(systemName: "plus.circle.fill")
@@ -6181,7 +6189,6 @@ private struct AddPhaseSheet: View {
     @State private var endDate: Date = Date().addingTimeInterval(86400 * 30)
     @State private var departments: [AddPhaseDepartmentItem] = [AddPhaseDepartmentItem()]
     @State private var expandedDepartmentId: UUID? = nil
-    @State private var expandedLineItemIds: [UUID: UUID] = [:] // departmentId: lineItemId
     @State private var isSaving = false
     @State private var errorMessage: String?
     @State private var nextPhaseNumber: Int = 1
@@ -6519,24 +6526,13 @@ private struct AddPhaseSheet: View {
                                 AddPhaseDepartmentRowView(
                                     department: $dept,
                                     isExpanded: expandedDepartmentId == dept.id,
-                                    expandedLineItemId: expandedLineItemIds[dept.id],
                                     shouldShowValidationErrors: shouldShowValidationErrors,
                                     onToggleExpand: {
                                         withAnimation(DesignSystem.Animation.standardSpring) {
                                             if expandedDepartmentId == dept.id {
                                                 expandedDepartmentId = nil
-                                                expandedLineItemIds.removeValue(forKey: dept.id)
                                             } else {
                                                 expandedDepartmentId = dept.id
-                                            }
-                                        }
-                                    },
-                                    onToggleLineItemExpand: { lineItemId in
-                                        withAnimation(DesignSystem.Animation.standardSpring) {
-                                            if expandedLineItemIds[dept.id] == lineItemId {
-                                                expandedLineItemIds.removeValue(forKey: dept.id)
-                                            } else {
-                                                expandedLineItemIds[dept.id] = lineItemId
                                             }
                                         }
                                     },
@@ -6544,17 +6540,8 @@ private struct AddPhaseSheet: View {
                                         if departments.count > 1 {
                                             if expandedDepartmentId == dept.id {
                                                 expandedDepartmentId = nil
-                                                expandedLineItemIds.removeValue(forKey: dept.id)
                                             }
                                             departments.removeAll { $0.id == dept.id }
-                                        }
-                                    },
-                                    onDeleteLineItem: { lineItemId in
-                                        if dept.lineItems.count > 1 {
-                                            dept.lineItems.removeAll { $0.id == lineItemId }
-                                            if expandedLineItemIds[dept.id] == lineItemId {
-                                                expandedLineItemIds.removeValue(forKey: dept.id)
-                                            }
                                         }
                                     },
                                     canDelete: departments.count > 1,
@@ -7310,16 +7297,17 @@ private struct AddPhaseSheet: View {
 private struct AddPhaseDepartmentRowView: View {
     @Binding var department: AddPhaseDepartmentItem
     let isExpanded: Bool
-    let expandedLineItemId: UUID?
     let shouldShowValidationErrors: Bool
     let onToggleExpand: () -> Void
-    let onToggleLineItemExpand: (UUID) -> Void
     let onDelete: () -> Void
-    let onDeleteLineItem: (UUID) -> Void
     let canDelete: Bool
     let isDuplicate: Bool
     let phaseName: String
     let formatAmountInput: (String) -> String
+    
+    @State private var showingLineItemSheet = false
+    @State private var editingLineItem: DepartmentLineItem?
+    @State private var isNewLineItem = false
     
     private func updateDepartmentAmount() {
         department.amount = formatAmountInput(String(department.totalBudget))
@@ -7501,15 +7489,18 @@ private struct AddPhaseDepartmentRowView: View {
                                     LineItemRowView(
                                         lineItem: $lineItem,
                                         onDelete: {
-                                            onDeleteLineItem(lineItem.id)
+                                            if department.lineItems.count > 1 {
+                                                department.lineItems.removeAll { $0.id == lineItem.id }
+                                                updateDepartmentAmount()
+                                            }
                                         },
                                         canDelete: department.lineItems.count > 1,
-                                        isExpanded: expandedLineItemId == lineItem.id,
-                                        onToggleExpand: {
-                                            onToggleLineItemExpand(lineItem.id)
-                                        },
                                         contractorMode: department.contractorMode,
-                                        uomError: shouldShowValidationErrors && lineItem.uom.trimmingCharacters(in: .whitespaces).isEmpty ? "UOM is required" : nil
+                                        onEdit: {
+                                            editingLineItem = lineItem
+                                            isNewLineItem = false
+                                            showingLineItemSheet = true
+                                        }
                                     )
                                     .onChange(of: lineItem.quantity) { _, _ in
                                         updateDepartmentAmount()
@@ -7519,26 +7510,41 @@ private struct AddPhaseDepartmentRowView: View {
                                     }
                                 }
                             }
+                            .sheet(isPresented: $showingLineItemSheet) {
+                                if let editingItem = editingLineItem,
+                                   let index = department.lineItems.firstIndex(where: { $0.id == editingItem.id }) {
+                                    LineItemEditSheet(
+                                        lineItem: $department.lineItems[index],
+                                        contractorMode: department.contractorMode,
+                                        isNewItem: isNewLineItem,
+                                        onSave: {
+                                            updateDepartmentAmount()
+                                        },
+                                        onCancel: {
+                                            // If it's a new item and user cancels, remove it
+                                            if isNewLineItem, let editingItem = editingLineItem {
+                                                department.lineItems.removeAll { $0.id == editingItem.id }
+                                            }
+                                        }
+                                    )
+                                }
+                            }
                             .onAppear {
                                 updateDepartmentAmount()
                             }
                             
                             Button(action: {
                                 HapticManager.selection()
-                                // Collapse all line items when adding new
-                                onToggleLineItemExpand(UUID())
                                 let newItem = DepartmentLineItem()
                                 department.lineItems.append(newItem)
-                                // Expand the new item after a brief delay
-                                Task { @MainActor in
-                                    try? await Task.sleep(nanoseconds: 200_000_000) // 0.2 seconds
-                                    onToggleLineItemExpand(newItem.id)
-                                }
+                                editingLineItem = newItem
+                                isNewLineItem = true
+                                showingLineItemSheet = true
                             }) {
                                 HStack(spacing: DesignSystem.Spacing.small) {
                                     Image(systemName: "plus.circle.fill")
                                         .font(.system(size: 16, weight: .medium))
-                                    Text("Add row")
+                                    Text("Add Line Item")
                                         .font(DesignSystem.Typography.callout)
                                         .fontWeight(.medium)
                                 }

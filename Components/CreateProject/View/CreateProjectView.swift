@@ -19,111 +19,20 @@ struct LineItemRowView: View {
     @Binding var lineItem: DepartmentLineItem
     let onDelete: () -> Void
     let canDelete: Bool
-    let isExpanded: Bool
-    let onToggleExpand: () -> Void
     let contractorMode: ContractorMode
-    let uomError: String? // UOM validation error message
-    
-    @State private var quantityText: String = ""
-    @State private var unitPriceText: String = ""
-    
-    // Filter item types based on contractor mode
-    private var availableItemTypes: [String] {
-        if contractorMode == .labourOnly {
-            // Only show Labour for Labour-Only mode
-            return ["Labour"]
-        } else {
-            // Show all item types for Turnkey mode
-            return DepartmentItemData.itemTypeKeys
-        }
-    }
-    
-    // Get filtered UOM options based on selected item type
-    private var availableUOMs: [String] {
-        if lineItem.itemType.isEmpty {
-            return DepartmentItemData.allUOMOptions
-        }
-        return DepartmentItemData.uomOptions(for: lineItem.itemType)
-    }
-    
-    private func removeFormatting(from value: String) -> String {
-        return value.replacingOccurrences(of: ",", with: "")
-            .replacingOccurrences(of: " ", with: "")
-            .trimmingCharacters(in: .whitespaces)
-    }
-    
-    private func formatAmountInput(_ input: String) -> String {
-        let cleaned = removeFormatting(from: input)
-        guard !cleaned.isEmpty else { return "" }
-        guard let number = Double(cleaned) else { return cleaned }
-        return formatIndianNumber(number)
-    }
-    
-    private func formatIndianNumber(_ number: Double) -> String {
-        let integerPart = Int(number)
-        let decimalPart = number - Double(integerPart)
-        let integerString = String(integerPart)
-        let digits = Array(integerString)
-        let count = digits.count
-        
-        if count < 4 {
-            var result = integerString
-            if decimalPart > 0.0001 {
-                let decimalString = String(format: "%.2f", decimalPart)
-                if let dotIndex = decimalString.firstIndex(of: ".") {
-                    let afterDot = String(decimalString[decimalString.index(after: dotIndex)...])
-                    result += "." + afterDot
-                }
-            }
-            return result
-        }
-        
-        var groups: [String] = []
-        var remainingDigits = digits
-        
-        if remainingDigits.count >= 3 {
-            let lastThree = String(remainingDigits.suffix(3))
-            groups.append(lastThree)
-            remainingDigits = Array(remainingDigits.dropLast(3))
-        } else {
-            groups.append(String(remainingDigits))
-            remainingDigits = []
-        }
-        
-        while remainingDigits.count >= 2 {
-            let lastTwo = String(remainingDigits.suffix(2))
-            groups.insert(lastTwo, at: 0)
-            remainingDigits = Array(remainingDigits.dropLast(2))
-        }
-        
-        if remainingDigits.count == 1 {
-            groups.insert(String(remainingDigits[0]), at: 0)
-        }
-        
-        let result = groups.joined(separator: ",")
-        var finalResult = result
-        if decimalPart > 0.0001 {
-            let decimalString = String(format: "%.2f", decimalPart)
-            if let dotIndex = decimalString.firstIndex(of: ".") {
-                let afterDot = String(decimalString[decimalString.index(after: dotIndex)...])
-                finalResult += "." + afterDot
-            }
-        }
-        
-        return finalResult
-    }
+    let onEdit: () -> Void
     
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
-            // Collapsed Header - Always Visible
+            // Line Item Row - Clickable to Edit
             Button(action: {
                 HapticManager.selection()
-                onToggleExpand()
+                onEdit()
             }) {
                 HStack(spacing: DesignSystem.Spacing.medium) {
-                    // Chevron with gradient
-                    Image(systemName: isExpanded ? "chevron.up" : "chevron.down")
-                        .font(.system(size: 14, weight: .semibold))
+                    // Edit Icon
+                    Image(systemName: "pencil.circle.fill")
+                        .font(.system(size: 20, weight: .semibold))
                         .foregroundStyle(
                             LinearGradient(
                                 colors: [.orange, Color(red: 1.0, green: 0.75, blue: 0.0)],
@@ -131,7 +40,6 @@ struct LineItemRowView: View {
                                 endPoint: .bottomTrailing
                             )
                         )
-                        .frame(width: 24)
                         .symbolRenderingMode(.hierarchical)
                     
                     // Item Summary
@@ -219,27 +127,196 @@ struct LineItemRowView: View {
                 .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
-            
-            // Expanded Content
-            if isExpanded {
-                VStack(alignment: .leading, spacing: DesignSystem.Spacing.medium) {
-                    // Gradient Divider
-                    Divider()
-                        .background(
+        }
+        .background(
+            LinearGradient(
+                colors: [
+                    Color(.secondarySystemGroupedBackground),
+                    Color(.tertiarySystemGroupedBackground).opacity(0.5)
+                ],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
+        )
+        .clipShape(RoundedRectangle(cornerRadius: 20))
+        .overlay(
+            RoundedRectangle(cornerRadius: 20)
+                .stroke(
+                    LinearGradient(
+                        colors: [
+                            Color.orange.opacity(0.15),
+                            Color(red: 1.0, green: 0.75, blue: 0.0).opacity(0.08)
+                        ],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    ),
+                    lineWidth: 1.5
+                )
+        )
+        .shadow(color: Color.orange.opacity(0.1), radius: 10, x: 0, y: 4)
+        .shadow(color: Color.orange.opacity(0.05), radius: 20, x: 0, y: 8)
+    }
+}
+
+// MARK: - Line Item Edit Sheet
+struct LineItemEditSheet: View {
+    @Binding var lineItem: DepartmentLineItem
+    let contractorMode: ContractorMode
+    let isNewItem: Bool
+    let onSave: () -> Void
+    let onCancel: () -> Void
+    
+    @Environment(\.dismiss) private var dismiss
+    @State private var editedItem: DepartmentLineItem
+    @State private var quantityText: String = ""
+    @State private var unitPriceText: String = ""
+    @State private var uomError: String?
+    @FocusState private var focusedField: Field?
+    
+    private enum Field { case quantity, unitPrice }
+    
+    init(lineItem: Binding<DepartmentLineItem>, contractorMode: ContractorMode, isNewItem: Bool, onSave: @escaping () -> Void, onCancel: @escaping () -> Void) {
+        self._lineItem = lineItem
+        self.contractorMode = contractorMode
+        self.isNewItem = isNewItem
+        self.onSave = onSave
+        self.onCancel = onCancel
+        self._editedItem = State(initialValue: lineItem.wrappedValue)
+    }
+    
+    // Filter item types based on contractor mode
+    private var availableItemTypes: [String] {
+        if contractorMode == .labourOnly {
+            return ["Labour"]
+        } else {
+            return DepartmentItemData.itemTypeKeys
+        }
+    }
+    
+    // Get filtered UOM options based on selected item type
+    private var availableUOMs: [String] {
+        if editedItem.itemType.isEmpty {
+            return DepartmentItemData.allUOMOptions
+        }
+        return DepartmentItemData.uomOptions(for: editedItem.itemType)
+    }
+    
+    private var isFormValid: Bool {
+        !editedItem.itemType.isEmpty &&
+        !editedItem.item.isEmpty &&
+        (editedItem.itemType == "Labour" || !editedItem.spec.isEmpty) &&
+        !editedItem.quantity.trimmingCharacters(in: .whitespaces).isEmpty &&
+        !editedItem.uom.trimmingCharacters(in: .whitespaces).isEmpty &&
+        !editedItem.unitPrice.trimmingCharacters(in: .whitespaces).isEmpty
+    }
+    
+    private func removeFormatting(from value: String) -> String {
+        return value.replacingOccurrences(of: ",", with: "")
+            .replacingOccurrences(of: " ", with: "")
+            .trimmingCharacters(in: .whitespaces)
+    }
+    
+    private func formatAmountInput(_ input: String) -> String {
+        let cleaned = removeFormatting(from: input)
+        guard !cleaned.isEmpty else { return "" }
+        guard let number = Double(cleaned) else { return cleaned }
+        return formatIndianNumber(number)
+    }
+    
+    private func formatIndianNumber(_ number: Double) -> String {
+        let integerPart = Int(number)
+        let decimalPart = number - Double(integerPart)
+        let integerString = String(integerPart)
+        let digits = Array(integerString)
+        let count = digits.count
+        
+        if count < 4 {
+            var result = integerString
+            if decimalPart > 0.0001 {
+                let decimalString = String(format: "%.2f", decimalPart)
+                if let dotIndex = decimalString.firstIndex(of: ".") {
+                    let afterDot = String(decimalString[decimalString.index(after: dotIndex)...])
+                    result += "." + afterDot
+                }
+            }
+            return result
+        }
+        
+        var groups: [String] = []
+        var remainingDigits = digits
+        
+        if remainingDigits.count >= 3 {
+            let lastThree = String(remainingDigits.suffix(3))
+            groups.append(lastThree)
+            remainingDigits = Array(remainingDigits.dropLast(3))
+        } else {
+            groups.append(String(remainingDigits))
+            remainingDigits = []
+        }
+        
+        while remainingDigits.count >= 2 {
+            let lastTwo = String(remainingDigits.suffix(2))
+            groups.insert(lastTwo, at: 0)
+            remainingDigits = Array(remainingDigits.dropLast(2))
+        }
+        
+        if remainingDigits.count == 1 {
+            groups.insert(String(remainingDigits[0]), at: 0)
+        }
+        
+        let result = groups.joined(separator: ",")
+        var finalResult = result
+        if decimalPart > 0.0001 {
+            let decimalString = String(format: "%.2f", decimalPart)
+            if let dotIndex = decimalString.firstIndex(of: ".") {
+                let afterDot = String(decimalString[decimalString.index(after: dotIndex)...])
+                finalResult += "." + afterDot
+            }
+        }
+        
+        return finalResult
+    }
+    
+    private func validateUOM() {
+        if editedItem.itemType.isEmpty {
+            uomError = nil
+        } else if editedItem.uom.trimmingCharacters(in: .whitespaces).isEmpty {
+            uomError = "UOM is required"
+        } else {
+            uomError = nil
+        }
+    }
+    
+    private func save() {
+        validateUOM()
+        guard isFormValid && uomError == nil else { return }
+        
+        lineItem = editedItem
+        onSave()
+        dismiss()
+    }
+    
+    var body: some View {
+        NavigationView {
+            ScrollView {
+                VStack(spacing: DesignSystem.Spacing.large) {
+                    // Drag Indicator
+                    RoundedRectangle(cornerRadius: 4)
+                        .fill(
                             LinearGradient(
                                 colors: [
-                                    Color.clear,
-                                    Color.orange.opacity(0.2),
-                                    Color(red: 1.0, green: 0.75, blue: 0.0).opacity(0.15),
-                                    Color.orange.opacity(0.2),
-                                    Color.clear
+                                    Color.secondary.opacity(0.35),
+                                    Color.secondary.opacity(0.25),
+                                    Color.secondary.opacity(0.2)
                                 ],
                                 startPoint: .leading,
                                 endPoint: .trailing
                             )
                         )
-                        .frame(height: 1.5)
-                        .padding(.horizontal, DesignSystem.Spacing.large)
+                        .frame(width: 44, height: 5.5)
+                        .shadow(color: Color.secondary.opacity(0.1), radius: 2, x: 0, y: 1)
+                        .padding(.top, DesignSystem.Spacing.small)
+                        .padding(.bottom, DesignSystem.Spacing.medium)
                     
                     VStack(alignment: .leading, spacing: DesignSystem.Spacing.large) {
                         // Item Type
@@ -252,23 +329,22 @@ struct LineItemRowView: View {
                                 ForEach(availableItemTypes, id: \.self) { itemType in
                                     Button(action: {
                                         HapticManager.selection()
-                                        let previousItemType = lineItem.itemType
-                                        lineItem.itemType = itemType
-                                        lineItem.item = ""
-                                        // Always clear spec when switching item types (Labour doesn't use spec)
-                                        lineItem.spec = ""
+                                        let previousItemType = editedItem.itemType
+                                        editedItem.itemType = itemType
+                                        editedItem.item = ""
+                                        editedItem.spec = ""
                                         
-                                        // Clear UOM if it's not valid for the new item type
                                         if previousItemType != itemType {
                                             let newUOMs = DepartmentItemData.uomOptions(for: itemType)
-                                            if !newUOMs.contains(lineItem.uom) {
-                                                lineItem.uom = ""
+                                            if !newUOMs.contains(editedItem.uom) {
+                                                editedItem.uom = ""
                                             }
                                         }
+                                        validateUOM()
                                     }) {
                                         HStack {
                                             Text(itemType)
-                                            if lineItem.itemType == itemType {
+                                            if editedItem.itemType == itemType {
                                                 Image(systemName: "checkmark")
                                             }
                                         }
@@ -276,9 +352,9 @@ struct LineItemRowView: View {
                                 }
                             } label: {
                                 HStack {
-                                    Text(lineItem.itemType.isEmpty ? "Select Item Type" : lineItem.itemType)
+                                    Text(editedItem.itemType.isEmpty ? "Select Item Type" : editedItem.itemType)
                                         .font(.system(size: 16, weight: .medium))
-                                        .foregroundColor(lineItem.itemType.isEmpty ? .secondary : .primary)
+                                        .foregroundColor(editedItem.itemType.isEmpty ? .secondary : .primary)
                                         .lineLimit(1)
                                         .minimumScaleFactor(0.85)
                                         .truncationMode(.tail)
@@ -318,27 +394,26 @@ struct LineItemRowView: View {
                             }
                         }
                         
-                        // Item + Spec (hide spec for Labour)
+                        // Item + Spec
                         VStack(alignment: .leading, spacing: DesignSystem.Spacing.extraSmall) {
-                            Text(lineItem.itemType == "Labour" ? "Item" : "Item + Spec")
+                            Text(editedItem.itemType == "Labour" ? "Item" : "Item + Spec")
                                 .font(DesignSystem.Typography.caption1)
                                 .foregroundColor(.secondary)
                             
                             VStack(spacing: DesignSystem.Spacing.small) {
                                 // Item Dropdown
                                 Menu {
-                                    ForEach(DepartmentItemData.items(for: lineItem.itemType), id: \.self) { item in
+                                    ForEach(DepartmentItemData.items(for: editedItem.itemType), id: \.self) { item in
                                         Button(action: {
                                             HapticManager.selection()
-                                            lineItem.item = item
-                                            // Clear spec when item changes (only if not Labour)
-                                            if lineItem.itemType != "Labour" {
-                                                lineItem.spec = ""
+                                            editedItem.item = item
+                                            if editedItem.itemType != "Labour" {
+                                                editedItem.spec = ""
                                             }
                                         }) {
                                             HStack {
                                                 Text(item)
-                                                if lineItem.item == item {
+                                                if editedItem.item == item {
                                                     Image(systemName: "checkmark")
                                                 }
                                             }
@@ -346,9 +421,9 @@ struct LineItemRowView: View {
                                     }
                                 } label: {
                                     HStack {
-                                        Text(lineItem.item.isEmpty ? "Select Item" : lineItem.item)
+                                        Text(editedItem.item.isEmpty ? "Select Item" : editedItem.item)
                                             .font(.system(size: 16, weight: .medium))
-                                            .foregroundColor(lineItem.item.isEmpty ? .secondary : .primary)
+                                            .foregroundColor(editedItem.item.isEmpty ? .secondary : .primary)
                                             .lineLimit(1)
                                             .minimumScaleFactor(0.85)
                                             .truncationMode(.tail)
@@ -386,20 +461,20 @@ struct LineItemRowView: View {
                                             )
                                     )
                                 }
-                                .disabled(lineItem.itemType.isEmpty)
-                                .opacity(lineItem.itemType.isEmpty ? 0.6 : 1.0)
+                                .disabled(editedItem.itemType.isEmpty)
+                                .opacity(editedItem.itemType.isEmpty ? 0.6 : 1.0)
                                 
                                 // Spec Dropdown (hidden for Labour)
-                                if lineItem.itemType != "Labour" {
+                                if editedItem.itemType != "Labour" {
                                     Menu {
-                                        ForEach(DepartmentItemData.specs(for: lineItem.itemType, item: lineItem.item), id: \.self) { spec in
+                                        ForEach(DepartmentItemData.specs(for: editedItem.itemType, item: editedItem.item), id: \.self) { spec in
                                             Button(action: {
                                                 HapticManager.selection()
-                                                lineItem.spec = spec
+                                                editedItem.spec = spec
                                             }) {
                                                 HStack {
                                                     Text(spec)
-                                                    if lineItem.spec == spec {
+                                                    if editedItem.spec == spec {
                                                         Image(systemName: "checkmark")
                                                     }
                                                 }
@@ -407,9 +482,9 @@ struct LineItemRowView: View {
                                         }
                                     } label: {
                                         HStack {
-                                            Text(lineItem.spec.isEmpty ? "Select Spec" : lineItem.spec)
+                                            Text(editedItem.spec.isEmpty ? "Select Spec" : editedItem.spec)
                                                 .font(.system(size: 16, weight: .medium))
-                                                .foregroundColor(lineItem.spec.isEmpty ? .secondary : .primary)
+                                                .foregroundColor(editedItem.spec.isEmpty ? .secondary : .primary)
                                                 .lineLimit(1)
                                                 .minimumScaleFactor(0.85)
                                                 .truncationMode(.tail)
@@ -447,8 +522,8 @@ struct LineItemRowView: View {
                                                 )
                                         )
                                     }
-                                    .disabled(lineItem.item.isEmpty)
-                                    .opacity(lineItem.item.isEmpty ? 0.6 : 1.0)
+                                    .disabled(editedItem.item.isEmpty)
+                                    .opacity(editedItem.item.isEmpty ? 0.6 : 1.0)
                                 }
                             }
                         }
@@ -459,20 +534,21 @@ struct LineItemRowView: View {
                             HStack(spacing: DesignSystem.Spacing.medium) {
                                 // Quantity (Members for Labour)
                                 VStack(alignment: .leading, spacing: DesignSystem.Spacing.extraSmall) {
-                                    Text(lineItem.itemType == "Labour" ? "Members" : "Quantity")
+                                    Text(editedItem.itemType == "Labour" ? "Members" : "Quantity")
                                         .font(DesignSystem.Typography.caption1)
                                         .foregroundColor(.secondary)
                                     
                                     TextField("0", text: Binding(
-                                        get: { quantityText.isEmpty ? lineItem.quantity : quantityText },
+                                        get: { quantityText.isEmpty ? editedItem.quantity : quantityText },
                                         set: { newValue in
                                             quantityText = formatAmountInput(newValue)
-                                            lineItem.quantity = quantityText
+                                            editedItem.quantity = quantityText
                                         }
                                     ))
                                     .keyboardType(.decimalPad)
                                     .font(DesignSystem.Typography.caption1)
                                     .multilineTextAlignment(.trailing)
+                                    .focused($focusedField, equals: .quantity)
                                     .padding(.horizontal, DesignSystem.Spacing.medium)
                                     .padding(.vertical, DesignSystem.Spacing.small)
                                     .background(
@@ -489,19 +565,25 @@ struct LineItemRowView: View {
                                     .overlay(
                                         RoundedRectangle(cornerRadius: 14)
                                             .stroke(
-                                                LinearGradient(
-                                                    colors: [
-                                                        Color(.separator).opacity(0.3),
-                                                        Color(.separator).opacity(0.1)
-                                                    ],
-                                                    startPoint: .topLeading,
-                                                    endPoint: .bottomTrailing
-                                                ),
-                                                lineWidth: 1
+                                                focusedField == .quantity
+                                                    ? LinearGradient(
+                                                        colors: [Color.blue.opacity(0.5), Color.blue.opacity(0.3)],
+                                                        startPoint: .topLeading,
+                                                        endPoint: .bottomTrailing
+                                                    )
+                                                    : LinearGradient(
+                                                        colors: [
+                                                            Color(.separator).opacity(0.3),
+                                                            Color(.separator).opacity(0.1)
+                                                        ],
+                                                        startPoint: .topLeading,
+                                                        endPoint: .bottomTrailing
+                                                    ),
+                                                lineWidth: focusedField == .quantity ? 2 : 1
                                             )
                                     )
                                     .onAppear {
-                                        quantityText = lineItem.quantity
+                                        quantityText = editedItem.quantity
                                     }
                                 }
                                 .frame(maxWidth: .infinity)
@@ -516,11 +598,12 @@ struct LineItemRowView: View {
                                         ForEach(availableUOMs, id: \.self) { uom in
                                             Button(action: {
                                                 HapticManager.selection()
-                                                lineItem.uom = uom
+                                                editedItem.uom = uom
+                                                validateUOM()
                                             }) {
                                                 HStack {
                                                     Text(uom)
-                                                    if lineItem.uom == uom {
+                                                    if editedItem.uom == uom {
                                                         Image(systemName: "checkmark")
                                                     }
                                                 }
@@ -528,9 +611,9 @@ struct LineItemRowView: View {
                                         }
                                     } label: {
                                         HStack {
-                                            Text(lineItem.itemType.isEmpty ? "Item Type" : (lineItem.uom.isEmpty ? "Select UOM" : lineItem.uom))
+                                            Text(editedItem.itemType.isEmpty ? "Item Type" : (editedItem.uom.isEmpty ? "Select UOM" : editedItem.uom))
                                                 .font(DesignSystem.Typography.caption1)
-                                                .foregroundColor(lineItem.uom.isEmpty ? .secondary : .primary)
+                                                .foregroundColor(editedItem.uom.isEmpty ? .secondary : .primary)
                                                 .lineLimit(1)
                                                 .minimumScaleFactor(0.85)
                                                 .truncationMode(.tail)
@@ -574,8 +657,8 @@ struct LineItemRowView: View {
                                                 )
                                         )
                                     }
-                                    .disabled(lineItem.itemType.isEmpty)
-                                    .opacity(lineItem.itemType.isEmpty ? 0.6 : 1.0)
+                                    .disabled(editedItem.itemType.isEmpty)
+                                    .opacity(editedItem.itemType.isEmpty ? 0.6 : 1.0)
                                     
                                     if let error = uomError {
                                         HStack(spacing: DesignSystem.Spacing.extraSmall) {
@@ -592,22 +675,23 @@ struct LineItemRowView: View {
                                 .frame(maxWidth: .infinity)
                             }
                             
-                            // Unit Price (UOM + Price for Labour)
+                            // Unit Price
                             VStack(alignment: .leading, spacing: DesignSystem.Spacing.extraSmall) {
-                                Text(lineItem.itemType == "Labour" ? (lineItem.uom.isEmpty ? "UOM Price" : "\(lineItem.uom) Price") : "Unit Price")
+                                Text(editedItem.itemType == "Labour" ? (editedItem.uom.isEmpty ? "UOM Price" : "\(editedItem.uom) Price") : "Unit Price")
                                     .font(DesignSystem.Typography.caption1)
                                     .foregroundColor(.secondary)
                                 
                                 TextField("0", text: Binding(
-                                    get: { unitPriceText.isEmpty ? lineItem.unitPrice : unitPriceText },
+                                    get: { unitPriceText.isEmpty ? editedItem.unitPrice : unitPriceText },
                                     set: { newValue in
                                         unitPriceText = formatAmountInput(newValue)
-                                        lineItem.unitPrice = unitPriceText
+                                        editedItem.unitPrice = unitPriceText
                                     }
                                 ))
                                 .keyboardType(.decimalPad)
                                 .font(DesignSystem.Typography.caption1)
                                 .multilineTextAlignment(.trailing)
+                                .focused($focusedField, equals: .unitPrice)
                                 .padding(.horizontal, DesignSystem.Spacing.medium)
                                 .padding(.vertical, DesignSystem.Spacing.small)
                                 .background(
@@ -624,24 +708,30 @@ struct LineItemRowView: View {
                                 .overlay(
                                     RoundedRectangle(cornerRadius: 14)
                                         .stroke(
-                                            LinearGradient(
-                                                colors: [
-                                                    Color(.separator).opacity(0.3),
-                                                    Color(.separator).opacity(0.1)
-                                                ],
-                                                startPoint: .topLeading,
-                                                endPoint: .bottomTrailing
-                                            ),
-                                            lineWidth: 1
+                                            focusedField == .unitPrice
+                                                ? LinearGradient(
+                                                    colors: [Color.blue.opacity(0.5), Color.blue.opacity(0.3)],
+                                                    startPoint: .topLeading,
+                                                    endPoint: .bottomTrailing
+                                                )
+                                                : LinearGradient(
+                                                    colors: [
+                                                        Color(.separator).opacity(0.3),
+                                                        Color(.separator).opacity(0.1)
+                                                    ],
+                                                    startPoint: .topLeading,
+                                                    endPoint: .bottomTrailing
+                                                ),
+                                            lineWidth: focusedField == .unitPrice ? 2 : 1
                                         )
                                 )
                                 .onAppear {
-                                    unitPriceText = lineItem.unitPrice
+                                    unitPriceText = editedItem.unitPrice
                                 }
                             }
                         }
                         
-                        // Total with enhanced styling
+                        // Total Display
                         HStack {
                             HStack(spacing: DesignSystem.Spacing.extraSmall) {
                                 Image(systemName: "sum")
@@ -661,7 +751,7 @@ struct LineItemRowView: View {
                             
                             Spacer()
                             
-                            Text(lineItem.total.formattedCurrency)
+                            Text(editedItem.total.formattedCurrency)
                                 .font(.system(size: 20, weight: .bold))
                                 .foregroundStyle(
                                     LinearGradient(
@@ -675,7 +765,6 @@ struct LineItemRowView: View {
                                 .truncationMode(.tail)
                                 .fixedSize(horizontal: false, vertical: true)
                         }
-                        .padding(.top, DesignSystem.Spacing.small)
                         .padding(.vertical, DesignSystem.Spacing.medium)
                         .padding(.horizontal, DesignSystem.Spacing.medium)
                         .background(
@@ -703,53 +792,57 @@ struct LineItemRowView: View {
                                     lineWidth: 1.5
                                 )
                         )
-                        
-                        // Note for Labour
-                        if lineItem.itemType == "Labour" {
-                            HStack(spacing: DesignSystem.Spacing.extraSmall) {
-                                Image(systemName: "info.circle.fill")
-                                    .font(.system(size: 12))
-                                    .foregroundColor(.blue)
-                                Text("For Labour, Spec is rate band")
-                                    .font(DesignSystem.Typography.caption2)
-                                    .foregroundColor(.secondary)
-                            }
-                            .padding(.top, DesignSystem.Spacing.extraSmall)
-                        }
                     }
                     .padding(.horizontal, DesignSystem.Spacing.large)
                     .padding(.bottom, DesignSystem.Spacing.large)
                 }
-                .transition(.opacity.combined(with: .move(edge: .top)))
+            }
+            .background(Color(.systemGroupedBackground))
+            .navigationTitle(isNewItem ? "Add Line Item" : "Edit Line Item")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Close") {
+                        HapticManager.selection()
+                        onCancel()
+                        dismiss()
+                    }
+                    .font(.system(size: 17, weight: .medium))
+                    .foregroundColor(.blue)
+                }
+                ToolbarItem(placement: .confirmationAction) {
+                    Button(isNewItem ? "Add" : "Save") {
+                        HapticManager.impact(.medium)
+                        save()
+                    }
+                    .disabled(!isFormValid || uomError != nil)
+                    .font(.system(size: 17, weight: .bold))
+                    .foregroundStyle(
+                        isFormValid && uomError == nil
+                            ? LinearGradient(
+                                colors: [.green, .mint],
+                                startPoint: .leading,
+                                endPoint: .trailing
+                            )
+                            : LinearGradient(
+                                colors: [
+                                    Color.gray.opacity(0.5),
+                                    Color.gray.opacity(0.3)
+                                ],
+                                startPoint: .leading,
+                                endPoint: .trailing
+                            )
+                    )
+                }
+            }
+            .onAppear {
+                quantityText = editedItem.quantity
+                unitPriceText = editedItem.unitPrice
+                validateUOM()
             }
         }
-        .background(
-            LinearGradient(
-                colors: [
-                    Color(.secondarySystemGroupedBackground),
-                    Color(.tertiarySystemGroupedBackground).opacity(0.5)
-                ],
-                startPoint: .topLeading,
-                endPoint: .bottomTrailing
-            )
-        )
-        .clipShape(RoundedRectangle(cornerRadius: 20))
-        .overlay(
-            RoundedRectangle(cornerRadius: 20)
-                .stroke(
-                    LinearGradient(
-                        colors: [
-                            Color.orange.opacity(0.15),
-                            Color(red: 1.0, green: 0.75, blue: 0.0).opacity(0.08)
-                        ],
-                        startPoint: .topLeading,
-                        endPoint: .bottomTrailing
-                    ),
-                    lineWidth: 1.5
-                )
-        )
-        .shadow(color: Color.orange.opacity(0.1), radius: 10, x: 0, y: 4)
-        .shadow(color: Color.orange.opacity(0.05), radius: 20, x: 0, y: 8)
+        .presentationDetents([.large])
+        .presentationDragIndicator(.visible)
     }
 }
 
@@ -2423,7 +2516,9 @@ private struct DepartmentInputRow: View {
     @State private var contractorMode: ContractorMode = .labourOnly
     @State private var lineItems: [DepartmentLineItem] = [DepartmentLineItem()]
     @State private var isExpanded: Bool = false
-    @State private var expandedLineItemId: UUID? = nil
+    @State private var showingLineItemSheet = false
+    @State private var editingLineItem: DepartmentLineItem?
+    @State private var isNewLineItem = false
     
     private var totalDepartmentBudget: Double {
         lineItems.reduce(0) { $0 + $1.total }
@@ -2571,43 +2666,47 @@ private struct DepartmentInputRow: View {
                                     lineItem: $lineItem,
                                     onDelete: {
                                         if lineItems.count > 1 {
-                                            if expandedLineItemId == lineItem.id {
-                                                expandedLineItemId = nil
-                                            }
                                             lineItems.removeAll { $0.id == lineItem.id }
                                             updateDepartmentBudget()
                                         }
                                     },
                                     canDelete: lineItems.count > 1,
-                                    isExpanded: expandedLineItemId == lineItem.id,
-                                    onToggleExpand: {
-                                        withAnimation(DesignSystem.Animation.standardSpring) {
-                                            if expandedLineItemId == lineItem.id {
-                                                expandedLineItemId = nil
-                                            } else {
-                                                expandedLineItemId = lineItem.id
-                                            }
-                                        }
-                                    },
                                     contractorMode: contractorMode,
-                                    uomError: viewModel.lineItemUOMError(for: phaseId, departmentId: item.id, lineItemId: lineItem.id)
+                                    onEdit: {
+                                        editingLineItem = lineItem
+                                        isNewLineItem = false
+                                        showingLineItemSheet = true
+                                    }
+                                )
+                            }
+                        }
+                        .sheet(isPresented: $showingLineItemSheet) {
+                            if let editingItem = editingLineItem,
+                               let index = lineItems.firstIndex(where: { $0.id == editingItem.id }) {
+                                LineItemEditSheet(
+                                    lineItem: $lineItems[index],
+                                    contractorMode: contractorMode,
+                                    isNewItem: isNewLineItem,
+                                    onSave: {
+                                        updateDepartmentBudget()
+                                    },
+                                    onCancel: {
+                                        // If it's a new item and user cancels, remove it
+                                        if isNewLineItem, let editingItem = editingLineItem {
+                                            lineItems.removeAll { $0.id == editingItem.id }
+                                        }
+                                    }
                                 )
                             }
                         }
                         
                         Button(action: {
                             HapticManager.selection()
-                            // Collapse all when adding new
-                            expandedLineItemId = nil
                             let newItem = DepartmentLineItem()
                             lineItems.append(newItem)
-                            // Expand the new item after animation completes
-                            Task { @MainActor in
-                                try? await Task.sleep(nanoseconds: 200_000_000) // 0.2 seconds
-                                withAnimation(DesignSystem.Animation.standardSpring) {
-                                    expandedLineItemId = newItem.id
-                                }
-                            }
+                            editingLineItem = newItem
+                            isNewLineItem = true
+                            showingLineItemSheet = true
                         }) {
                             HStack(spacing: DesignSystem.Spacing.small) {
                                 Image(systemName: "plus.circle.fill")
@@ -2876,7 +2975,9 @@ private struct CreateProjectAddDepartmentSheet: View {
     @State private var departmentName: String = ""
     @State private var contractorMode: ContractorMode = .labourOnly
     @State private var lineItems: [DepartmentLineItem] = [DepartmentLineItem()]
-    @State private var expandedLineItemId: UUID? = nil
+    @State private var showingLineItemSheet = false
+    @State private var editingLineItem: DepartmentLineItem?
+    @State private var isNewLineItem = false
     @State private var departmentNameError: String?
     @FocusState private var focusedField: Field?
     
@@ -3078,45 +3179,51 @@ private struct CreateProjectAddDepartmentSheet: View {
                                     lineItem: $lineItem,
                                     onDelete: {
                                         if lineItems.count > 1 {
-                                            if expandedLineItemId == lineItem.id {
-                                                expandedLineItemId = nil
-                                            }
                                             lineItems.removeAll { $0.id == lineItem.id }
                                         }
                                     },
                                     canDelete: lineItems.count > 1,
-                                    isExpanded: expandedLineItemId == lineItem.id,
-                                    onToggleExpand: {
-                                        withAnimation(DesignSystem.Animation.standardSpring) {
-                                            if expandedLineItemId == lineItem.id {
-                                                expandedLineItemId = nil
-                                            } else {
-                                                expandedLineItemId = lineItem.id
-                                            }
-                                        }
-                                    },
                                     contractorMode: contractorMode,
-                                    uomError: lineItem.uom.trimmingCharacters(in: .whitespaces).isEmpty ? "UOM is required" : nil
+                                    onEdit: {
+                                        editingLineItem = lineItem
+                                        isNewLineItem = false
+                                        showingLineItemSheet = true
+                                    }
+                                )
+                            }
+                        }
+                        .sheet(isPresented: $showingLineItemSheet) {
+                            if let editingItem = editingLineItem,
+                               let index = lineItems.firstIndex(where: { $0.id == editingItem.id }) {
+                                LineItemEditSheet(
+                                    lineItem: $lineItems[index],
+                                    contractorMode: contractorMode,
+                                    isNewItem: isNewLineItem,
+                                    onSave: {
+                                        // Budget updates automatically
+                                    },
+                                    onCancel: {
+                                        // If it's a new item and user cancels, remove it
+                                        if isNewLineItem, let editingItem = editingLineItem {
+                                            lineItems.removeAll { $0.id == editingItem.id }
+                                        }
+                                    }
                                 )
                             }
                         }
                         
                         Button(action: {
                             HapticManager.selection()
-                            expandedLineItemId = nil
                             let newItem = DepartmentLineItem()
                             lineItems.append(newItem)
-                            Task { @MainActor in
-                                try? await Task.sleep(nanoseconds: 200_000_000)
-                                withAnimation(DesignSystem.Animation.standardSpring) {
-                                    expandedLineItemId = newItem.id
-                                }
-                            }
+                            editingLineItem = newItem
+                            isNewLineItem = true
+                            showingLineItemSheet = true
                         }) {
                             HStack(spacing: DesignSystem.Spacing.small) {
                                 Image(systemName: "plus.circle.fill")
                                     .font(.system(size: 16, weight: .medium))
-                                Text("Add row")
+                                Text("Add Line Item")
                                     .font(DesignSystem.Typography.callout)
                                     .fontWeight(.medium)
                             }
