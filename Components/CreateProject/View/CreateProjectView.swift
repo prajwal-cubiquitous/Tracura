@@ -23,138 +23,143 @@ struct LineItemRowView: View {
     let onEdit: () -> Void
     
     var body: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            // Line Item Row - Clickable to Edit
-            Button(action: {
-                HapticManager.selection()
-                onEdit()
-            }) {
-                HStack(spacing: DesignSystem.Spacing.medium) {
-                    // Edit Icon
+        VStack(alignment: .leading, spacing: DesignSystem.Spacing.extraSmall) {
+            // First Line: Edit Icon + Item Details
+            HStack(spacing: DesignSystem.Spacing.small) {
+                // Edit Icon - Compact
+                Button(action: {
+                    HapticManager.selection()
+                    onEdit()
+                }) {
                     Image(systemName: "pencil.circle.fill")
-                        .font(.system(size: 20, weight: .semibold))
-                        .foregroundStyle(
-                            LinearGradient(
-                                colors: [.orange, Color(red: 1.0, green: 0.75, blue: 0.0)],
-                                startPoint: .topLeading,
-                                endPoint: .bottomTrailing
-                            )
-                        )
+                        .font(.system(size: 16, weight: .medium))
+                        .foregroundColor(.orange)
                         .symbolRenderingMode(.hierarchical)
-                    
-                    // Item Summary
-                    VStack(alignment: .leading, spacing: 4) {
-                        if !lineItem.itemType.isEmpty {
-                            Text(lineItem.itemType)
-                                .font(.system(size: 16, weight: .semibold))
-                                .foregroundColor(.primary)
-                                .lineLimit(1)
-                                .minimumScaleFactor(0.8)
-                                .truncationMode(.tail)
-                        } else {
-                            Text("Line Item")
-                                .font(.system(size: 16, weight: .medium))
-                                .foregroundColor(.secondary)
-                                .lineLimit(1)
-                        }
-                        
-                        if !lineItem.item.isEmpty {
-                            HStack(spacing: 6) {
-                                Text(lineItem.item)
-                                    .font(.system(size: 13, weight: .regular))
-                                    .foregroundColor(.secondary)
-                                    .lineLimit(1)
-                                    .minimumScaleFactor(0.85)
-                                    .truncationMode(.tail)
-                                if !lineItem.spec.isEmpty {
-                                    Text("•")
-                                        .font(.system(size: 13, weight: .regular))
-                                        .foregroundColor(.secondary.opacity(0.6))
-                                    Text(lineItem.spec)
-                                        .font(.system(size: 13, weight: .regular))
-                                        .foregroundColor(.secondary)
-                                        .lineLimit(1)
-                                        .minimumScaleFactor(0.85)
-                                        .truncationMode(.tail)
-                                }
-                            }
-                        }
+                }
+                .buttonStyle(.plain)
+                
+                // Item Details - Full width with truncation (ensures at least 10 chars visible per field)
+                HStack(spacing: 4) {
+                    if !lineItem.itemType.isEmpty {
+                        Text(lineItem.itemType)
+                            .font(.system(size: 14, weight: .semibold))
+                            .foregroundColor(.primary)
+                            .lineLimit(1)
+                            .truncationMode(.tail)
+                    } else {
+                        Text("Line Item")
+                            .font(.system(size: 14, weight: .medium))
+                            .foregroundColor(.secondary)
                     }
-                    .frame(maxWidth: .infinity, alignment: .leading)
                     
-                    Spacer()
+                    if !lineItem.item.isEmpty {
+                        Text("•")
+                            .font(.system(size: 11))
+                            .foregroundColor(.secondary.opacity(0.4))
+                        Text(lineItem.item)
+                            .font(.system(size: 13, weight: .medium))
+                            .foregroundColor(.secondary)
+                            .lineLimit(1)
+                            .truncationMode(.tail)
+                    }
                     
-                    // Total Budget with gradient
-                    Text(lineItem.total.formattedCurrency)
-                        .font(.system(size: 18, weight: .bold))
-                        .foregroundStyle(
-                            LinearGradient(
-                                colors: [.green, .mint],
-                                startPoint: .leading,
-                                endPoint: .trailing
-                            )
-                        )
-                        .lineLimit(1)
-                        .minimumScaleFactor(0.7)
-                        .truncationMode(.tail)
-                        .fixedSize(horizontal: false, vertical: true)
-                    
-                    // Delete Button
-                    if canDelete {
-                        Button(action: {
-                            HapticManager.selection()
-                            onDelete()
-                        }) {
-                            Image(systemName: "trash.fill")
-                                .foregroundColor(.white)
-                                .font(.system(size: 12, weight: .semibold))
-                                .frame(width: 32, height: 32)
-                                .background(
-                                    LinearGradient(
-                                        colors: [.red, .red.opacity(0.8)],
-                                        startPoint: .topLeading,
-                                        endPoint: .bottomTrailing
-                                    )
-                                )
-                                .clipShape(Circle())
-                                .shadow(color: Color.red.opacity(0.3), radius: 4, x: 0, y: 2)
-                        }
-                        .buttonStyle(.plain)
-                        .padding(.leading, DesignSystem.Spacing.small)
+                    if !lineItem.spec.isEmpty {
+                        Text("•")
+                            .font(.system(size: 11))
+                            .foregroundColor(.secondary.opacity(0.4))
+                        Text(lineItem.spec)
+                            .font(.system(size: 12))
+                            .foregroundColor(.secondary.opacity(0.8))
+                            .lineLimit(1)
+                            .truncationMode(.tail)
                     }
                 }
-                .padding(DesignSystem.Spacing.large)
-                .contentShape(Rectangle())
+                .frame(maxWidth: .infinity, alignment: .leading)
             }
-            .buttonStyle(.plain)
+            
+            // Second Line: Quantity/Unit Price Info + Budget Button + Delete Button
+            HStack(spacing: DesignSystem.Spacing.small) {
+                // Quantity/Unit Price Info - Tiny letters on the left
+                if !lineItem.quantity.isEmpty || !lineItem.unitPrice.isEmpty {
+                    let isLabour = lineItem.itemType.lowercased() == "labour"
+                    let quantityLabel = isLabour ? "Members" : "Qty"
+                    let quantityValue = lineItem.quantity.isEmpty ? "0" : lineItem.quantity
+                    
+                    // Format unit price from string to currency
+                    let unitPriceFormatted: String = {
+                        if lineItem.unitPrice.isEmpty {
+                            return "₹0.00"
+                        }
+                        let cleaned = lineItem.unitPrice.replacingOccurrences(of: ",", with: "")
+                        if let price = Double(cleaned) {
+                            return price.formattedCurrency
+                        }
+                        return lineItem.unitPrice
+                    }()
+                    
+                    HStack(spacing: 3) {
+                        Text("\(quantityLabel): \(quantityValue)")
+                            .font(.system(size: 9, weight: .regular))
+                            .foregroundColor(.secondary.opacity(0.7))
+                        
+                        if !lineItem.unitPrice.isEmpty {
+                            Text("•")
+                                .font(.system(size: 8))
+                                .foregroundColor(.secondary.opacity(0.5))
+                            
+                            Text("Unit: \(unitPriceFormatted)")
+                                .font(.system(size: 9, weight: .regular))
+                                .foregroundColor(.secondary.opacity(0.7))
+                        }
+                    }
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.8)
+                }
+                
+                Spacer()
+                
+                // Budget Button - Styled as button
+                Button(action: {
+                    HapticManager.selection()
+                    onEdit()
+                }) {
+                    Text(lineItem.total.formattedCurrency)
+                        .font(.system(size: 13, weight: .bold))
+                        .foregroundColor(.white)
+                        .padding(.horizontal, 10)
+                        .padding(.vertical, 6)
+                        .background(Color.green)
+                        .cornerRadius(6)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.75)
+                }
+                .buttonStyle(.plain)
+                
+                // Delete Button - Compact
+                if canDelete {
+                    Button(action: {
+                        HapticManager.selection()
+                        onDelete()
+                    }) {
+                        Image(systemName: "trash.fill")
+                            .foregroundColor(.white)
+                            .font(.system(size: 10, weight: .semibold))
+                            .frame(width: 24, height: 24)
+                            .background(Color.red)
+                            .clipShape(Circle())
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
         }
-        .background(
-            LinearGradient(
-                colors: [
-                    Color(.secondarySystemGroupedBackground),
-                    Color(.tertiarySystemGroupedBackground).opacity(0.5)
-                ],
-                startPoint: .topLeading,
-                endPoint: .bottomTrailing
-            )
-        )
-        .clipShape(RoundedRectangle(cornerRadius: 20))
+        .padding(.horizontal, DesignSystem.Spacing.small)
+        .padding(.vertical, DesignSystem.Spacing.small)
+        .background(Color(.secondarySystemGroupedBackground))
+        .clipShape(RoundedRectangle(cornerRadius: DesignSystem.CornerRadius.small))
         .overlay(
-            RoundedRectangle(cornerRadius: 20)
-                .stroke(
-                    LinearGradient(
-                        colors: [
-                            Color.orange.opacity(0.15),
-                            Color(red: 1.0, green: 0.75, blue: 0.0).opacity(0.08)
-                        ],
-                        startPoint: .topLeading,
-                        endPoint: .bottomTrailing
-                    ),
-                    lineWidth: 1.5
-                )
+            RoundedRectangle(cornerRadius: DesignSystem.CornerRadius.small)
+                .stroke(Color(.separator).opacity(0.3), lineWidth: 0.5)
         )
-        .shadow(color: Color.orange.opacity(0.1), radius: 10, x: 0, y: 4)
-        .shadow(color: Color.orange.opacity(0.05), radius: 20, x: 0, y: 8)
     }
 }
 
@@ -2526,7 +2531,7 @@ private struct DepartmentInputRow: View {
     
     // MARK: - Computed Views (to help compiler type-check)
     private var collapsedView: some View {
-        HStack(spacing: DesignSystem.Spacing.medium) {
+        HStack(spacing: DesignSystem.Spacing.small) {
             departmentNameField
             budgetField
             expandCollapseButton
@@ -2534,30 +2539,31 @@ private struct DepartmentInputRow: View {
     }
     
     private var departmentNameField: some View {
-        VStack(alignment: .leading, spacing: DesignSystem.Spacing.extraSmall) {
+        VStack(alignment: .leading, spacing: 2) {
             Text("Department")
-                .font(DesignSystem.Typography.caption1)
+                .font(.system(size: 10, weight: .medium))
                 .foregroundColor(.secondary)
                 .textCase(.uppercase)
             
             TextField("e.g., Marketing", text: $item.name)
-                .font(DesignSystem.Typography.callout)
+                .font(.system(size: 14))
                 .textFieldStyle(.plain)
-                .padding(DesignSystem.Spacing.small)
+                .padding(.horizontal, DesignSystem.Spacing.small)
+                .padding(.vertical, DesignSystem.Spacing.extraSmall)
                 .background(Color(.tertiarySystemGroupedBackground))
-                .cornerRadius(DesignSystem.CornerRadius.field)
+                .cornerRadius(DesignSystem.CornerRadius.small)
                 .overlay(
-                    RoundedRectangle(cornerRadius: DesignSystem.CornerRadius.field)
+                    RoundedRectangle(cornerRadius: DesignSystem.CornerRadius.small)
                         .stroke(errorMessage != nil ? Color.red : Color.clear, lineWidth: 1)
                 )
         }
     }
     
     private var budgetField: some View {
-        VStack(alignment: .trailing, spacing: DesignSystem.Spacing.extraSmall) {
-            HStack{
+        VStack(alignment: .trailing, spacing: 2) {
+            HStack(spacing: 4) {
                 Text("Budget")
-                    .font(DesignSystem.Typography.caption1)
+                    .font(.system(size: 10, weight: .medium))
                     .foregroundColor(.secondary)
                     .textCase(.uppercase)
                 
@@ -2568,8 +2574,8 @@ private struct DepartmentInputRow: View {
                     }) {
                         Image(systemName: "trash")
                             .foregroundColor(.red)
-                            .font(.system(size: 8))
-                            .frame(width: 16, height: 16)
+                            .font(.system(size: 9))
+                            .frame(width: 14, height: 14)
                             .contentShape(Rectangle())
                     }
                     .buttonStyle(.plain)
@@ -2579,11 +2585,9 @@ private struct DepartmentInputRow: View {
             }
             
             Text(totalDepartmentBudget.formattedCurrency)
-                .font(DesignSystem.Typography.callout)
-                .fontWeight(.bold)
+                .font(.system(size: 14, weight: .bold))
                 .foregroundColor(.green)
-                .padding(DesignSystem.Spacing.small)
-                .frame(width: 100, alignment: .trailing)
+                .frame(minWidth: 80, alignment: .trailing)
         }
     }
     
@@ -2602,7 +2606,7 @@ private struct DepartmentInputRow: View {
     }
     
     private var expandedView: some View {
-        VStack(alignment: .leading, spacing: DesignSystem.Spacing.medium) {
+        VStack(alignment: .leading, spacing: DesignSystem.Spacing.small) {
             Divider()
             contractorModeSection
             lineItemsSection
@@ -2643,12 +2647,11 @@ private struct DepartmentInputRow: View {
             }
         }) {
             Text(mode.displayName)
-                .font(DesignSystem.Typography.subheadline)
-                .fontWeight(contractorMode == mode ? .semibold : .regular)
+                .font(.system(size: 14, weight: contractorMode == mode ? .semibold : .regular))
                 .foregroundColor(contractorMode == mode ? .blue : .primary)
                 .multilineTextAlignment(.center)
-                .padding(.horizontal, DesignSystem.Spacing.medium)
-                .padding(.vertical, DesignSystem.Spacing.medium)
+                .padding(.horizontal, DesignSystem.Spacing.small)
+                .padding(.vertical, DesignSystem.Spacing.small)
                 .frame(maxWidth: .infinity)
                 .background(
                     RoundedRectangle(cornerRadius: DesignSystem.CornerRadius.medium)
@@ -2663,15 +2666,15 @@ private struct DepartmentInputRow: View {
     }
     
     private var lineItemsSection: some View {
-        VStack(alignment: .leading, spacing: DesignSystem.Spacing.medium) {
+        VStack(alignment: .leading, spacing: DesignSystem.Spacing.small) {
             lineItemsHeader
             lineItemsList
             addLineItemButton
             lineItemsTotal
         }
-        .padding(DesignSystem.Spacing.medium)
+        .padding(DesignSystem.Spacing.small)
         .background(Color(.secondarySystemGroupedBackground))
-        .cornerRadius(DesignSystem.CornerRadius.medium)
+        .cornerRadius(DesignSystem.CornerRadius.small)
     }
     
     private var lineItemsHeader: some View {
@@ -2691,7 +2694,7 @@ private struct DepartmentInputRow: View {
     }
     
     private var lineItemsList: some View {
-        VStack(spacing: DesignSystem.Spacing.medium) {
+        VStack(spacing: DesignSystem.Spacing.small) {
             ForEach($lineItems) { $lineItem in
                 LineItemRowView(
                     lineItem: $lineItem,
@@ -2741,16 +2744,15 @@ private struct DepartmentInputRow: View {
             isNewLineItem = true
             showingLineItemSheet = true
         }) {
-            HStack(spacing: DesignSystem.Spacing.small) {
+            HStack(spacing: DesignSystem.Spacing.extraSmall) {
                 Image(systemName: "plus.circle.fill")
-                    .font(.system(size: 16, weight: .medium))
+                    .font(.system(size: 14, weight: .medium))
                 Text("Add row")
-                    .font(DesignSystem.Typography.callout)
-                    .fontWeight(.medium)
+                    .font(.system(size: 13, weight: .medium))
             }
             .foregroundColor(.blue)
             .frame(maxWidth: .infinity)
-            .padding(.vertical, DesignSystem.Spacing.small)
+            .padding(.vertical, DesignSystem.Spacing.extraSmall)
         }
         .buttonStyle(.plain)
     }
@@ -2758,19 +2760,17 @@ private struct DepartmentInputRow: View {
     private var lineItemsTotal: some View {
         VStack(spacing: 0) {
             Divider()
-                .padding(.vertical, DesignSystem.Spacing.small)
+                .padding(.vertical, DesignSystem.Spacing.extraSmall)
             
             HStack {
                 Text("Total")
-                    .font(DesignSystem.Typography.headline)
-                    .fontWeight(.semibold)
+                    .font(.system(size: 15, weight: .semibold))
                     .foregroundColor(.primary)
                 
                 Spacer()
                 
                 Text(totalDepartmentBudget.formattedCurrency)
-                    .font(DesignSystem.Typography.title3)
-                    .fontWeight(.bold)
+                    .font(.system(size: 16, weight: .bold))
                     .foregroundColor(.green)
             }
         }
