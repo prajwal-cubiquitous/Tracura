@@ -193,6 +193,7 @@ struct TemplateDataStore {
             "icon": "building.2.fill",
             "title": "Commercial Office",
             "description": "Template for commercial office space construction and fit-out",
+            "businessType": "Construction",
             "phasesCount": 2,
             "departmentsCount": 6,
             "phases": [
@@ -350,6 +351,7 @@ struct TemplateDataStore {
             "icon": "road.lanes",
             "title": "Road Infrastructure",
             "description": "Template for road construction and infrastructure projects",
+            "businessType": "Construction",
             "phasesCount": 2,
             "departmentsCount": 4,
             "phases": [
@@ -421,6 +423,7 @@ struct TemplateDataStore {
             "icon": "hammer.fill",
             "title": "Renovation",
             "description": "Template for building renovation and remodeling projects",
+            "businessType": "Construction",
             "phasesCount": 2,
             "departmentsCount": 4,
             "phases": [
