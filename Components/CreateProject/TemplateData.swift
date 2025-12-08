@@ -28,19 +28,43 @@ struct TemplateDisplayItem: Identifiable {
 // MARK: - Template Data Store
 struct TemplateDataStore {
     
+    // MARK: - Business Type Mapping
+    // Maps business types to their associated template IDs
+    // To add a template to a business type, simply add its ID to the array
+    static let businessTypeMapping: [String: [String]] = [
+        "Construction": [
+            "residential_building",
+            "commercial_office",
+            "road_infrastructure",
+            "renovation"
+        ],
+        "Interior Design": [
+            "interior_design_residential",
+            "interior_design_commercial_office",
+            "interior_design_restaurant",
+            "interior_design_luxury_villa"
+        ],
+        "Media": [
+            "media_production_ad_film",
+            "media_corporate_video",
+            "media_event_coverage",
+            "media_social_content_package"
+        ]
+    ]
+    
     // MARK: - Template Data Dictionary
     // Edit this dictionary to add, modify, or remove templates
     // Structure: Template -> Phases -> Departments -> Line Items
     // Each line item contains: itemType, item, spec, quantity, uom, unitPrice
     // Each department contains: name, contractorMode ("Turnkey" or "Labour-Only"), lineItems
     // Each phase contains: phaseName, startDateDays (days from today), endDateDays (days from today), departments
+    // Note: businessType is no longer stored in individual templates - use businessTypeMapping instead
     static let templateData: [String: [String: Any]] = [
         "residential_building": [
             "id": "residential_building",
             "icon": "house.fill",
             "title": "Residential Building",
             "description": "Standard template for residential building construction projects",
-            "businessType": "Construction",
             "phasesCount": 2,
             "departmentsCount": 5,
             "phases": [
@@ -193,7 +217,6 @@ struct TemplateDataStore {
             "icon": "building.2.fill",
             "title": "Commercial Office",
             "description": "Template for commercial office space construction and fit-out",
-            "businessType": "Construction",
             "phasesCount": 2,
             "departmentsCount": 6,
             "phases": [
@@ -351,7 +374,6 @@ struct TemplateDataStore {
             "icon": "road.lanes",
             "title": "Road Infrastructure",
             "description": "Template for road construction and infrastructure projects",
-            "businessType": "Construction",
             "phasesCount": 2,
             "departmentsCount": 4,
             "phases": [
@@ -423,7 +445,6 @@ struct TemplateDataStore {
             "icon": "hammer.fill",
             "title": "Renovation",
             "description": "Template for building renovation and remodeling projects",
-            "businessType": "Construction",
             "phasesCount": 2,
             "departmentsCount": 4,
             "phases": [
@@ -498,7 +519,6 @@ struct TemplateDataStore {
                 "icon": "paintbrush.fill",
                 "title": "Residential Interior Design",
                 "description": "Comprehensive interior design template for 3BHK residential apartment including woodwork, false ceiling, and finishing.",
-                "businessType": "Interior Design",
                 "phasesCount": 3,
                 "departmentsCount": 5,
                 "phases": [
@@ -590,7 +610,6 @@ struct TemplateDataStore {
                 "icon": "film.fill",
                 "title": "Ad Film Production",
                 "description": "Template for TV Commercial/Digital Ad Film production including pre-production, shoot, and post-production.",
-                "businessType": "Media",
                 "phasesCount": 3,
                 "departmentsCount": 6,
                 "phases": [
@@ -674,8 +693,542 @@ struct TemplateDataStore {
                         ]
                     ]
                 ]
+            ],
+        
+        // MARK: - Additional Interior Design Templates
+        "interior_design_commercial_office": [
+            "id": "interior_design_commercial_office",
+            "icon": "building.2.fill",
+            "title": "Commercial Office Interior",
+            "description": "Complete interior design solution for modern commercial office spaces including workstations, meeting rooms, and common areas.",
+            "phasesCount": 3,
+            "departmentsCount": 6,
+            "phases": [
+                [
+                    "phaseName": "Design & Planning",
+                    "startDateDays": 0,
+                    "endDateDays": 20,
+                    "departments": [
+                        [
+                            "name": "Design Studio",
+                            "contractorMode": "Turnkey",
+                            "lineItems": [
+                                ["itemType": "Service", "item": "Space Planning", "spec": "3D Layout & Floor Plans", "quantity": "1", "uom": "Unit", "unitPrice": "75000"],
+                                ["itemType": "Service", "item": "3D Visualization", "spec": "Rendering & Walkthrough", "quantity": "1", "uom": "Set", "unitPrice": "45000"],
+                                ["itemType": "Service", "item": "MEP Drawings", "spec": "Electrical & HVAC Layouts", "quantity": "1", "uom": "Set", "unitPrice": "30000"]
+                            ]
+                        ],
+                        [
+                            "name": "Procurement",
+                            "contractorMode": "Turnkey",
+                            "lineItems": [
+                                ["itemType": "Service", "item": "Vendor Sourcing", "spec": "Furniture & Material Suppliers", "quantity": "1", "uom": "Project", "unitPrice": "20000"]
+                            ]
+                        ]
+                    ]
+                ],
+                [
+                    "phaseName": "Execution - Furniture & Fit-outs",
+                    "startDateDays": 21,
+                    "endDateDays": 75,
+                    "departments": [
+                        [
+                            "name": "Workstation Setup",
+                            "contractorMode": "Turnkey",
+                            "lineItems": [
+                                ["itemType": "Furniture", "item": "Workstation Desks", "spec": "Modular 120x60cm", "quantity": "50", "uom": "Nos", "unitPrice": "12000"],
+                                ["itemType": "Furniture", "item": "Ergonomic Chairs", "spec": "Mesh Back Executive", "quantity": "50", "uom": "Nos", "unitPrice": "8500"],
+                                ["itemType": "Furniture", "item": "Storage Units", "spec": "Filing Cabinets & Lockers", "quantity": "25", "uom": "Nos", "unitPrice": "15000"],
+                                ["itemType": "Carpentry", "item": "Partition Panels", "spec": "Glass & Wooden", "quantity": "200", "uom": "Sqft", "unitPrice": "450"]
+                            ]
+                        ],
+                        [
+                            "name": "Meeting & Conference Rooms",
+                            "contractorMode": "Turnkey",
+                            "lineItems": [
+                                ["itemType": "Furniture", "item": "Conference Table", "spec": "12 Seater Boardroom", "quantity": "2", "uom": "Nos", "unitPrice": "85000"],
+                                ["itemType": "Furniture", "item": "Conference Chairs", "spec": "Leather Executive", "quantity": "24", "uom": "Nos", "unitPrice": "12000"],
+                                ["itemType": "Electrical", "item": "AV Equipment", "spec": "Projector & Screen Setup", "quantity": "2", "uom": "Set", "unitPrice": "150000"],
+                                ["itemType": "False Ceiling", "item": "Acoustic Panels", "spec": "Sound Absorption", "quantity": "800", "uom": "Sqft", "unitPrice": "180"]
+                            ]
+                        ],
+                        [
+                            "name": "Reception & Common Areas",
+                            "contractorMode": "Turnkey",
+                            "lineItems": [
+                                ["itemType": "Furniture", "item": "Reception Desk", "spec": "Custom Built-in", "quantity": "1", "uom": "Unit", "unitPrice": "120000"],
+                                ["itemType": "Furniture", "item": "Lounge Seating", "spec": "Sofa Sets & Coffee Tables", "quantity": "3", "uom": "Set", "unitPrice": "45000"],
+                                ["itemType": "Paint", "item": "Wall Paint", "spec": "Premium Emulsion", "quantity": "50", "uom": "Litre", "unitPrice": "750"]
+                            ]
+                        ]
+                    ]
+                ],
+                [
+                    "phaseName": "Finishing & Handover",
+                    "startDateDays": 76,
+                    "endDateDays": 90,
+                    "departments": [
+                        [
+                            "name": "Lighting & Electrical",
+                            "contractorMode": "Turnkey",
+                            "lineItems": [
+                                ["itemType": "Electrical", "item": "LED Panel Lights", "spec": "60x60cm Recessed", "quantity": "80", "uom": "Nos", "unitPrice": "2800"],
+                                ["itemType": "Electrical", "item": "Track Lights", "spec": "Spotlights 12W", "quantity": "40", "uom": "Nos", "unitPrice": "1200"],
+                                ["itemType": "Electrical", "item": "Smart Switches", "spec": "WiFi Enabled", "quantity": "60", "uom": "Nos", "unitPrice": "850"]
+                            ]
+                        ],
+                        [
+                            "name": "Final Touches",
+                            "contractorMode": "Turnkey",
+                            "lineItems": [
+                                ["itemType": "Service", "item": "Artwork & Décor", "spec": "Wall Art & Plants", "quantity": "1", "uom": "Lumpsum", "unitPrice": "75000"],
+                                ["itemType": "Service", "item": "Deep Cleaning", "spec": "Post-Installation", "quantity": "1", "uom": "Unit", "unitPrice": "15000"]
+                            ]
+                        ]
+                    ]
+                ]
             ]
+        ],
+        
+        "interior_design_restaurant": [
+            "id": "interior_design_restaurant",
+            "icon": "fork.knife",
+            "title": "Restaurant & Cafe Interior",
+            "description": "Complete interior design for restaurant/cafe including dining area, kitchen layout, and ambiance creation.",
+            "phasesCount": 3,
+            "departmentsCount": 5,
+            "phases": [
+                [
+                    "phaseName": "Design & Kitchen Planning",
+                    "startDateDays": 0,
+                    "endDateDays": 25,
+                    "departments": [
+                        [
+                            "name": "Design & Layout",
+                            "contractorMode": "Turnkey",
+                            "lineItems": [
+                                ["itemType": "Service", "item": "Kitchen Layout Design", "spec": "Commercial Kitchen Planning", "quantity": "1", "uom": "Unit", "unitPrice": "60000"],
+                                ["itemType": "Service", "item": "Dining Area Design", "spec": "3D Renderings", "quantity": "1", "uom": "Set", "unitPrice": "40000"],
+                                ["itemType": "Service", "item": "MEP Drawings", "spec": "HVAC, Plumbing & Electrical", "quantity": "1", "uom": "Set", "unitPrice": "35000"]
+                            ]
+                        ]
+                    ]
+                ],
+                [
+                    "phaseName": "Kitchen & Backend Setup",
+                    "startDateDays": 26,
+                    "endDateDays": 70,
+                    "departments": [
+                        [
+                            "name": "Kitchen Equipment",
+                            "contractorMode": "Turnkey",
+                            "lineItems": [
+                                ["itemType": "Equipment", "item": "Commercial Range", "spec": "6 Burner Gas Range", "quantity": "2", "uom": "Nos", "unitPrice": "180000"],
+                                ["itemType": "Equipment", "item": "Exhaust System", "spec": "Ducting & Hood", "quantity": "1", "uom": "Set", "unitPrice": "250000"],
+                                ["itemType": "Equipment", "item": "Refrigeration", "spec": "Walk-in Cooler & Freezer", "quantity": "1", "uom": "Unit", "unitPrice": "350000"],
+                                ["itemType": "Equipment", "item": "Dishwasher", "spec": "Commercial Grade", "quantity": "1", "uom": "Nos", "unitPrice": "120000"],
+                                ["itemType": "Plumbing", "item": "Water Lines", "spec": "Hot & Cold Supply", "quantity": "1", "uom": "Set", "unitPrice": "45000"]
+                            ]
+                        ],
+                        [
+                            "name": "Kitchen Finishing",
+                            "contractorMode": "Turnkey",
+                            "lineItems": [
+                                ["itemType": "Tiles & Granite", "item": "Wall Tiles", "spec": "Ceramic Anti-skid", "quantity": "800", "uom": "Sqft", "unitPrice": "85"],
+                                ["itemType": "Tiles & Granite", "item": "Floor Tiles", "spec": "Non-slip Commercial", "quantity": "600", "uom": "Sqft", "unitPrice": "120"],
+                                ["itemType": "False Ceiling", "item": "Gypsum Board", "spec": "Moisture Resistant", "quantity": "600", "uom": "Sqft", "unitPrice": "95"]
+                            ]
+                        ]
+                    ]
+                ],
+                [
+                    "phaseName": "Dining Area & Ambiance",
+                    "startDateDays": 71,
+                    "endDateDays": 100,
+                    "departments": [
+                        [
+                            "name": "Furniture & Seating",
+                            "contractorMode": "Turnkey",
+                            "lineItems": [
+                                ["itemType": "Furniture", "item": "Dining Tables", "spec": "2/4/6 Seater Sets", "quantity": "25", "uom": "Nos", "unitPrice": "18000"],
+                                ["itemType": "Furniture", "item": "Dining Chairs", "spec": "Upholstered", "quantity": "100", "uom": "Nos", "unitPrice": "4500"],
+                                ["itemType": "Furniture", "item": "Bar Counter", "spec": "Custom Built-in", "quantity": "1", "uom": "Unit", "unitPrice": "150000"],
+                                ["itemType": "Carpentry", "item": "Display Shelves", "spec": "Wall Mounted", "quantity": "50", "uom": "Sqft", "unitPrice": "1200"]
+                            ]
+                        ],
+                        [
+                            "name": "Lighting & Ambiance",
+                            "contractorMode": "Turnkey",
+                            "lineItems": [
+                                ["itemType": "Electrical", "item": "Pendant Lights", "spec": "Decorative Hanging", "quantity": "20", "uom": "Nos", "unitPrice": "3500"],
+                                ["itemType": "Electrical", "item": "Wall Sconces", "spec": "Ambient Lighting", "quantity": "15", "uom": "Nos", "unitPrice": "2800"],
+                                ["itemType": "Electrical", "item": "LED Strips", "spec": "RGB Accent Lighting", "quantity": "100", "uom": "m", "unitPrice": "450"]
+                            ]
+                        ],
+                        [
+                            "name": "Final Décor",
+                            "contractorMode": "Turnkey",
+                            "lineItems": [
+                                ["itemType": "Service", "item": "Wall Art & Murals", "spec": "Custom Artwork", "quantity": "1", "uom": "Lumpsum", "unitPrice": "85000"],
+                                ["itemType": "Service", "item": "Plants & Greenery", "spec": "Indoor Plants", "quantity": "1", "uom": "Lumpsum", "unitPrice": "35000"],
+                                ["itemType": "Paint", "item": "Feature Wall Paint", "spec": "Textured Finish", "quantity": "20", "uom": "Litre", "unitPrice": "1200"]
+                            ]
+                        ]
+                    ]
+                ]
+            ]
+        ],
+        
+        "interior_design_luxury_villa": [
+            "id": "interior_design_luxury_villa",
+            "icon": "house.lodge.fill",
+            "title": "Luxury Villa Interior",
+            "description": "Premium interior design for luxury villas including high-end finishes, custom furniture, and smart home integration.",
+            "phasesCount": 4,
+            "departmentsCount": 7,
+            "phases": [
+                [
+                    "phaseName": "Design & Conceptualization",
+                    "startDateDays": 0,
+                    "endDateDays": 30,
+                    "departments": [
+                        [
+                            "name": "Design Studio",
+                            "contractorMode": "Turnkey",
+                            "lineItems": [
+                                ["itemType": "Service", "item": "Luxury Design Consultation", "spec": "Premium Design Package", "quantity": "1", "uom": "Unit", "unitPrice": "150000"],
+                                ["itemType": "Service", "item": "3D Visualization", "spec": "Photorealistic Renderings", "quantity": "1", "uom": "Set", "unitPrice": "80000"],
+                                ["itemType": "Service", "item": "Material Selection", "spec": "Premium Finishes & Fabrics", "quantity": "1", "uom": "Unit", "unitPrice": "50000"]
+                            ]
+                        ]
+                    ]
+                ],
+                [
+                    "phaseName": "Custom Woodwork & Carpentry",
+                    "startDateDays": 31,
+                    "endDateDays": 120,
+                    "departments": [
+                        [
+                            "name": "Premium Carpentry",
+                            "contractorMode": "Turnkey",
+                            "lineItems": [
+                                ["itemType": "Carpentry", "item": "Teak Wood", "spec": "Premium Grade A", "quantity": "200", "uom": "Sqft", "unitPrice": "850"],
+                                ["itemType": "Carpentry", "item": "Veneer", "spec": "Italian Oak Veneer", "quantity": "300", "uom": "Sheet", "unitPrice": "4500"],
+                                ["itemType": "Carpentry", "item": "Hardware", "spec": "Blum/Hafele Premium", "quantity": "1", "uom": "Set", "unitPrice": "180000"],
+                                ["itemType": "Carpentry", "item": "Custom Wardrobes", "spec": "Walk-in Closet", "quantity": "4", "uom": "Unit", "unitPrice": "250000"],
+                                ["itemType": "Carpentry", "item": "Kitchen Cabinets", "spec": "Modular Premium", "quantity": "80", "uom": "Sqft", "unitPrice": "3200"],
+                                ["itemType": "Labour", "item": "Men & Women", "spec": "Master Carpenter", "quantity": "60", "uom": "Per Day", "unitPrice": "2000"]
+                            ]
+                        ],
+                        [
+                            "name": "False Ceiling & Molding",
+                            "contractorMode": "Turnkey",
+                            "lineItems": [
+                                ["itemType": "False Ceiling", "item": "Gypsum Board", "spec": "Premium Fire Resistant", "quantity": "2500", "uom": "Sqft", "unitPrice": "95"],
+                                ["itemType": "Carpentry", "item": "Crown Molding", "spec": "Polyurethane Premium", "quantity": "500", "uom": "Rft", "unitPrice": "180"],
+                                ["itemType": "Carpentry", "item": "Wainscoting", "spec": "Wall Paneling", "quantity": "800", "uom": "Sqft", "unitPrice": "450"]
+                            ]
+                        ]
+                    ]
+                ],
+                [
+                    "phaseName": "Premium Finishes & Fixtures",
+                    "startDateDays": 121,
+                    "endDateDays": 180,
+                    "departments": [
+                        [
+                            "name": "Flooring & Tiles",
+                            "contractorMode": "Turnkey",
+                            "lineItems": [
+                                ["itemType": "Tiles & Granite", "item": "Italian Marble", "spec": "Premium Imported", "quantity": "2000", "uom": "Sqft", "unitPrice": "450"],
+                                ["itemType": "Tiles & Granite", "item": "Porcelain Tiles", "spec": "Large Format 120x60", "quantity": "1500", "uom": "Sqft", "unitPrice": "180"],
+                                ["itemType": "Tiles & Granite", "item": "Mosaic Tiles", "spec": "Custom Design", "quantity": "200", "uom": "Sqft", "unitPrice": "850"]
+                            ]
+                        ],
+                        [
+                            "name": "Premium Paint & Polish",
+                            "contractorMode": "Turnkey",
+                            "lineItems": [
+                                ["itemType": "Paint", "item": "Premium Emulsion", "spec": "Dulux/Asian Paints Premium", "quantity": "120", "uom": "Litre", "unitPrice": "1200"],
+                                ["itemType": "Paint", "item": "PU Polish", "spec": "High Gloss Finish", "quantity": "40", "uom": "Litre", "unitPrice": "1800"],
+                                ["itemType": "Paint", "item": "Textured Paint", "spec": "Feature Walls", "quantity": "30", "uom": "Litre", "unitPrice": "2500"]
+                            ]
+                        ],
+                        [
+                            "name": "Luxury Fixtures",
+                            "contractorMode": "Turnkey",
+                            "lineItems": [
+                                ["itemType": "Plumbing", "item": "Premium Faucets", "spec": "Kohler/Grohe", "quantity": "12", "uom": "Nos", "unitPrice": "25000"],
+                                ["itemType": "Plumbing", "item": "Premium Sanitaryware", "spec": "Kohler/TOTO", "quantity": "8", "uom": "Set", "unitPrice": "85000"],
+                                ["itemType": "Electrical", "item": "Premium Switches", "spec": "Legrand/Schneider", "quantity": "80", "uom": "Nos", "unitPrice": "1200"]
+                            ]
+                        ]
+                    ]
+                ],
+                [
+                    "phaseName": "Furniture & Smart Home",
+                    "startDateDays": 181,
+                    "endDateDays": 210,
+                    "departments": [
+                        [
+                            "name": "Premium Furniture",
+                            "contractorMode": "Turnkey",
+                            "lineItems": [
+                                ["itemType": "Furniture", "item": "Sofa Set", "spec": "Italian Leather 3+2+1", "quantity": "2", "uom": "Set", "unitPrice": "450000"],
+                                ["itemType": "Furniture", "item": "Dining Set", "spec": "Teak 8 Seater", "quantity": "1", "uom": "Set", "unitPrice": "280000"],
+                                ["itemType": "Furniture", "item": "Master Bed", "spec": "King Size Premium", "quantity": "2", "uom": "Nos", "unitPrice": "180000"],
+                                ["itemType": "Furniture", "item": "Curtains & Blinds", "spec": "Motorized Premium Fabric", "quantity": "1", "uom": "Set", "unitPrice": "250000"]
+                            ]
+                        ],
+                        [
+                            "name": "Smart Home Integration",
+                            "contractorMode": "Turnkey",
+                            "lineItems": [
+                                ["itemType": "Electrical", "item": "Smart Switches", "spec": "WiFi Enabled", "quantity": "60", "uom": "Nos", "unitPrice": "3500"],
+                                ["itemType": "Electrical", "item": "Smart Lighting", "spec": "Philips Hue System", "quantity": "40", "uom": "Nos", "unitPrice": "4500"],
+                                ["itemType": "Service", "item": "Home Automation", "spec": "Smart Home Hub Setup", "quantity": "1", "uom": "Unit", "unitPrice": "150000"]
+                            ]
+                        ],
+                        [
+                            "name": "Final Décor & Art",
+                            "contractorMode": "Turnkey",
+                            "lineItems": [
+                                ["itemType": "Service", "item": "Artwork", "spec": "Premium Paintings & Sculptures", "quantity": "1", "uom": "Lumpsum", "unitPrice": "300000"],
+                                ["itemType": "Service", "item": "Landscaping", "spec": "Indoor Plants & Décor", "quantity": "1", "uom": "Lumpsum", "unitPrice": "120000"]
+                            ]
+                        ]
+                    ]
+                ]
+            ]
+        ],
+        
+        // MARK: - Additional Media Templates
+        "media_corporate_video": [
+            "id": "media_corporate_video",
+            "icon": "video.badge.waveform",
+            "title": "Corporate Video Production",
+            "description": "Professional corporate video production including company profile, product showcase, and testimonial videos.",
+            "phasesCount": 3,
+            "departmentsCount": 5,
+            "phases": [
+                [
+                    "phaseName": "Pre-Production",
+                    "startDateDays": 0,
+                    "endDateDays": 10,
+                    "departments": [
+                        [
+                            "name": "Creative & Scripting",
+                            "contractorMode": "Turnkey",
+                            "lineItems": [
+                                ["itemType": "Service", "item": "Script Writing", "spec": "Corporate Script", "quantity": "1", "uom": "Unit", "unitPrice": "35000"],
+                                ["itemType": "Service", "item": "Storyboard", "spec": "Shot Breakdown", "quantity": "1", "uom": "Set", "unitPrice": "20000"],
+                                ["itemType": "Service", "item": "Location Scouting", "spec": "Office & Outdoor", "quantity": "2", "uom": "Day", "unitPrice": "8000"]
+                            ]
+                        ]
+                    ]
+                ],
+                [
+                    "phaseName": "Production",
+                    "startDateDays": 11,
+                    "endDateDays": 15,
+                    "departments": [
+                        [
+                            "name": "Camera & Equipment",
+                            "contractorMode": "Turnkey",
+                            "lineItems": [
+                                ["itemType": "Equipment", "item": "Camera Package", "spec": "Sony FX6 / Canon C300", "quantity": "1", "uom": "Day", "unitPrice": "35000"],
+                                ["itemType": "Equipment", "item": "Lens Kit", "spec": "Cinema Lenses", "quantity": "1", "uom": "Day", "unitPrice": "12000"],
+                                ["itemType": "Equipment", "item": "Lighting Kit", "spec": "LED Panels & Softboxes", "quantity": "1", "uom": "Day", "unitPrice": "15000"],
+                                ["itemType": "Equipment", "item": "Audio Equipment", "spec": "Wireless Lav & Boom", "quantity": "1", "uom": "Day", "unitPrice": "10000"]
+                            ]
+                        ],
+                        [
+                            "name": "Crew",
+                            "contractorMode": "Labour-Only",
+                            "lineItems": [
+                                ["itemType": "Labour", "item": "Men & Women", "spec": "Videographer", "quantity": "2", "uom": "Day", "unitPrice": "15000"],
+                                ["itemType": "Labour", "item": "Men & Women", "spec": "Sound Recordist", "quantity": "1", "uom": "Day", "unitPrice": "12000"],
+                                ["itemType": "Labour", "item": "Men & Women", "spec": "Production Assistant", "quantity": "1", "uom": "Day", "unitPrice": "5000"]
+                            ]
+                        ]
+                    ]
+                ],
+                [
+                    "phaseName": "Post-Production",
+                    "startDateDays": 16,
+                    "endDateDays": 30,
+                    "departments": [
+                        [
+                            "name": "Editing",
+                            "contractorMode": "Turnkey",
+                            "lineItems": [
+                                ["itemType": "Service", "item": "Video Editing", "spec": "Premiere Pro / Final Cut", "quantity": "5", "uom": "Day", "unitPrice": "12000"],
+                                ["itemType": "Service", "item": "Color Correction", "spec": "DaVinci Resolve", "quantity": "3", "uom": "Day", "unitPrice": "8000"],
+                                ["itemType": "Service", "item": "Motion Graphics", "spec": "After Effects", "quantity": "2", "uom": "Day", "unitPrice": "15000"]
+                            ]
+                        ],
+                        [
+                            "name": "Audio & Finalization",
+                            "contractorMode": "Turnkey",
+                            "lineItems": [
+                                ["itemType": "Service", "item": "Voice Over", "spec": "Professional Narrator", "quantity": "1", "uom": "Session", "unitPrice": "15000"],
+                                ["itemType": "Service", "item": "Background Music", "spec": "Royalty-Free License", "quantity": "1", "uom": "Track", "unitPrice": "8000"],
+                                ["itemType": "Service", "item": "Audio Mixing", "spec": "Final Mix & Master", "quantity": "1", "uom": "Project", "unitPrice": "10000"]
+                            ]
+                        ]
+                    ]
+                ]
+            ]
+        ],
+        
+        "media_event_coverage": [
+            "id": "media_event_coverage",
+            "icon": "camera.fill",
+            "title": "Event Photography & Videography",
+            "description": "Complete event coverage package including photography, videography, and live streaming for corporate events, weddings, and conferences.",
+            "phasesCount": 3,
+            "departmentsCount": 4,
+            "phases": [
+                [
+                    "phaseName": "Pre-Event Planning",
+                    "startDateDays": 0,
+                    "endDateDays": 5,
+                    "departments": [
+                        [
+                            "name": "Planning & Coordination",
+                            "contractorMode": "Turnkey",
+                            "lineItems": [
+                                ["itemType": "Service", "item": "Event Recce", "spec": "Venue Visit & Planning", "quantity": "1", "uom": "Day", "unitPrice": "10000"],
+                                ["itemType": "Service", "item": "Shot List", "spec": "Photography & Video Plan", "quantity": "1", "uom": "Unit", "unitPrice": "8000"]
+                            ]
+                        ]
+                    ]
+                ],
+                [
+                    "phaseName": "Event Coverage",
+                    "startDateDays": 6,
+                    "endDateDays": 7,
+                    "departments": [
+                        [
+                            "name": "Photography Team",
+                            "contractorMode": "Labour-Only",
+                            "lineItems": [
+                                ["itemType": "Labour", "item": "Men & Women", "spec": "Lead Photographer", "quantity": "2", "uom": "Event", "unitPrice": "25000"],
+                                ["itemType": "Labour", "item": "Men & Women", "spec": "Assistant Photographer", "quantity": "2", "uom": "Event", "unitPrice": "12000"],
+                                ["itemType": "Equipment", "item": "Camera Bodies", "spec": "Canon 5D / Sony A7", "quantity": "4", "uom": "Event", "unitPrice": "8000"],
+                                ["itemType": "Equipment", "item": "Lenses", "spec": "24-70mm, 70-200mm", "quantity": "6", "uom": "Event", "unitPrice": "5000"]
+                            ]
+                        ],
+                        [
+                            "name": "Videography Team",
+                            "contractorMode": "Labour-Only",
+                            "lineItems": [
+                                ["itemType": "Labour", "item": "Men & Women", "spec": "Videographer", "quantity": "2", "uom": "Event", "unitPrice": "20000"],
+                                ["itemType": "Equipment", "item": "Video Cameras", "spec": "Sony FX3 / Canon C70", "quantity": "2", "uom": "Event", "unitPrice": "12000"],
+                                ["itemType": "Equipment", "item": "Gimbal Stabilizer", "spec": "DJI Ronin", "quantity": "2", "uom": "Event", "unitPrice": "6000"],
+                                ["itemType": "Equipment", "item": "Drone", "spec": "Aerial Coverage", "quantity": "1", "uom": "Event", "unitPrice": "15000"]
+                            ]
+                        ],
+                        [
+                            "name": "Live Streaming",
+                            "contractorMode": "Turnkey",
+                            "lineItems": [
+                                ["itemType": "Equipment", "item": "Streaming Setup", "spec": "Encoder & Internet", "quantity": "1", "uom": "Event", "unitPrice": "25000"],
+                                ["itemType": "Labour", "item": "Men & Women", "spec": "Streaming Operator", "quantity": "1", "uom": "Event", "unitPrice": "15000"]
+                            ]
+                        ]
+                    ]
+                ],
+                [
+                    "phaseName": "Post-Event Delivery",
+                    "startDateDays": 8,
+                    "endDateDays": 20,
+                    "departments": [
+                        [
+                            "name": "Photo & Video Editing",
+                            "contractorMode": "Turnkey",
+                            "lineItems": [
+                                ["itemType": "Service", "item": "Photo Editing", "spec": "Color Correction & Retouching", "quantity": "500", "uom": "Photo", "unitPrice": "50"],
+                                ["itemType": "Service", "item": "Video Editing", "spec": "Highlight Reel", "quantity": "1", "uom": "Video", "unitPrice": "40000"],
+                                ["itemType": "Service", "item": "Video Editing", "spec": "Full Event Coverage", "quantity": "1", "uom": "Video", "unitPrice": "60000"],
+                                ["itemType": "Service", "item": "Drone Footage Edit", "spec": "Aerial Sequences", "quantity": "1", "uom": "Video", "unitPrice": "20000"]
+                            ]
+                        ]
+                    ]
+                ]
+            ]
+        ],
+        
+        "media_social_content_package": [
+            "id": "media_social_content_package",
+            "icon": "square.and.arrow.up.fill",
+            "title": "Social Media Content Package",
+            "description": "Complete social media content creation package including photos, videos, reels, and stories for Instagram, Facebook, and YouTube.",
+            "phasesCount": 2,
+            "departmentsCount": 4,
+            "phases": [
+                [
+                    "phaseName": "Content Creation",
+                    "startDateDays": 0,
+                    "endDateDays": 10,
+                    "departments": [
+                        [
+                            "name": "Photography",
+                            "contractorMode": "Turnkey",
+                            "lineItems": [
+                                ["itemType": "Labour", "item": "Men & Women", "spec": "Photographer", "quantity": "1", "uom": "Day", "unitPrice": "15000"],
+                                ["itemType": "Equipment", "item": "Camera Setup", "spec": "Mirrorless Camera", "quantity": "1", "uom": "Day", "unitPrice": "8000"],
+                                ["itemType": "Service", "item": "Photo Editing", "spec": "Lightroom & Photoshop", "quantity": "50", "uom": "Photo", "unitPrice": "100"]
+                            ]
+                        ],
+                        [
+                            "name": "Video Content",
+                            "contractorMode": "Turnkey",
+                            "lineItems": [
+                                ["itemType": "Labour", "item": "Men & Women", "spec": "Content Creator", "quantity": "1", "uom": "Day", "unitPrice": "12000"],
+                                ["itemType": "Equipment", "item": "Video Camera", "spec": "Sony A7S / iPhone Pro", "quantity": "1", "uom": "Day", "unitPrice": "5000"],
+                                ["itemType": "Equipment", "item": "Gimbal", "spec": "Mobile Gimbal", "quantity": "1", "uom": "Day", "unitPrice": "3000"],
+                                ["itemType": "Service", "item": "Video Editing", "spec": "Reels & Shorts", "quantity": "20", "uom": "Video", "unitPrice": "2000"]
+                            ]
+                        ],
+                        [
+                            "name": "Graphics & Design",
+                            "contractorMode": "Turnkey",
+                            "lineItems": [
+                                ["itemType": "Service", "item": "Graphic Design", "spec": "Posters & Stories", "quantity": "30", "uom": "Design", "unitPrice": "1500"],
+                                ["itemType": "Service", "item": "Motion Graphics", "spec": "Animated Posts", "quantity": "10", "uom": "Design", "unitPrice": "3500"]
+                            ]
+                        ]
+                    ]
+                ],
+                [
+                    "phaseName": "Content Strategy & Delivery",
+                    "startDateDays": 11,
+                    "endDateDays": 15,
+                    "departments": [
+                        [
+                            "name": "Content Planning",
+                            "contractorMode": "Turnkey",
+                            "lineItems": [
+                                ["itemType": "Service", "item": "Content Calendar", "spec": "Monthly Plan", "quantity": "1", "uom": "Unit", "unitPrice": "15000"],
+                                ["itemType": "Service", "item": "Hashtag Research", "spec": "SEO Optimization", "quantity": "1", "uom": "Unit", "unitPrice": "5000"]
+                            ]
+                        ]
+                    ]
+                ]
+            ]
+        ]
     ]
+    
+    // MARK: - Helper: Get Business Type for Template ID
+    static func getBusinessType(for templateId: String) -> String? {
+        for (businessType, templateIds) in businessTypeMapping {
+            if templateIds.contains(templateId) {
+                return businessType
+            }
+        }
+        return nil
+    }
     
     // MARK: - Get All Templates
     static func getAllTemplates() -> [TemplateDisplayItem] {
@@ -689,7 +1242,8 @@ struct TemplateDataStore {
                 return nil
             }
             
-            let businessType = value["businessType"] as? String
+            // Derive businessType from mapping instead of template data
+            let businessType = getBusinessType(for: id)
             
             return TemplateDisplayItem(
                 id: id,
@@ -706,17 +1260,40 @@ struct TemplateDataStore {
     
     // MARK: - Get Templates by Business Type
     static func getTemplatesByBusinessType(_ businessType: String?) -> [TemplateDisplayItem] {
-        let allTemplates = getAllTemplates()
-        
         // If businessType is nil or empty, return all templates
         guard let businessType = businessType, !businessType.isEmpty else {
-            return allTemplates
+            return getAllTemplates()
         }
         
-        // Filter templates that match the businessType
-        return allTemplates.filter { template in
-            template.businessType?.lowercased() == businessType.lowercased()
+        // Get template IDs for the business type from mapping
+        guard let templateIds = businessTypeMapping[businessType] else {
+            // If business type not found in mapping, return empty array
+            return []
         }
+        
+        // Filter templates by IDs from the mapping
+        return templateIds.compactMap { templateId in
+            guard let templateDict = templateData[templateId],
+                  let id = templateDict["id"] as? String,
+                  let icon = templateDict["icon"] as? String,
+                  let title = templateDict["title"] as? String,
+                  let description = templateDict["description"] as? String,
+                  let phasesCount = templateDict["phasesCount"] as? Int,
+                  let departmentsCount = templateDict["departmentsCount"] as? Int else {
+                return nil
+            }
+            
+            return TemplateDisplayItem(
+                id: id,
+                icon: icon,
+                title: title,
+                description: description,
+                businessType: businessType,
+                phasesCount: phasesCount,
+                departmentsCount: departmentsCount
+            )
+        }
+        .sorted { $0.title < $1.title }
     }
     
     // MARK: - Get Default UOM based on ItemType and Item
