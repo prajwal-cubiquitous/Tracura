@@ -1137,7 +1137,7 @@ class CreateProjectViewModel: ObservableObject {
                             print("      📏 Auto-populated UOM '\(lineItem.uom)' for \(templateLineItem.itemType) -> \(templateLineItem.item)")
                         }
                     } else {
-                        lineItem.uom = templateLineItem.uom
+                    lineItem.uom = templateLineItem.uom
                     }
                     
                     lineItem.unitPrice = templateLineItem.unitPrice

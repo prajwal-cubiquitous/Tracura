@@ -27,54 +27,54 @@ struct LineItemRowView: View {
             // First Line: Edit Icon + Item Details
             HStack(spacing: DesignSystem.Spacing.small) {
                 // Edit Icon - Compact
-                Button(action: {
-                    HapticManager.selection()
-                    onEdit()
-                }) {
+            Button(action: {
+                HapticManager.selection()
+                onEdit()
+            }) {
                     Image(systemName: "pencil.circle.fill")
                         .font(.system(size: 16, weight: .medium))
                         .foregroundColor(.orange)
                         .symbolRenderingMode(.hierarchical)
                 }
                 .buttonStyle(.plain)
-                
+                    
                 // Item Details - Full width with truncation (ensures at least 10 chars visible per field)
                 HStack(spacing: 4) {
-                    if !lineItem.itemType.isEmpty {
-                        Text(lineItem.itemType)
+                        if !lineItem.itemType.isEmpty {
+                            Text(lineItem.itemType)
                             .font(.system(size: 14, weight: .semibold))
-                            .foregroundColor(.primary)
-                            .lineLimit(1)
-                            .truncationMode(.tail)
-                    } else {
-                        Text("Line Item")
+                                .foregroundColor(.primary)
+                                .lineLimit(1)
+                                .truncationMode(.tail)
+                        } else {
+                            Text("Line Item")
                             .font(.system(size: 14, weight: .medium))
-                            .foregroundColor(.secondary)
-                    }
-                    
-                    if !lineItem.item.isEmpty {
+                                .foregroundColor(.secondary)
+                        }
+                        
+                        if !lineItem.item.isEmpty {
                         Text("•")
                             .font(.system(size: 11))
                             .foregroundColor(.secondary.opacity(0.4))
-                        Text(lineItem.item)
+                                Text(lineItem.item)
                             .font(.system(size: 13, weight: .medium))
-                            .foregroundColor(.secondary)
-                            .lineLimit(1)
-                            .truncationMode(.tail)
+                                    .foregroundColor(.secondary)
+                                    .lineLimit(1)
+                                    .truncationMode(.tail)
                     }
                     
-                    if !lineItem.spec.isEmpty {
-                        Text("•")
+                                if !lineItem.spec.isEmpty {
+                                    Text("•")
                             .font(.system(size: 11))
                             .foregroundColor(.secondary.opacity(0.4))
-                        Text(lineItem.spec)
+                                    Text(lineItem.spec)
                             .font(.system(size: 12))
                             .foregroundColor(.secondary.opacity(0.8))
-                            .lineLimit(1)
-                            .truncationMode(.tail)
-                    }
-                }
-                .frame(maxWidth: .infinity, alignment: .leading)
+                                        .lineLimit(1)
+                                        .truncationMode(.tail)
+                                }
+                            }
+                    .frame(maxWidth: .infinity, alignment: .leading)
             }
             
             // Second Line: Quantity/Unit Price Info + Budget Button + Delete Button
@@ -115,9 +115,9 @@ struct LineItemRowView: View {
                     .lineLimit(1)
                     .minimumScaleFactor(0.8)
                 }
-                
-                Spacer()
-                
+                    
+                    Spacer()
+                    
                 // Budget Button - Styled as button
                 Button(action: {
                     HapticManager.selection()
@@ -134,21 +134,21 @@ struct LineItemRowView: View {
                         .minimumScaleFactor(0.75)
                 }
                 .buttonStyle(.plain)
-                
+                    
                 // Delete Button - Compact
-                if canDelete {
-                    Button(action: {
-                        HapticManager.selection()
-                        onDelete()
-                    }) {
-                        Image(systemName: "trash.fill")
-                            .foregroundColor(.white)
+                    if canDelete {
+                        Button(action: {
+                            HapticManager.selection()
+                            onDelete()
+                        }) {
+                            Image(systemName: "trash.fill")
+                                .foregroundColor(.white)
                             .font(.system(size: 10, weight: .semibold))
                             .frame(width: 24, height: 24)
                             .background(Color.red)
-                            .clipShape(Circle())
-                    }
-                    .buttonStyle(.plain)
+                                .clipShape(Circle())
+                        }
+                        .buttonStyle(.plain)
                 }
             }
         }
@@ -2540,89 +2540,89 @@ private struct DepartmentInputRow: View {
     
     private var departmentNameField: some View {
         VStack(alignment: .leading, spacing: 2) {
-            Text("Department")
+                    Text("Department")
                 .font(.system(size: 10, weight: .medium))
-                .foregroundColor(.secondary)
-                .textCase(.uppercase)
-            
-            TextField("e.g., Marketing", text: $item.name)
+                        .foregroundColor(.secondary)
+                        .textCase(.uppercase)
+                    
+                    TextField("e.g., Marketing", text: $item.name)
                 .font(.system(size: 14))
-                .textFieldStyle(.plain)
+                        .textFieldStyle(.plain)
                 .padding(.horizontal, DesignSystem.Spacing.small)
                 .padding(.vertical, DesignSystem.Spacing.extraSmall)
-                .background(Color(.tertiarySystemGroupedBackground))
+                        .background(Color(.tertiarySystemGroupedBackground))
                 .cornerRadius(DesignSystem.CornerRadius.small)
-                .overlay(
+                        .overlay(
                     RoundedRectangle(cornerRadius: DesignSystem.CornerRadius.small)
-                        .stroke(errorMessage != nil ? Color.red : Color.clear, lineWidth: 1)
-                )
+                                .stroke(errorMessage != nil ? Color.red : Color.clear, lineWidth: 1)
+                        )
         }
-    }
-    
+                }
+                
     private var budgetField: some View {
         VStack(alignment: .trailing, spacing: 2) {
             HStack(spacing: 4) {
-                Text("Budget")
+                        Text("Budget")
                     .font(.system(size: 10, weight: .medium))
-                    .foregroundColor(.secondary)
-                    .textCase(.uppercase)
-                
-                if canDelete {
-                    Button(action: {
-                        HapticManager.selection()
-                        onDelete()
-                    }) {
-                        Image(systemName: "trash")
-                            .foregroundColor(.red)
+                            .foregroundColor(.secondary)
+                            .textCase(.uppercase)
+                        
+                        if canDelete {
+                            Button(action: {
+                                HapticManager.selection()
+                                onDelete()
+                            }) {
+                                Image(systemName: "trash")
+                                    .foregroundColor(.red)
                             .font(.system(size: 9))
                             .frame(width: 14, height: 14)
-                            .contentShape(Rectangle())
+                                    .contentShape(Rectangle())
+                            }
+                            .buttonStyle(.plain)
+                            .accessibilityLabel("Delete department")
+                            .accessibilityHint("Removes this department from the phase")
+                        }
                     }
-                    .buttonStyle(.plain)
-                    .accessibilityLabel("Delete department")
-                    .accessibilityHint("Removes this department from the phase")
-                }
-            }
-            
-            Text(totalDepartmentBudget.formattedCurrency)
+                    
+                    Text(totalDepartmentBudget.formattedCurrency)
                 .font(.system(size: 14, weight: .bold))
-                .foregroundColor(.green)
+                        .foregroundColor(.green)
                 .frame(minWidth: 80, alignment: .trailing)
         }
-    }
-    
+                }
+                
     private var expandCollapseButton: some View {
-        Button(action: {
-            HapticManager.selection()
-            withAnimation(DesignSystem.Animation.standardSpring) {
-                isExpanded.toggle()
+                Button(action: {
+                    HapticManager.selection()
+                    withAnimation(DesignSystem.Animation.standardSpring) {
+                        isExpanded.toggle()
+                    }
+                }) {
+                    Image(systemName: isExpanded ? "chevron.up" : "chevron.down")
+                        .font(.system(size: 14, weight: .semibold))
+                        .foregroundColor(.secondary)
+                }
+                .buttonStyle(.plain)
             }
-        }) {
-            Image(systemName: isExpanded ? "chevron.up" : "chevron.down")
-                .font(.system(size: 14, weight: .semibold))
-                .foregroundColor(.secondary)
-        }
-        .buttonStyle(.plain)
-    }
-    
+            
     private var expandedView: some View {
         VStack(alignment: .leading, spacing: DesignSystem.Spacing.small) {
-            Divider()
+                    Divider()
             contractorModeSection
             lineItemsSection
         }
         .transition(.opacity.combined(with: .move(edge: .top)))
     }
-    
+                    
     private var contractorModeSection: some View {
-        VStack(alignment: .leading, spacing: DesignSystem.Spacing.small) {
-            Text("Contractor Mode")
-                .font(DesignSystem.Typography.caption1)
-                .foregroundColor(.secondary)
-                .textCase(.uppercase)
-            
-            HStack(spacing: DesignSystem.Spacing.small) {
-                ForEach(ContractorMode.allCases, id: \.self) { mode in
+                    VStack(alignment: .leading, spacing: DesignSystem.Spacing.small) {
+                        Text("Contractor Mode")
+                            .font(DesignSystem.Typography.caption1)
+                            .foregroundColor(.secondary)
+                            .textCase(.uppercase)
+                        
+                        HStack(spacing: DesignSystem.Spacing.small) {
+                            ForEach(ContractorMode.allCases, id: \.self) { mode in
                     contractorModeButton(for: mode)
                 }
             }
@@ -2630,40 +2630,40 @@ private struct DepartmentInputRow: View {
     }
     
     private func contractorModeButton(for mode: ContractorMode) -> some View {
-        Button(action: {
-            HapticManager.selection()
-            let previousMode = contractorMode
-            contractorMode = mode
-            
-            // If switching to Labour-Only, clear non-Labour item types
-            if mode == .labourOnly && previousMode == .turnkey {
-                for index in lineItems.indices {
-                    if lineItems[index].itemType != "Labour" && !lineItems[index].itemType.isEmpty {
-                        lineItems[index].itemType = ""
-                        lineItems[index].item = ""
-                        lineItems[index].spec = ""
-                    }
-                }
-            }
-        }) {
-            Text(mode.displayName)
+                                Button(action: {
+                                    HapticManager.selection()
+                                    let previousMode = contractorMode
+                                    contractorMode = mode
+                                    
+                                    // If switching to Labour-Only, clear non-Labour item types
+                                    if mode == .labourOnly && previousMode == .turnkey {
+                                        for index in lineItems.indices {
+                                            if lineItems[index].itemType != "Labour" && !lineItems[index].itemType.isEmpty {
+                                                lineItems[index].itemType = ""
+                                                lineItems[index].item = ""
+                                                lineItems[index].spec = ""
+                                            }
+                                        }
+                                    }
+                                }) {
+                                    Text(mode.displayName)
                 .font(.system(size: 14, weight: contractorMode == mode ? .semibold : .regular))
-                .foregroundColor(contractorMode == mode ? .blue : .primary)
-                .multilineTextAlignment(.center)
+                                        .foregroundColor(contractorMode == mode ? .blue : .primary)
+                                        .multilineTextAlignment(.center)
                 .padding(.horizontal, DesignSystem.Spacing.small)
                 .padding(.vertical, DesignSystem.Spacing.small)
-                .frame(maxWidth: .infinity)
-                .background(
-                    RoundedRectangle(cornerRadius: DesignSystem.CornerRadius.medium)
-                        .fill(contractorMode == mode ? Color.blue.opacity(0.12) : Color(.tertiarySystemGroupedBackground))
-                )
-                .overlay(
-                    RoundedRectangle(cornerRadius: DesignSystem.CornerRadius.medium)
-                        .stroke(contractorMode == mode ? Color.blue.opacity(0.3) : Color(.separator), lineWidth: contractorMode == mode ? 1.5 : 1)
-                )
-        }
-        .buttonStyle(.plain)
-    }
+                                        .frame(maxWidth: .infinity)
+                                        .background(
+                                            RoundedRectangle(cornerRadius: DesignSystem.CornerRadius.medium)
+                                                .fill(contractorMode == mode ? Color.blue.opacity(0.12) : Color(.tertiarySystemGroupedBackground))
+                                        )
+                                        .overlay(
+                                            RoundedRectangle(cornerRadius: DesignSystem.CornerRadius.medium)
+                                                .stroke(contractorMode == mode ? Color.blue.opacity(0.3) : Color(.separator), lineWidth: contractorMode == mode ? 1.5 : 1)
+                                        )
+                                }
+                                .buttonStyle(.plain)
+                            }
     
     private var lineItemsSection: some View {
         VStack(alignment: .leading, spacing: DesignSystem.Spacing.small) {
@@ -2678,102 +2678,102 @@ private struct DepartmentInputRow: View {
     }
     
     private var lineItemsHeader: some View {
-        HStack(alignment: .firstTextBaseline) {
-            Text("Items")
-                .font(DesignSystem.Typography.caption1)
-                .foregroundColor(.secondary)
-                .textCase(.uppercase)
-            
-            Spacer()
-            
-            Text("sum must equal Department Budget")
-                .font(DesignSystem.Typography.caption2)
-                .foregroundColor(.secondary)
-                .italic()
+                        HStack(alignment: .firstTextBaseline) {
+                            Text("Items")
+                                .font(DesignSystem.Typography.caption1)
+                                .foregroundColor(.secondary)
+                                .textCase(.uppercase)
+                            
+                            Spacer()
+                            
+                            Text("sum must equal Department Budget")
+                                .font(DesignSystem.Typography.caption2)
+                                .foregroundColor(.secondary)
+                                .italic()
         }
-    }
-    
+                        }
+                        
     private var lineItemsList: some View {
         VStack(spacing: DesignSystem.Spacing.small) {
-            ForEach($lineItems) { $lineItem in
-                LineItemRowView(
-                    lineItem: $lineItem,
-                    onDelete: {
-                        if lineItems.count > 1 {
-                            lineItems.removeAll { $0.id == lineItem.id }
-                            updateDepartmentBudget()
+                            ForEach($lineItems) { $lineItem in
+                                LineItemRowView(
+                                    lineItem: $lineItem,
+                                    onDelete: {
+                                        if lineItems.count > 1 {
+                                            lineItems.removeAll { $0.id == lineItem.id }
+                                            updateDepartmentBudget()
+                                        }
+                                    },
+                                    canDelete: lineItems.count > 1,
+                                    contractorMode: contractorMode,
+                                    onEdit: {
+                                        editingLineItem = lineItem
+                                        isNewLineItem = false
+                                        showingLineItemSheet = true
+                                    }
+                                )
+                            }
                         }
-                    },
-                    canDelete: lineItems.count > 1,
-                    contractorMode: contractorMode,
-                    onEdit: {
-                        editingLineItem = lineItem
-                        isNewLineItem = false
-                        showingLineItemSheet = true
-                    }
-                )
+                        .sheet(isPresented: $showingLineItemSheet) {
+                            if let editingItem = editingLineItem,
+                               let index = lineItems.firstIndex(where: { $0.id == editingItem.id }) {
+                                LineItemEditSheet(
+                                    lineItem: $lineItems[index],
+                                    contractorMode: contractorMode,
+                                    isNewItem: isNewLineItem,
+                                    onSave: {
+                                        updateDepartmentBudget()
+                                    },
+                                    onCancel: {
+                                        // If it's a new item and user cancels, remove it
+                                        if isNewLineItem, let editingItem = editingLineItem {
+                                            lineItems.removeAll { $0.id == editingItem.id }
+                                        }
+                                    }
+                                )
             }
-        }
-        .sheet(isPresented: $showingLineItemSheet) {
-            if let editingItem = editingLineItem,
-               let index = lineItems.firstIndex(where: { $0.id == editingItem.id }) {
-                LineItemEditSheet(
-                    lineItem: $lineItems[index],
-                    contractorMode: contractorMode,
-                    isNewItem: isNewLineItem,
-                    onSave: {
-                        updateDepartmentBudget()
-                    },
-                    onCancel: {
-                        // If it's a new item and user cancels, remove it
-                        if isNewLineItem, let editingItem = editingLineItem {
-                            lineItems.removeAll { $0.id == editingItem.id }
+                            }
                         }
-                    }
-                )
-            }
-        }
-    }
-    
+                        
     private var addLineItemButton: some View {
-        Button(action: {
-            HapticManager.selection()
-            let newItem = DepartmentLineItem()
-            lineItems.append(newItem)
-            editingLineItem = newItem
-            isNewLineItem = true
-            showingLineItemSheet = true
-        }) {
+                        Button(action: {
+                            HapticManager.selection()
+                            let newItem = DepartmentLineItem()
+                            lineItems.append(newItem)
+                            editingLineItem = newItem
+                            isNewLineItem = true
+                            showingLineItemSheet = true
+                        }) {
             HStack(spacing: DesignSystem.Spacing.extraSmall) {
-                Image(systemName: "plus.circle.fill")
+                                Image(systemName: "plus.circle.fill")
                     .font(.system(size: 14, weight: .medium))
-                Text("Add row")
+                                Text("Add row")
                     .font(.system(size: 13, weight: .medium))
-            }
-            .foregroundColor(.blue)
-            .frame(maxWidth: .infinity)
+                            }
+                            .foregroundColor(.blue)
+                            .frame(maxWidth: .infinity)
             .padding(.vertical, DesignSystem.Spacing.extraSmall)
-        }
-        .buttonStyle(.plain)
+                        }
+                        .buttonStyle(.plain)
     }
-    
+                        
     private var lineItemsTotal: some View {
         VStack(spacing: 0) {
-            Divider()
+                        Divider()
                 .padding(.vertical, DesignSystem.Spacing.extraSmall)
-            
-            HStack {
-                Text("Total")
+                        
+                        HStack {
+                            Text("Total")
                     .font(.system(size: 15, weight: .semibold))
-                    .foregroundColor(.primary)
-                
-                Spacer()
-                
-                Text(totalDepartmentBudget.formattedCurrency)
+                                .foregroundColor(.primary)
+                            
+                            Spacer()
+                            
+                            Text(totalDepartmentBudget.formattedCurrency)
                     .font(.system(size: 16, weight: .bold))
-                    .foregroundColor(.green)
-            }
-        }
+                                .foregroundColor(.green)
+                        }
+                    }
     }
     
     var body: some View {

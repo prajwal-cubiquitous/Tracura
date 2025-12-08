@@ -836,16 +836,10 @@ struct TemplateDataStore {
                 print("❌ TemplateData: Failed to convert template '\(id)' from dictionary")
             }
         } else {
-            print("⚠️ TemplateData: Template '\(id)' not found in dictionary, trying predefined templates...")
+            print("⚠️ TemplateData: Template '\(id)' not found in dictionary")
         }
         
-        // Fallback to predefined templates if not found in dictionary
-        if let predefinedTemplate = ProjectTemplate.predefinedTemplates.first(where: { $0.id == id }) {
-            print("✅ TemplateData: Found template '\(id)' in predefined templates")
-            return predefinedTemplate
-        }
-        
-        print("❌ TemplateData: Template '\(id)' not found in dictionary or predefined templates")
+        print("❌ TemplateData: Template '\(id)' not found")
         return nil
     }
     
