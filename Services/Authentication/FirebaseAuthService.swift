@@ -1,4 +1,5 @@
 import Foundation
+import FirebaseCore
 import FirebaseAuth
 import FirebaseFirestore
 import FirebaseMessaging
@@ -14,11 +15,46 @@ class FirebaseAuthService: ObservableObject {
     @Published var errorMessage: String?
     @Published var currentCustomerId: String? // Customer ID for multi-tenant support
     
-    private let auth = Auth.auth()
-    private let db = Firestore.firestore()
+    // Lazy initialization to ensure Firebase is configured before accessing Auth
+    private lazy var auth: Auth = {
+        guard let app = FirebaseApp.app() else {
+            print("⚠️ Firebase not configured yet. Auth will be initialized when Firebase is ready.")
+            // Return default Auth instance - it will work once Firebase is configured
+            return Auth.auth()
+        }
+        return Auth.auth(app: app)
+    }()
+    
+    private lazy var db: Firestore = {
+        guard let app = FirebaseApp.app() else {
+            print("⚠️ Firebase not configured yet. Firestore will be initialized when Firebase is ready.")
+            return Firestore.firestore()
+        }
+        return Firestore.firestore(app: app)
+    }()
+    
     @Published var verificationID: String?
     
     init() {
+        // Initialize auth listener after a short delay to ensure Firebase is configured
+        // Firebase is configured in AppDelegate.application(_:didFinishLaunchingWithOptions:)
+        DispatchQueue.main.async { [weak self] in
+            self?.initializeAuthListener()
+        }
+    }
+    
+    // Initialize auth state listener after Firebase is ready
+    private func initializeAuthListener() {
+        // Ensure Firebase is configured
+        guard FirebaseApp.app() != nil else {
+            print("⚠️ Firebase not configured. Retrying auth listener initialization...")
+            // Retry after a short delay
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [weak self] in
+                self?.initializeAuthListener()
+            }
+            return
+        }
+        
         // Check if user is already authenticated
         if let firebaseUser = auth.currentUser {
             Task {
@@ -192,17 +228,39 @@ class FirebaseAuthService: ObservableObject {
             return false
         }
         
-        do{
-//            Auth.auth().settings.isAppVerificationDisabledForTesting = true
+        // Ensure Firebase is initialized before using PhoneAuthProvider
+        guard FirebaseApp.app() != nil else {
+            errorMessage = "Firebase is not initialized. Please restart the app."
+            isLoading = false
+            return false
+        }
+        
+        // Add a small delay to ensure Firebase is fully ready
+        // This is a workaround for Firebase initialization timing issues
+        do {
+            try await Task.sleep(nanoseconds: 100_000_000) // 0.1 seconds
+        } catch {
+            // Ignore cancellation errors - delay is optional
+            print("⚠️ Task sleep cancelled: \(error.localizedDescription)")
+        }
+        
+        do {
+            // Use PhoneAuthProvider.provider() without parameters - it uses the default Auth instance
+            // This is safer than creating a new Auth instance which can cause internal state issues
             PhoneAuthProvider.provider()
               .verifyPhoneNumber(fullPhoneNumber, uiDelegate: nil) { verificationID, error in
                             if let error = error {
-                                self.errorMessage = "Error: \(error.localizedDescription)"
+                                Task { @MainActor in
+                                    self.errorMessage = "Error: \(error.localizedDescription)"
+                                    self.isLoading = false
+                                }
                                 return
                             }
-                            self.verificationID = verificationID
-                            self.isLoading = false
-                            self.errorMessage = nil
+                            Task { @MainActor in
+                                self.verificationID = verificationID
+                                self.isLoading = false
+                                self.errorMessage = nil
+                            }
                         }
             return true
         } catch {
@@ -224,9 +282,20 @@ class FirebaseAuthService: ObservableObject {
             return false
         }
         
+        // Ensure Firebase is initialized before using PhoneAuthProvider
+        guard FirebaseApp.app() != nil else {
+            errorMessage = "Firebase is not initialized. Please restart the app."
+            isLoading = false
+            return false
+        }
+        
+        // Use the default Auth instance
+        let defaultAuth = Auth.auth()
+        
         do {
+            // Use PhoneAuthProvider.provider() without parameters - it uses the default Auth instance
             let credential = PhoneAuthProvider.provider().credential(withVerificationID: verificationID, verificationCode: code)
-            let result = try await auth.signIn(with: credential)
+            let result = try await defaultAuth.signIn(with: credential)
             // User will be loaded automatically through auth state listener
             isLoading = false
             return true

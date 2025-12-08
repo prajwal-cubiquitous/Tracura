@@ -491,90 +491,187 @@ struct TemplateDataStore {
         
         // MARK: - Interior Design Templates
         "interior_design_residential": [
-            "id": "interior_design_residential",
-            "icon": "paintbrush.fill",
-            "title": "Residential Interior Design",
-            "description": "Complete interior design template for residential spaces",
-            "businessType": "Interior Design",
-            "phasesCount": 1,
-            "departmentsCount": 3,
-            "phases": [
-                [
-                    "phaseName": "Design & Execution",
-                    "startDateDays": 0,
-                    "endDateDays": 120,
-                    "departments": [
-                        [
-                            "name": "Furniture & Fixtures",
-                            "contractorMode": "Turnkey",
-                            "lineItems": [
-                                ["itemType": "Furniture", "item": "Sofa Set", "spec": "3+2+1 Seater", "quantity": "1", "uom": "", "unitPrice": "150000"],
-                                ["itemType": "Furniture", "item": "Dining Table", "spec": "6 Seater", "quantity": "1", "uom": "", "unitPrice": "45000"],
-                                ["itemType": "Furniture", "item": "Bed", "spec": "King Size", "quantity": "2", "uom": "", "unitPrice": "35000"],
-                                ["itemType": "Furniture", "item": "Wardrobe", "spec": "Sliding Door", "quantity": "2", "uom": "", "unitPrice": "80000"]
+                "id": "interior_design_residential",
+                "icon": "paintbrush.fill",
+                "title": "Residential Interior Design",
+                "description": "Comprehensive interior design template for 3BHK residential apartment including woodwork, false ceiling, and finishing.",
+                "businessType": "Interior Design",
+                "phasesCount": 3,
+                "departmentsCount": 5,
+                "phases": [
+                    [
+                        "phaseName": "Design & Civil Changes",
+                        "startDateDays": 0,
+                        "endDateDays": 30,
+                        "departments": [
+                            [
+                                "name": "Design Studio",
+                                "contractorMode": "Turnkey",
+                                "lineItems": [
+                                    ["itemType": "Service", "item": "Design Consultation", "spec": "3D Rendering & Layout", "quantity": "1", "uom": "Unit", "unitPrice": "45000"],
+                                    ["itemType": "Service", "item": "2D Drawings", "spec": "Electrical & Plumbing Layouts", "quantity": "1", "uom": "Set", "unitPrice": "15000"]
+                                ]
+                            ],
+                            [
+                                "name": "Civil Work",
+                                "contractorMode": "Turnkey",
+                                "lineItems": [
+                                    ["itemType": "Raw material", "item": "Brickwork", "spec": "Partition Walls", "quantity": "150", "uom": "Sqft", "unitPrice": "120"],
+                                    ["itemType": "Labour", "item": "Men & Women", "spec": "Demolition Crew", "quantity": "4", "uom": "Per Day", "unitPrice": "600"],
+                                    ["itemType": "Machines & eq", "item": "Debris Removal", "spec": "Tractor Trip", "quantity": "3", "uom": "Per Trip", "unitPrice": "1200"]
+                                ]
                             ]
-                        ],
-                        [
-                            "name": "Lighting & Electrical",
-                            "contractorMode": "Turnkey",
-                            "lineItems": [
-                                ["itemType": "Electrical", "item": "Lighting", "spec": "LED Panel", "quantity": "15", "uom": "", "unitPrice": "2500"],
-                                ["itemType": "Electrical", "item": "Lighting", "spec": "LED Strip", "quantity": "50", "uom": "", "unitPrice": "800"],
-                                ["itemType": "Electrical", "item": "Switches & Sockets", "spec": "Modular switches", "quantity": "40", "uom": "", "unitPrice": "180"]
+                        ]
+                    ],
+                    [
+                        "phaseName": "Woodwork & False Ceiling",
+                        "startDateDays": 31,
+                        "endDateDays": 90,
+                        "departments": [
+                            [
+                                "name": "Carpentry",
+                                "contractorMode": "Turnkey",
+                                "lineItems": [
+                                    ["itemType": "Carpentry", "item": "Plywood", "spec": "BWP Grade 19mm", "quantity": "80", "uom": "Sheet", "unitPrice": "3200"],
+                                    ["itemType": "Carpentry", "item": "Laminate", "spec": "1mm Glossy/Matte", "quantity": "120", "uom": "Sheet", "unitPrice": "1800"],
+                                    ["itemType": "Carpentry", "item": "Hardware", "spec": "Hettich/Hafele Hinges & Channels", "quantity": "1", "uom": "Set", "unitPrice": "45000"],
+                                    ["itemType": "Carpentry", "item": "Kitchen Unit", "spec": "Modular Carcass", "quantity": "60", "uom": "Sqft", "unitPrice": "1400"],
+                                    ["itemType": "Labour", "item": "Men & Women", "spec": "Carpenter Head", "quantity": "45", "uom": "Per Day", "unitPrice": "1200"],
+                                    ["itemType": "Labour", "item": "Men & Women", "spec": "Carpenter Helper", "quantity": "45", "uom": "Per Day", "unitPrice": "700"]
+                                ]
+                            ],
+                            [
+                                "name": "False Ceiling",
+                                "contractorMode": "Turnkey",
+                                "lineItems": [
+                                    ["itemType": "False Ceiling", "item": "Gypsum Board", "spec": "Saint-Gobain/USG", "quantity": "1200", "uom": "Sqft", "unitPrice": "75"],
+                                    ["itemType": "False Ceiling", "item": "Channels & Framing", "spec": "GI Sections", "quantity": "1200", "uom": "Sqft", "unitPrice": "45"],
+                                    ["itemType": "Electrical", "item": "Wiring", "spec": "Ceiling Loop 1.5mm", "quantity": "6", "uom": "Bundle", "unitPrice": "1200"]
+                                ]
                             ]
-                        ],
-                        [
-                            "name": "Paint & Finishing",
-                            "contractorMode": "Turnkey",
-                            "lineItems": [
-                                ["itemType": "Paint", "item": "Interior Paint", "spec": "Premium Emulsion", "quantity": "80", "uom": "", "unitPrice": "1200"],
-                                ["itemType": "Paint", "item": "Primer", "spec": "Standard", "quantity": "20", "uom": "", "unitPrice": "800"],
-                                ["itemType": "Labour", "item": "Men & Women", "spec": "Painter", "quantity": "3", "uom": "", "unitPrice": "900"]
+                        ]
+                    ],
+                    [
+                        "phaseName": "Finishing & Handover",
+                        "startDateDays": 91,
+                        "endDateDays": 120,
+                        "departments": [
+                            [
+                                "name": "Paint & Polish",
+                                "contractorMode": "Turnkey",
+                                "lineItems": [
+                                    ["itemType": "Paint", "item": "Wall Putty", "spec": "Acrylic", "quantity": "10", "uom": "Bag", "unitPrice": "850"],
+                                    ["itemType": "Paint", "item": "Interior Paint", "spec": "Royal Emulsion", "quantity": "60", "uom": "Litre", "unitPrice": "650"],
+                                    ["itemType": "Paint", "item": "PU Polish", "spec": "For Veneer Finishes", "quantity": "20", "uom": "Litre", "unitPrice": "1200"],
+                                    ["itemType": "Labour", "item": "Men & Women", "spec": "Painter", "quantity": "15", "uom": "Per Day", "unitPrice": "900"]
+                                ]
+                            ],
+                            [
+                                "name": "Electrical & Decor",
+                                "contractorMode": "Turnkey",
+                                "lineItems": [
+                                    ["itemType": "Electrical", "item": "Light Fixtures", "spec": "COB Lights 12W", "quantity": "40", "uom": "Nos", "unitPrice": "450"],
+                                    ["itemType": "Electrical", "item": "Light Fixtures", "spec": "Profile Light 2m", "quantity": "10", "uom": "Nos", "unitPrice": "1800"],
+                                    ["itemType": "Furniture", "item": "Curtains & Blinds", "spec": "Custom Fabric", "quantity": "1", "uom": "Set", "unitPrice": "35000"],
+                                    ["itemType": "Service", "item": "Deep Cleaning", "spec": "Post-Construction", "quantity": "1", "uom": "Unit", "unitPrice": "8000"]
+                                ]
                             ]
                         ]
                     ]
                 ]
-            ]
-        ],
+            ],
         
         // MARK: - Media Templates
-        "media_production": [
-            "id": "media_production",
-            "icon": "video.fill",
-            "title": "Media Production",
-            "description": "Template for media production projects including video and content creation",
-            "businessType": "Media",
-            "phasesCount": 1,
-            "departmentsCount": 2,
-            "phases": [
-                [
-                    "phaseName": "Production Phase",
-                    "startDateDays": 0,
-                    "endDateDays": 60,
-                    "departments": [
-                        [
-                            "name": "Equipment & Resources",
-                            "contractorMode": "Turnkey",
-                            "lineItems": [
-                                ["itemType": "Equipment", "item": "Camera Setup", "spec": "Professional", "quantity": "1", "uom": "", "unitPrice": "50000"],
-                                ["itemType": "Equipment", "item": "Lighting Kit", "spec": "Studio Grade", "quantity": "1", "uom": "", "unitPrice": "30000"],
-                                ["itemType": "Equipment", "item": "Audio Equipment", "spec": "Recording Setup", "quantity": "1", "uom": "", "unitPrice": "25000"],
-                                ["itemType": "Equipment", "item": "Editing Software", "spec": "Annual License", "quantity": "1", "uom": "", "unitPrice": "15000"]
+        "media_production_ad_film": [
+                "id": "media_production_ad_film",
+                "icon": "film.fill",
+                "title": "Ad Film Production",
+                "description": "Template for TV Commercial/Digital Ad Film production including pre-production, shoot, and post-production.",
+                "businessType": "Media",
+                "phasesCount": 3,
+                "departmentsCount": 6,
+                "phases": [
+                    [
+                        "phaseName": "Pre-Production",
+                        "startDateDays": 0,
+                        "endDateDays": 15,
+                        "departments": [
+                            [
+                                "name": "Creative & Planning",
+                                "contractorMode": "Turnkey",
+                                "lineItems": [
+                                    ["itemType": "Service", "item": "Scripting", "spec": "Screenplay & Dialogues", "quantity": "1", "uom": "Unit", "unitPrice": "25000"],
+                                    ["itemType": "Service", "item": "Storyboard", "spec": "Artist Illustrations", "quantity": "1", "uom": "Set", "unitPrice": "15000"],
+                                    ["itemType": "Service", "item": "Location Scouting", "spec": "Recce Expenses", "quantity": "3", "uom": "Day", "unitPrice": "5000"],
+                                    ["itemType": "Service", "item": "Casting Director", "spec": "Talent Sourcing", "quantity": "1", "uom": "Project", "unitPrice": "20000"]
+                                ]
                             ]
-                        ],
-                        [
-                            "name": "Talent & Crew",
-                            "contractorMode": "Labour-Only",
-                            "lineItems": [
-                                ["itemType": "Labour", "item": "Men & Women", "spec": "Director", "quantity": "1", "uom": "", "unitPrice": "15000"],
-                                ["itemType": "Labour", "item": "Men & Women", "spec": "Camera Operator", "quantity": "2", "uom": "", "unitPrice": "8000"],
-                                ["itemType": "Labour", "item": "Men & Women", "spec": "Editor", "quantity": "1", "uom": "", "unitPrice": "10000"]
+                        ]
+                    ],
+                    [
+                        "phaseName": "Production (Shoot)",
+                        "startDateDays": 16,
+                        "endDateDays": 20,
+                        "departments": [
+                            [
+                                "name": "Camera & Lighting",
+                                "contractorMode": "Turnkey",
+                                "lineItems": [
+                                    ["itemType": "Equipment", "item": "Camera Body", "spec": "Arri Alexa / RED", "quantity": "2", "uom": "Shift", "unitPrice": "45000"],
+                                    ["itemType": "Equipment", "item": "Lens Kit", "spec": "Prime Lenses Set", "quantity": "1", "uom": "Shift", "unitPrice": "15000"],
+                                    ["itemType": "Equipment", "item": "Lights", "spec": "HMI & Skypanel Kit", "quantity": "1", "uom": "Shift", "unitPrice": "25000"],
+                                    ["itemType": "Equipment", "item": "Grip Equipment", "spec": "Dolly/Track/Jimmy Jib", "quantity": "1", "uom": "Shift", "unitPrice": "12000"]
+                                ]
+                            ],
+                            [
+                                "name": "Crew & Talent",
+                                "contractorMode": "Labour-Only",
+                                "lineItems": [
+                                    ["itemType": "Labour", "item": "Men & Women", "spec": "DOP (Director of Photography)", "quantity": "2", "uom": "Shift", "unitPrice": "35000"],
+                                    ["itemType": "Labour", "item": "Men & Women", "spec": "Director", "quantity": "2", "uom": "Shift", "unitPrice": "50000"],
+                                    ["itemType": "Labour", "item": "Men & Women", "spec": "Gaffer/Lightman", "quantity": "4", "uom": "Shift", "unitPrice": "2500"],
+                                    ["itemType": "Labour", "item": "Men & Women", "spec": "Makeup Artist", "quantity": "1", "uom": "Shift", "unitPrice": "8000"],
+                                    ["itemType": "Labour", "item": "Men & Women", "spec": "Lead Actor/Actress", "quantity": "2", "uom": "Shift", "unitPrice": "40000"],
+                                    ["itemType": "Service", "item": "Catering", "spec": "Crew Meals", "quantity": "50", "uom": "Plate", "unitPrice": "400"]
+                                ]
+                            ],
+                            [
+                                "name": "Art Department",
+                                "contractorMode": "Turnkey",
+                                "lineItems": [
+                                    ["itemType": "Raw material", "item": "Set Construction", "spec": "Wood/Paint/Backdrops", "quantity": "1", "uom": "Project", "unitPrice": "60000"],
+                                    ["itemType": "Prop", "item": "Props Sourcing", "spec": "Furniture & Decor", "quantity": "1", "uom": "Lumpsum", "unitPrice": "20000"]
+                                ]
+                            ]
+                        ]
+                    ],
+                    [
+                        "phaseName": "Post-Production",
+                        "startDateDays": 21,
+                        "endDateDays": 45,
+                        "departments": [
+                            [
+                                "name": "Edit & DI",
+                                "contractorMode": "Turnkey",
+                                "lineItems": [
+                                    ["itemType": "Service", "item": "Offline Edit", "spec": "FCP/Premiere Pro", "quantity": "5", "uom": "Day", "unitPrice": "8000"],
+                                    ["itemType": "Service", "item": "Color Grading (DI)", "spec": "DaVinci Resolve Studio", "quantity": "10", "uom": "Hour", "unitPrice": "3500"],
+                                    ["itemType": "Service", "item": "VFX/CGI", "spec": "Compositing/Cleanup", "quantity": "1", "uom": "Project", "unitPrice": "40000"]
+                                ]
+                            ],
+                            [
+                                "name": "Sound Design",
+                                "contractorMode": "Turnkey",
+                                "lineItems": [
+                                    ["itemType": "Service", "item": "Music Composition", "spec": "Original Score", "quantity": "1", "uom": "Track", "unitPrice": "25000"],
+                                    ["itemType": "Service", "item": "Voice Over", "spec": "Professional Artist", "quantity": "1", "uom": "Session", "unitPrice": "10000"],
+                                    ["itemType": "Service", "item": "Mixing & Mastering", "spec": "Stereo/5.1 Mix", "quantity": "1", "uom": "Project", "unitPrice": "15000"]
+                                ]
                             ]
                         ]
                     ]
                 ]
             ]
-        ]
     ]
     
     // MARK: - Get All Templates
