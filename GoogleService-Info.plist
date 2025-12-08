@@ -3,9 +3,9 @@
 <plist version="1.0">
 <dict>
 	<key>CLIENT_ID</key>
-	<string>1096496081114-p20jua9ccfhh001sk0b127qae6cth5ht.apps.googleusercontent.com</string>
+	<string>1096496081114-ianu95n7iobo8r68vou9oj2gi9uk4mok.apps.googleusercontent.com</string>
 	<key>REVERSED_CLIENT_ID</key>
-	<string>com.googleusercontent.apps.1096496081114-p20jua9ccfhh001sk0b127qae6cth5ht</string>
+	<string>com.googleusercontent.apps.1096496081114-ianu95n7iobo8r68vou9oj2gi9uk4mok</string>
 	<key>ANDROID_CLIENT_ID</key>
 	<string>1096496081114-54icmiim55ckv76t3gmmgnkp41p1crbm.apps.googleusercontent.com</string>
 	<key>API_KEY</key>
@@ -15,7 +15,7 @@
 	<key>PLIST_VERSION</key>
 	<string>1</string>
 	<key>BUNDLE_ID</key>
-	<string>com.cubiquitous.AVREntertainment</string>
+	<string>com.tracura.app</string>
 	<key>PROJECT_ID</key>
 	<string>avr-entertainment</string>
 	<key>STORAGE_BUCKET</key>
@@ -31,6 +31,6 @@
 	<key>IS_SIGNIN_ENABLED</key>
 	<true></true>
 	<key>GOOGLE_APP_ID</key>
-	<string>1:1096496081114:ios:1f8acc9cca93d1d2629de3</string>
+	<string>1:1096496081114:ios:b3b1c68b9feb1ba3629de3</string>
 </dict>
 </plist>
