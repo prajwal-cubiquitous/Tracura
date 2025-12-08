@@ -15,6 +15,7 @@ struct TemplateDisplayItem: Identifiable {
     let icon: String
     let title: String
     let description: String
+    let businessType: String?
     let phasesCount: Int
     let departmentsCount: Int
     
@@ -39,6 +40,7 @@ struct TemplateDataStore {
             "icon": "house.fill",
             "title": "Residential Building",
             "description": "Standard template for residential building construction projects",
+            "businessType": "Construction",
             "phasesCount": 2,
             "departmentsCount": 5,
             "phases": [
@@ -485,6 +487,93 @@ struct TemplateDataStore {
                     ]
                 ]
             ]
+        ],
+        
+        // MARK: - Interior Design Templates
+        "interior_design_residential": [
+            "id": "interior_design_residential",
+            "icon": "paintbrush.fill",
+            "title": "Residential Interior Design",
+            "description": "Complete interior design template for residential spaces",
+            "businessType": "Interior Design",
+            "phasesCount": 1,
+            "departmentsCount": 3,
+            "phases": [
+                [
+                    "phaseName": "Design & Execution",
+                    "startDateDays": 0,
+                    "endDateDays": 120,
+                    "departments": [
+                        [
+                            "name": "Furniture & Fixtures",
+                            "contractorMode": "Turnkey",
+                            "lineItems": [
+                                ["itemType": "Furniture", "item": "Sofa Set", "spec": "3+2+1 Seater", "quantity": "1", "uom": "", "unitPrice": "150000"],
+                                ["itemType": "Furniture", "item": "Dining Table", "spec": "6 Seater", "quantity": "1", "uom": "", "unitPrice": "45000"],
+                                ["itemType": "Furniture", "item": "Bed", "spec": "King Size", "quantity": "2", "uom": "", "unitPrice": "35000"],
+                                ["itemType": "Furniture", "item": "Wardrobe", "spec": "Sliding Door", "quantity": "2", "uom": "", "unitPrice": "80000"]
+                            ]
+                        ],
+                        [
+                            "name": "Lighting & Electrical",
+                            "contractorMode": "Turnkey",
+                            "lineItems": [
+                                ["itemType": "Electrical", "item": "Lighting", "spec": "LED Panel", "quantity": "15", "uom": "", "unitPrice": "2500"],
+                                ["itemType": "Electrical", "item": "Lighting", "spec": "LED Strip", "quantity": "50", "uom": "", "unitPrice": "800"],
+                                ["itemType": "Electrical", "item": "Switches & Sockets", "spec": "Modular switches", "quantity": "40", "uom": "", "unitPrice": "180"]
+                            ]
+                        ],
+                        [
+                            "name": "Paint & Finishing",
+                            "contractorMode": "Turnkey",
+                            "lineItems": [
+                                ["itemType": "Paint", "item": "Interior Paint", "spec": "Premium Emulsion", "quantity": "80", "uom": "", "unitPrice": "1200"],
+                                ["itemType": "Paint", "item": "Primer", "spec": "Standard", "quantity": "20", "uom": "", "unitPrice": "800"],
+                                ["itemType": "Labour", "item": "Men & Women", "spec": "Painter", "quantity": "3", "uom": "", "unitPrice": "900"]
+                            ]
+                        ]
+                    ]
+                ]
+            ]
+        ],
+        
+        // MARK: - Media Templates
+        "media_production": [
+            "id": "media_production",
+            "icon": "video.fill",
+            "title": "Media Production",
+            "description": "Template for media production projects including video and content creation",
+            "businessType": "Media",
+            "phasesCount": 1,
+            "departmentsCount": 2,
+            "phases": [
+                [
+                    "phaseName": "Production Phase",
+                    "startDateDays": 0,
+                    "endDateDays": 60,
+                    "departments": [
+                        [
+                            "name": "Equipment & Resources",
+                            "contractorMode": "Turnkey",
+                            "lineItems": [
+                                ["itemType": "Equipment", "item": "Camera Setup", "spec": "Professional", "quantity": "1", "uom": "", "unitPrice": "50000"],
+                                ["itemType": "Equipment", "item": "Lighting Kit", "spec": "Studio Grade", "quantity": "1", "uom": "", "unitPrice": "30000"],
+                                ["itemType": "Equipment", "item": "Audio Equipment", "spec": "Recording Setup", "quantity": "1", "uom": "", "unitPrice": "25000"],
+                                ["itemType": "Equipment", "item": "Editing Software", "spec": "Annual License", "quantity": "1", "uom": "", "unitPrice": "15000"]
+                            ]
+                        ],
+                        [
+                            "name": "Talent & Crew",
+                            "contractorMode": "Labour-Only",
+                            "lineItems": [
+                                ["itemType": "Labour", "item": "Men & Women", "spec": "Director", "quantity": "1", "uom": "", "unitPrice": "15000"],
+                                ["itemType": "Labour", "item": "Men & Women", "spec": "Camera Operator", "quantity": "2", "uom": "", "unitPrice": "8000"],
+                                ["itemType": "Labour", "item": "Men & Women", "spec": "Editor", "quantity": "1", "uom": "", "unitPrice": "10000"]
+                            ]
+                        ]
+                    ]
+                ]
+            ]
         ]
     ]
     
@@ -500,16 +589,34 @@ struct TemplateDataStore {
                 return nil
             }
             
+            let businessType = value["businessType"] as? String
+            
             return TemplateDisplayItem(
                 id: id,
                 icon: icon,
                 title: title,
                 description: description,
+                businessType: businessType,
                 phasesCount: phasesCount,
                 departmentsCount: departmentsCount
             )
         }
         .sorted { $0.title < $1.title }
+    }
+    
+    // MARK: - Get Templates by Business Type
+    static func getTemplatesByBusinessType(_ businessType: String?) -> [TemplateDisplayItem] {
+        let allTemplates = getAllTemplates()
+        
+        // If businessType is nil or empty, return all templates
+        guard let businessType = businessType, !businessType.isEmpty else {
+            return allTemplates
+        }
+        
+        // Filter templates that match the businessType
+        return allTemplates.filter { template in
+            template.businessType?.lowercased() == businessType.lowercased()
+        }
     }
     
     // MARK: - Get Default UOM based on ItemType and Item
@@ -743,13 +850,15 @@ struct TemplateDataStore {
     }
     
     // MARK: - Search Templates
-    static func searchTemplates(query: String) -> [TemplateDisplayItem] {
-        let allTemplates = getAllTemplates()
+    static func searchTemplates(query: String, businessType: String? = nil) -> [TemplateDisplayItem] {
+        // First filter by businessType if provided
+        let templates = businessType != nil ? getTemplatesByBusinessType(businessType) : getAllTemplates()
+        
         if query.isEmpty {
-            return allTemplates
+            return templates
         }
         
-        return allTemplates.filter { template in
+        return templates.filter { template in
             template.title.localizedCaseInsensitiveContains(query) ||
             template.description.localizedCaseInsensitiveContains(query)
         }

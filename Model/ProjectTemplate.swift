@@ -51,6 +51,50 @@ struct ProjectTemplate: Identifiable, Codable {
     }
 }
 
+// MARK: - Business Type Template Filtering
+extension ProjectTemplate {
+    /// Get templates filtered by business type
+    /// - Parameter businessType: The business type ("Construction", "Interior Design", "Media")
+    /// - Returns: Array of ProjectTemplate filtered by business type
+    static func getTemplatesByBusinessType(_ businessType: String?) -> [ProjectTemplate] {
+        guard let businessType = businessType, !businessType.isEmpty else {
+            // If no businessType provided, return all templates
+            return predefinedTemplates
+        }
+        
+        // Use TemplateDataStore to get templates by business type
+        let displayItems = TemplateDataStore.getTemplatesByBusinessType(businessType)
+        
+        // Convert TemplateDisplayItem to ProjectTemplate
+        return displayItems.compactMap { displayItem in
+            TemplateDataStore.getProjectTemplate(for: displayItem.id)
+        }
+    }
+    
+    /// Switch function to get templates based on business type
+    /// - Parameter businessType: The business type from customer document
+    /// - Returns: Array of ProjectTemplate for the specific business type
+    static func templatesForBusinessType(_ businessType: String?) -> [ProjectTemplate] {
+        switch businessType?.lowercased() {
+        case "construction":
+            // Return construction templates
+            return getTemplatesByBusinessType("Construction")
+            
+        case "interior design":
+            // Return interior design templates
+            return getTemplatesByBusinessType("Interior Design")
+            
+        case "media":
+            // Return media templates
+            return getTemplatesByBusinessType("Media")
+            
+        default:
+            // If businessType is nil or doesn't match, return all templates
+            return predefinedTemplates
+        }
+    }
+}
+
 // MARK: - Predefined Templates
 extension ProjectTemplate {
     static let predefinedTemplates: [ProjectTemplate] = [

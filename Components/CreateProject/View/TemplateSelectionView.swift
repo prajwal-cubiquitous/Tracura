@@ -6,16 +6,81 @@
 //
 
 import SwiftUI
+import FirebaseFirestore
+import FirebaseAuth
 
 struct TemplateSelectionView: View {
     @Environment(\.dismiss) private var dismiss
+    @EnvironmentObject var authService: FirebaseAuthService
     let onSelectTemplate: (ProjectTemplate) -> Void
     let onCreateNew: () -> Void
     
     @State private var searchText: String = ""
+    @State private var businessType: String? = nil
+    @State private var isLoadingBusinessType: Bool = true
     
     private var filteredTemplates: [TemplateDisplayItem] {
-        return TemplateDataStore.searchTemplates(query: searchText)
+        return TemplateDataStore.searchTemplates(query: searchText, businessType: businessType)
+    }
+    
+    private func fetchBusinessType() async {
+        isLoadingBusinessType = true
+        do {
+            // Get current customer ID
+            let customerId: String
+            if let currentUser = Auth.auth().currentUser {
+                // Check if user logged in via email (admin) or phone
+                if let phoneNumber = currentUser.phoneNumber {
+                    // OTP user - get ownerID from users collection
+                    let cleanPhone = phoneNumber.replacingOccurrences(of: "+91", with: "")
+                    let userDoc = try await Firestore.firestore()
+                        .collection("users")
+                        .document(cleanPhone)
+                        .getDocument()
+                    
+                    if let userData = userDoc.data(),
+                       let ownerID = userData["ownerID"] as? String {
+                        customerId = ownerID
+                    } else {
+                        customerId = currentUser.uid
+                    }
+                } else {
+                    // Email user (admin) - use UID as customer ID
+                    customerId = currentUser.uid
+                }
+            } else {
+                print("⚠️ TemplateSelectionView: No current user found")
+                await MainActor.run {
+                    isLoadingBusinessType = false
+                }
+                return
+            }
+            
+            // Fetch customer document
+            let customerDoc = try await Firestore.firestore()
+                .collection("customers")
+                .document(customerId)
+                .getDocument()
+            
+            if let customerData = customerDoc.data(),
+               let businessTypeValue = customerData["businessType"] as? String {
+                await MainActor.run {
+                    self.businessType = businessTypeValue
+                    print("✅ TemplateSelectionView: Fetched businessType: \(businessTypeValue)")
+                    isLoadingBusinessType = false
+                }
+            } else {
+                print("⚠️ TemplateSelectionView: businessType not found in customer document")
+                await MainActor.run {
+                    isLoadingBusinessType = false
+                }
+            }
+        } catch {
+            print("❌ TemplateSelectionView: Error fetching businessType: \(error.localizedDescription)")
+            await MainActor.run {
+                isLoadingBusinessType = false
+            }
+        }
     }
     
     var body: some View {
@@ -36,7 +101,18 @@ struct TemplateSelectionView: View {
                 .padding(.top, 8)
                 
                 // Templates List
-                if filteredTemplates.isEmpty {
+                if isLoadingBusinessType {
+                    VStack(spacing: DesignSystem.Spacing.medium) {
+                        Spacer()
+                        ProgressView()
+                            .scaleEffect(1.2)
+                        Text("Loading templates...")
+                            .font(DesignSystem.Typography.callout)
+                            .foregroundColor(.secondary)
+                        Spacer()
+                    }
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                } else if filteredTemplates.isEmpty {
                     VStack(spacing: DesignSystem.Spacing.medium) {
                         Spacer()
                         Image(systemName: "doc.text.magnifyingglass")
@@ -80,6 +156,9 @@ struct TemplateSelectionView: View {
             .background(Color(.systemGroupedBackground))
             .navigationTitle("Select Template")
             .navigationBarTitleDisplayMode(.large)
+            .task {
+                await fetchBusinessType()
+            }
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
                     Button("Cancel") {
