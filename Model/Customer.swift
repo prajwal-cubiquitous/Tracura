@@ -15,15 +15,17 @@ struct Customer: Identifiable, Codable, Hashable {
     var email: String
     var phoneNumber: String?
     var businessName: String
+    var businessType: String?
     var location: String?
     var createdAt: Timestamp
     var updatedAt: Timestamp
 
-    init(name: String, email: String, phoneNumber: String? = nil, businessName: String, location: String? = nil) {
+    init(name: String, email: String, phoneNumber: String? = nil, businessName: String, businessType: String? = nil, location: String? = nil) {
         self.name = name
         self.email = email
         self.phoneNumber = phoneNumber
         self.businessName = businessName
+        self.businessType = businessType
         self.location = location
         self.createdAt = Timestamp()
         self.updatedAt = Timestamp()

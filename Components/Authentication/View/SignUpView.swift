@@ -18,10 +18,14 @@ struct SignUpView: View {
     @State private var confirmPassword: String = ""
     @State private var phoneNumber: String = ""
     @State private var businessName: String = ""
+    @State private var businessType: String = ""
     @State private var location: String = ""
     @State private var name: String = ""
     @State private var showConfirmPassword = false
     @State private var nameError: String?
+    
+    // Business Type options
+    private let businessTypes = ["Construction", "Interior Design", "Media"]
     
     @State private var isLoading = false
     @State private var errorMessage: String?
@@ -36,6 +40,7 @@ struct SignUpView: View {
         password.count >= 6 &&
         password == confirmPassword &&
         !businessName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty &&
+        !businessType.isEmpty &&
         !name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty &&
         !nameContainsNumbers(name)
     }
@@ -217,6 +222,57 @@ struct SignUpView: View {
                             keyboardType: .default
                         )
                         
+                        // Business Type (Required) - Dropdown
+                        VStack(alignment: .leading, spacing: DesignSystem.Spacing.small) {
+                            Text("Business Type")
+                                .font(.system(size: 16, weight: .semibold))
+                                .foregroundColor(.primary)
+                            
+                            Menu {
+                                ForEach(businessTypes, id: \.self) { type in
+                                    Button(action: {
+                                        HapticManager.selection()
+                                        businessType = type
+                                    }) {
+                                        HStack {
+                                            Text(type)
+                                            if businessType == type {
+                                                Spacer()
+                                                Image(systemName: "checkmark")
+                                            }
+                                        }
+                                    }
+                                }
+                            } label: {
+                                HStack(spacing: DesignSystem.Spacing.medium) {
+                                    Image(systemName: "briefcase.fill")
+                                        .font(.system(size: 18, weight: .medium))
+                                        .foregroundColor(.secondary)
+                                        .frame(width: 20)
+                                    
+                                    Text(businessType.isEmpty ? "Select business type" : businessType)
+                                        .font(.system(size: 18, weight: .medium))
+                                        .foregroundColor(businessType.isEmpty ? .secondary : .primary)
+                                    
+                                    Spacer()
+                                    
+                                    Image(systemName: "chevron.down")
+                                        .font(.system(size: 14, weight: .medium))
+                                        .foregroundColor(.secondary)
+                                }
+                                .padding(.horizontal, DesignSystem.Spacing.medium)
+                                .padding(.vertical, DesignSystem.Spacing.medium)
+                                .background(
+                                    RoundedRectangle(cornerRadius: 12)
+                                        .fill(Color(.systemBackground))
+                                        .overlay(
+                                            RoundedRectangle(cornerRadius: 12)
+                                                .stroke(businessType.isEmpty ? Color(.systemGray4) : Color.black, lineWidth: 2)
+                                        )
+                                )
+                            }
+                        }
+                        
                         // Phone Number (Optional)
                         VStack(alignment: .leading, spacing: DesignSystem.Spacing.small) {
                             HStack {
@@ -387,6 +443,7 @@ struct SignUpView: View {
                 email: trimmedEmail,
                 phoneNumber: trimmedPhone.isEmpty ? nil : trimmedPhone,
                 businessName: businessName.trimmingCharacters(in: .whitespacesAndNewlines),
+                businessType: businessType.isEmpty ? nil : businessType,
                 location: trimmedLocation.isEmpty ? nil : trimmedLocation
             )
             
