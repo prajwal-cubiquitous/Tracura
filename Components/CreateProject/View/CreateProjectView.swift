@@ -1269,11 +1269,47 @@ struct CreateProjectView: View {
     
     // MARK: - Section Views
     
+    // MARK: - Template Description Helper
+    private var templateDescription: String {
+        guard let projectType = viewModel.projectType else {
+            return "Standard template for residential building construction with common phases and departments"
+        }
+        
+        switch projectType {
+        case "Residential Building":
+            return "Standard template for residential building construction with common phases and departments"
+        case "Renovation":
+            return "Template for building renovation and remodeling projects with comprehensive phases and departments"
+        case "Commercial Office":
+            return "Template for commercial office space construction and fit-out with standard phases and departments"
+        case "Road Infrastructure":
+            return "Template for road construction and infrastructure projects with essential phases and departments"
+        case "Residential Interior Design":
+            return "Comprehensive interior design template for residential spaces including woodwork, false ceiling, and finishing"
+        case "Commercial Office Interior":
+            return "Complete interior design solution for modern commercial office spaces including workstations, meeting rooms, and common areas"
+        case "Restaurant & Cafe Interior":
+            return "Complete interior design for restaurant/cafe including dining area, kitchen layout, and ambiance creation"
+        case "Luxury Villa Interior":
+            return "Premium interior design for luxury villas including high-end finishes, custom furniture, and smart home integration"
+        case "Ad Film Production":
+            return "Template for TV Commercial/Digital Ad Film production including pre-production, shoot, and post-production"
+        case "Corporate Video Production":
+            return "Professional corporate video production including company profile, product showcase, and testimonial videos"
+        case "Event Photography & Videography":
+            return "Complete event coverage package including photography, videography, and live streaming for corporate events, weddings, and conferences"
+        case "Social Media Content Package":
+            return "Complete social media content creation package including photos, videos, reels, and stories for Instagram, Facebook, and YouTube"
+        default:
+            return "Standard template with common phases and departments"
+        }
+    }
+    
     private var projectDetailsSection: some View {
         Section {
             VStack(spacing: DesignSystem.Spacing.medium) {
                 // Template description
-                Text("Standard template for residential building construction with common phases and departments")
+                Text(templateDescription)
                     .font(DesignSystem.Typography.footnote)
                     .foregroundColor(.secondary)
                     .multilineTextAlignment(.leading)
@@ -1722,7 +1758,7 @@ struct CreateProjectView: View {
         FormSectionView(header: SectionHeaderLabel(title: "Project Details", icon: "building.2.crop.circle")) {
             VStack(spacing: DesignSystem.Spacing.medium) {
                 // Template description
-                Text("Standard template for residential building construction with common phases and departments")
+                Text(templateDescription)
                     .font(DesignSystem.Typography.footnote)
                     .foregroundColor(.secondary)
                     .multilineTextAlignment(.leading)
