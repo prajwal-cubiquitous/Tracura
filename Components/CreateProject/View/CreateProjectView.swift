@@ -33,8 +33,11 @@ struct LineItemRowView: View {
             }) {
                     Image(systemName: "square.fill.text.grid.1x2")
                         .font(.system(size: 16, weight: .medium))
-                        .foregroundColor(.blue)
+                        .foregroundColor(.white)
                         .symbolRenderingMode(.hierarchical)
+                        .padding(6)
+                        .background(Color.blue)
+                        .clipShape(Circle())
                 }
                 .buttonStyle(.plain)
                     
@@ -2289,8 +2292,11 @@ struct PhaseCardView: View {
                         HStack(spacing: DesignSystem.Spacing.small) {
                             Image(systemName: "square.grid.3x3.square")
                                 .font(.system(size: 14, weight: .medium))
-                                .foregroundColor(.blue)
+                                .foregroundColor(.white)
                                 .symbolRenderingMode(.hierarchical)
+                                .padding(5)
+                                .background(Color.blue)
+                                .clipShape(Circle())
                             Text("Departments")
                                 .font(DesignSystem.Typography.subheadline)
                                 .foregroundColor(.secondary)
@@ -2548,9 +2554,12 @@ private struct SectionHeaderLabel: View {
     var body: some View {
         HStack(spacing: DesignSystem.Spacing.small) {
             Image(systemName: icon)
-                .foregroundColor(.blue)
+                .foregroundColor(.white)
                 .font(DesignSystem.Typography.callout)
                 .symbolRenderingMode(.hierarchical)
+                .padding(6)
+                .background(Color.blue)
+                .clipShape(Circle())
             
             Text(title)
                 .sectionHeaderStyle()
@@ -2591,8 +2600,11 @@ private struct DepartmentInputRow: View {
                     HStack(spacing: 4) {
                         Image(systemName: "square.grid.3x3.square")
                             .font(.system(size: 9, weight: .medium))
-                            .foregroundColor(.blue)
+                            .foregroundColor(.white)
                             .symbolRenderingMode(.hierarchical)
+                            .padding(4)
+                            .background(Color.blue)
+                            .clipShape(Circle())
                         Text("Department")
                             .font(.system(size: 10, weight: .medium))
                             .foregroundColor(.secondary)
@@ -3367,7 +3379,10 @@ private struct CreateProjectAddDepartmentSheet: View {
                             HStack(spacing: DesignSystem.Spacing.small) {
                                 Image(systemName: "square.fill.text.grid.1x2")
                                     .font(.system(size: 16, weight: .medium))
-                                    .foregroundColor(.blue)
+                                    .foregroundColor(.white)
+                                    .padding(6)
+                                    .background(Color.blue)
+                                    .clipShape(Circle())
                                 Text("Add Line Item")
                                     .font(DesignSystem.Typography.callout)
                                     .fontWeight(.medium)
