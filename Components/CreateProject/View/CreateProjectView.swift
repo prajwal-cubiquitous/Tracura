@@ -1204,6 +1204,29 @@ struct CreateProjectView: View {
                 }
                 .id("projectName")
                 
+                // Description
+                VStack(alignment: .leading, spacing: DesignSystem.Spacing.small) {
+                    Text("Description")
+                        .font(DesignSystem.Typography.headline)
+                        .foregroundColor(.primary)
+                    
+                    TextEditor(text: $viewModel.projectDescription)
+                        .frame(height: 100)
+                        .font(DesignSystem.Typography.body)
+                        .padding(DesignSystem.Spacing.small)
+                        .background(Color(.tertiarySystemGroupedBackground))
+                        .cornerRadius(DesignSystem.CornerRadius.field)
+                        .overlay(
+                            RoundedRectangle(cornerRadius: DesignSystem.CornerRadius.field)
+                                .stroke(viewModel.projectDescriptionError != nil ? Color.red : Color(.separator), lineWidth: viewModel.projectDescriptionError != nil ? 1 : 0.5)
+                        )
+                    
+                    if let error = viewModel.projectDescriptionError {
+                        InlineErrorMessage(message: error)
+                    }
+                }
+                .id("projectDescription")
+                
                 // Client
                 VStack(alignment: .leading, spacing: DesignSystem.Spacing.small) {
                     Text("Client")
@@ -1579,6 +1602,32 @@ struct CreateProjectView: View {
                 Divider()
                 
                 VStack(alignment: .leading, spacing: DesignSystem.Spacing.small) {
+                    Text("Description")
+                        .font(DesignSystem.Typography.headline)
+                        .foregroundColor(.primary)
+                    
+                    TextEditor(text: $viewModel.projectDescription)
+                        .frame(height: 100)
+                        .font(DesignSystem.Typography.body)
+                        .padding(DesignSystem.Spacing.small)
+                        .background(Color(.tertiarySystemGroupedBackground))
+                        .cornerRadius(DesignSystem.CornerRadius.field)
+                        .overlay(
+                            RoundedRectangle(cornerRadius: DesignSystem.CornerRadius.field)
+                                .stroke(viewModel.projectDescriptionError != nil ? Color.red : Color(.separator), lineWidth: viewModel.projectDescriptionError != nil ? 1 : 0.5)
+                        )
+                    
+                    if let error = viewModel.projectDescriptionError {
+                        InlineErrorMessage(message: error)
+                    }
+                }
+                .id("projectDescription")
+                .padding(.horizontal, DesignSystem.Spacing.medium)
+                .padding(.vertical, DesignSystem.Spacing.small)
+                
+                Divider()
+                
+                VStack(alignment: .leading, spacing: DesignSystem.Spacing.small) {
                     Text("Client")
                         .font(DesignSystem.Typography.headline)
                         .foregroundColor(.primary)
@@ -1668,32 +1717,6 @@ struct CreateProjectView: View {
                     .background(Color(.tertiarySystemGroupedBackground))
                     .cornerRadius(DesignSystem.CornerRadius.field)
                 }
-                .padding(.horizontal, DesignSystem.Spacing.medium)
-                .padding(.vertical, DesignSystem.Spacing.small)
-                
-                Divider()
-                
-                VStack(alignment: .leading, spacing: DesignSystem.Spacing.small) {
-                    Text("Description")
-                        .font(DesignSystem.Typography.headline)
-                        .foregroundColor(.primary)
-                    
-                    TextEditor(text: $viewModel.projectDescription)
-                        .frame(height: 100)
-                        .font(DesignSystem.Typography.body)
-                        .padding(DesignSystem.Spacing.small)
-                        .background(Color(.tertiarySystemGroupedBackground))
-                        .cornerRadius(DesignSystem.CornerRadius.field)
-                        .overlay(
-                            RoundedRectangle(cornerRadius: DesignSystem.CornerRadius.field)
-                                .stroke(viewModel.projectDescriptionError != nil ? Color.red : Color(.separator), lineWidth: viewModel.projectDescriptionError != nil ? 1 : 0.5)
-                        )
-                    
-                    if let error = viewModel.projectDescriptionError {
-                        InlineErrorMessage(message: error)
-                    }
-                }
-                .id("projectDescription")
                 .padding(.horizontal, DesignSystem.Spacing.medium)
                 .padding(.vertical, DesignSystem.Spacing.small)
             }
