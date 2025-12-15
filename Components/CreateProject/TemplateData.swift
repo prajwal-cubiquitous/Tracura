@@ -1297,6 +1297,14 @@ struct TemplateDataStore {
         }
     }
     
+    /// Get template names (titles) for a specific business type
+    /// - Parameter businessType: The business type ("Construction", "Interior Design", "Media")
+    /// - Returns: Array of template names (titles) in the order defined in businessTypeMapping
+    static func getTemplateNamesByBusinessType(_ businessType: String?) -> [String] {
+        let templates = getTemplatesByBusinessType(businessType)
+        return templates.map { $0.title }
+    }
+    
     // MARK: - Get Default UOM based on ItemType and Item
     static func getDefaultUOM(itemType: String, item: String, spec: String = "") -> String {
         // If UOM options are available, get the first/default one

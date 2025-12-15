@@ -23,6 +23,7 @@ struct Project: Identifiable, Codable, Equatable, Hashable {
     let client: String
     let location: String
     let currency: String
+    let projectType: String? // Template name used for this project (e.g., "Residential Building", "Renovation")
     let budget: Double // This remains the total budget stored in Firestore
     let estimatedBudget: Double? // Original estimated budget when project was created (constant, never changes)
     let status: String
@@ -108,6 +109,7 @@ extension Project {
                 client: "",
                 location: "",
                 currency: "INR",
+                projectType: nil,
                 // The total budget MUST match the sum of the categories
                 budget: 0000,
                 estimatedBudget: nil,
@@ -136,6 +138,7 @@ extension Project {
                 client: "Client A",
                 location: "Mumbai",
                 currency: "INR",
+                projectType: "Media Production",
                 // The total budget MUST match the sum of the categories
                 budget: 50000,
                 estimatedBudget: 50000,
@@ -165,6 +168,7 @@ extension Project {
                 client: "Client B",
                 location: "Bengaluru",
                 currency: "INR",
+                projectType: "Commercial Office",
                 budget: 120000,
                 estimatedBudget: 120000,
                 status: "COMPLETED",

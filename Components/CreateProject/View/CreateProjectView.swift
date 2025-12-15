@@ -11,6 +11,8 @@ import SwiftUI
 import UniformTypeIdentifiers
 import PhotosUI
 import AVFoundation
+import FirebaseFirestore
+import FirebaseAuth
 
 // MARK: - Note: DepartmentItemData, DepartmentLineItem, and ContractorMode are defined in Model/DepartmentItemData.swift
 
@@ -866,6 +868,9 @@ struct CreateProjectView: View {
     @State private var showingAddDepartmentSheet = false
     @State private var selectedPhaseForDepartment: UUID? = nil
     @State private var showingAddPhaseSheet = false
+    @State private var businessType: String? = nil
+    @State private var availableTemplateNames: [String] = []
+    @State private var isLoadingBusinessType: Bool = true
     
     let projectToEdit: Project? // Optional project for editing
     let template: ProjectTemplate? // Optional template for new project
@@ -881,6 +886,73 @@ struct CreateProjectView: View {
         ("€ Euro", "EUR"),
         ("£ British Pound", "GBP")
     ]
+    
+    // MARK: - Fetch Business Type
+    private func fetchBusinessType() async {
+        guard projectToEdit == nil else {
+            // Don't fetch business type for editing projects
+            isLoadingBusinessType = false
+            return
+        }
+        
+        do {
+            guard let currentUser = Auth.auth().currentUser else {
+                print("⚠️ CreateProjectView: No current user found")
+                await MainActor.run {
+                    isLoadingBusinessType = false
+                }
+                return
+            }
+            
+            var customerId: String
+            
+            // Determine customer ID based on authentication method
+            if let phoneNumber = currentUser.phoneNumber {
+                // Phone number user (OTP) - fetch ownerID from users collection
+                let userDoc = try await Firestore.firestore()
+                    .collection("users")
+                    .document(currentUser.uid)
+                    .getDocument()
+                
+                if let userData = userDoc.data(),
+                   let ownerID = userData["ownerID"] as? String {
+                    customerId = ownerID
+                } else {
+                    customerId = currentUser.uid
+                }
+            } else {
+                // Email user (admin) - use UID as customer ID
+                customerId = currentUser.uid
+            }
+            
+            // Fetch customer document
+            let customerDoc = try await Firestore.firestore()
+                .collection("customers")
+                .document(customerId)
+                .getDocument()
+            
+            if let customerData = customerDoc.data(),
+               let businessTypeValue = customerData["businessType"] as? String {
+                await MainActor.run {
+                    self.businessType = businessTypeValue
+                    // Update available template names based on business type
+                    self.availableTemplateNames = TemplateDataStore.getTemplateNamesByBusinessType(businessTypeValue)
+                    print("✅ CreateProjectView: Fetched businessType: \(businessTypeValue), available templates: \(self.availableTemplateNames)")
+                    isLoadingBusinessType = false
+                }
+            } else {
+                print("⚠️ CreateProjectView: businessType not found in customer document")
+                await MainActor.run {
+                    isLoadingBusinessType = false
+                }
+            }
+        } catch {
+            print("❌ CreateProjectView: Error fetching businessType: \(error.localizedDescription)")
+            await MainActor.run {
+                isLoadingBusinessType = false
+            }
+        }
+    }
     
     var body: some View {
         NavigationView {
@@ -932,6 +1004,10 @@ struct CreateProjectView: View {
                             }
                         }
                     }
+                }
+                .task {
+                    // Fetch business type and update available template names
+                    await fetchBusinessType()
                 }
                 .onAppear {
                     viewModel.setAuthService(authService)
@@ -1151,35 +1227,42 @@ struct CreateProjectView: View {
     @ViewBuilder
     private var draftManagementSection: some View {
         if !viewModel.drafts.isEmpty || viewModel.hasAnyData {
-            VStack(spacing: DesignSystem.Spacing.small) {
-                // View Drafts Button (only show if drafts exist)
-                if !viewModel.drafts.isEmpty {
-                    Button(action: {
-                        HapticManager.selection()
-                        viewModel.showDraftList = true
-                    }) {
-                        HStack {
-                            Image(systemName: "doc.text.fill")
-                                .font(.system(size: 16, weight: .medium))
-                            Text("View Draft Project Creations")
-                                .font(DesignSystem.Typography.subheadline)
-                                .fontWeight(.medium)
-                            Spacer()
-                            Image(systemName: "chevron.right")
-                                .font(.system(size: 14, weight: .medium))
-                                .foregroundColor(.secondary)
-                        }
-                        .foregroundColor(.blue)
-                        .padding(.horizontal, DesignSystem.Spacing.medium)
-                        .padding(.vertical, DesignSystem.Spacing.small)
-                        .background(Color.blue.opacity(0.1))
-                        .cornerRadius(DesignSystem.CornerRadius.medium)
+            // View Drafts Button (only show if drafts exist)
+            if !viewModel.drafts.isEmpty {
+                Button(action: {
+                    HapticManager.selection()
+                    viewModel.showDraftList = true
+                }) {
+                    HStack(spacing: 10) {
+                        Image(systemName: "doc.on.doc.fill")
+                            .font(.system(size: 15, weight: .semibold))
+                            .foregroundColor(.blue)
+                        
+                        Text("View Projects in Draft")
+                            .font(.system(size: 15, weight: .semibold))
+                            .foregroundColor(.blue)
+                            .lineLimit(2)
+                            .multilineTextAlignment(.leading)
+                        
+                        Spacer()
+                        
+                        Image(systemName: "chevron.right")
+                            .font(.system(size: 13, weight: .semibold))
+                            .foregroundColor(.blue.opacity(0.6))
+                    }
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 12)
+                    .background {
+                        RoundedRectangle(cornerRadius: 12)
+                            .fill(Color.blue.opacity(0.08))
+                            .overlay {
+                                RoundedRectangle(cornerRadius: 12)
+                                    .stroke(Color.blue.opacity(0.2), lineWidth: 0.5)
+                            }
                     }
                 }
-                
+                .buttonStyle(.plain)
             }
-            .padding(.horizontal, DesignSystem.Spacing.medium)
-            .padding(.top, DesignSystem.Spacing.small)
         }
     }
     
@@ -1504,6 +1587,66 @@ struct CreateProjectView: View {
             
             // MARK: - Draft Management Section
             draftManagementSection
+            
+            // MARK: - Project Type Dropdown (only for new projects)
+            if projectToEdit == nil && !availableTemplateNames.isEmpty {
+                HStack(spacing: 12) {
+                    
+                    
+                    Spacer()
+                    
+                    Menu {
+                        ForEach(availableTemplateNames, id: \.self) { templateName in
+                            Button(action: {
+                                HapticManager.selection()
+                                viewModel.projectType = templateName
+                            }) {
+                                HStack {
+                                    Text(templateName)
+                                        .font(.system(size: 15, weight: .medium))
+                                    Spacer()
+                                    if viewModel.projectType == templateName {
+                                        Image(systemName: "checkmark")
+                                            .font(.system(size: 14, weight: .semibold))
+                                            .foregroundColor(.blue)
+                                    }
+                                }
+                            }
+                        }
+                    } label: {
+                        HStack(spacing: 8) {
+                            Image(systemName: "slider.horizontal.2.square.on.square")
+                                .font(.system(size: 14, weight: .semibold))
+                                .foregroundColor(viewModel.projectType != nil ? .blue : .secondary)
+                            
+                            Text(viewModel.projectType ?? "Select Type")
+                                .font(.system(size: 15, weight: .semibold))
+                                .foregroundColor(viewModel.projectType != nil ? .primary : .secondary)
+                            
+                            Image(systemName: "chevron.down")
+                                .font(.system(size: 11, weight: .semibold))
+                                .foregroundColor(.secondary.opacity(0.7))
+                        }
+                        .padding(.horizontal, 14)
+                        .padding(.vertical, 12)
+                        .background(
+                           Group {
+                               LinearGradient(
+                                   colors: [
+                                       Color.blue.opacity(0.15),
+                                       Color.purple.opacity(0.15)
+                                   ],
+                                   startPoint: .topLeading,
+                                   endPoint: .bottomTrailing
+                               )
+                           }
+                       )
+                       .clipShape(RoundedRectangle(cornerRadius: 14))                    }
+                    .buttonStyle(.plain)
+                }
+                .padding(.horizontal, DesignSystem.Spacing.medium)
+                .padding(.top, DesignSystem.Spacing.small)
+            }
             
             // MARK: - Project Information
             projectDetailsSectionScrollView
@@ -2197,17 +2340,31 @@ struct PhaseCardView: View {
 
                         TextField("Enter phase name", text: $phase.phaseName)
                             .font(.system(size: 16, weight: .medium))
+                            .foregroundColor(.primary)
                             .padding(.horizontal, DesignSystem.Spacing.large)
                             .padding(.vertical, DesignSystem.Spacing.medium)
                             .background(
-                                LinearGradient(
-                                    colors: [
-                                        Color(.tertiarySystemGroupedBackground),
-                                        Color(.tertiarySystemGroupedBackground).opacity(0.8)
-                                    ],
-                                    startPoint: .topLeading,
-                                    endPoint: .bottomTrailing
-                                )
+                                Group {
+                                    if viewModel.phaseNameError(for: phase.id) != nil {
+                                        // Error state - red gradient
+                                        LinearGradient(
+                                            colors: [.red.opacity(0.1), .red.opacity(0.05)],
+                                            startPoint: .topLeading,
+                                            endPoint: .bottomTrailing
+                                        )
+                                    } else {
+                                        // Normal state - green, blue, purple gradient
+                                        LinearGradient(
+                                            colors: [
+                                                Color.green.opacity(0.15),
+                                                Color.blue.opacity(0.15),
+                                                Color.purple.opacity(0.15)
+                                            ],
+                                            startPoint: .topLeading,
+                                            endPoint: .bottomTrailing
+                                        )
+                                    }
+                                }
                             )
                             .clipShape(RoundedRectangle(cornerRadius: 14))
                             .overlay(
@@ -2221,13 +2378,14 @@ struct PhaseCardView: View {
                                             )
                                             : LinearGradient(
                                                 colors: [
-                                                    Color(.separator).opacity(0.3),
-                                                    Color(.separator).opacity(0.1)
+                                                    Color.green.opacity(0.4),
+                                                    Color.blue.opacity(0.4),
+                                                    Color.purple.opacity(0.4)
                                                 ],
                                                 startPoint: .topLeading,
                                                 endPoint: .bottomTrailing
                                             ),
-                                        lineWidth: viewModel.phaseNameError(for: phase.id) != nil ? 2 : 1
+                                        lineWidth: viewModel.phaseNameError(for: phase.id) != nil ? 2 : 1.5
                                     )
                             )
                         
@@ -3556,17 +3714,31 @@ private struct CreateProjectAddPhaseSheet: View {
                                 .autocorrectionDisabled()
                                 .focused($focusedField, equals: .phaseName)
                                 .font(.system(size: 16, weight: .medium))
+                                .foregroundColor(.primary)
                                 .padding(.horizontal, DesignSystem.Spacing.large)
                                 .padding(.vertical, DesignSystem.Spacing.medium)
                                 .background(
-                                    LinearGradient(
-                                        colors: [
-                                            Color(.tertiarySystemGroupedBackground),
-                                            Color(.tertiarySystemGroupedBackground).opacity(0.8)
-                                        ],
-                                        startPoint: .topLeading,
-                                        endPoint: .bottomTrailing
-                                    )
+                                    Group {
+                                        if phaseNameError != nil {
+                                            // Error state - red gradient
+                                            LinearGradient(
+                                                colors: [.red.opacity(0.1), .red.opacity(0.05)],
+                                                startPoint: .topLeading,
+                                                endPoint: .bottomTrailing
+                                            )
+                                        } else {
+                                            // Normal state - green, blue, purple gradient
+                                            LinearGradient(
+                                                colors: [
+                                                    Color.green.opacity(0.15),
+                                                    Color.blue.opacity(0.15),
+                                                    Color.purple.opacity(0.15)
+                                                ],
+                                                startPoint: .topLeading,
+                                                endPoint: .bottomTrailing
+                                            )
+                                        }
+                                    }
                                 )
                                 .clipShape(RoundedRectangle(cornerRadius: 14))
                                 .overlay(
@@ -3580,13 +3752,14 @@ private struct CreateProjectAddPhaseSheet: View {
                                                 )
                                                 : LinearGradient(
                                                     colors: [
-                                                        Color(.separator).opacity(0.3),
-                                                        Color(.separator).opacity(0.1)
+                                                        Color.green.opacity(0.4),
+                                                        Color.blue.opacity(0.4),
+                                                        Color.purple.opacity(0.4)
                                                     ],
                                                     startPoint: .topLeading,
                                                     endPoint: .bottomTrailing
                                                 ),
-                                            lineWidth: phaseNameError != nil ? 2 : 1
+                                            lineWidth: phaseNameError != nil ? 2 : 1.5
                                         )
                                 )
                                 .onChange(of: phaseName) { _, _ in

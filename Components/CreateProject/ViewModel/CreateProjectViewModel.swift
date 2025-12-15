@@ -77,6 +77,7 @@ struct CreateProjectFormState: Codable {
     var location: String
     var plannedDate: Date
     var currency: String
+    var projectType: String? // Template name used for this project
     var allowTemplateOverrides: Bool
     var phases: [PhaseItem]
     var selectedProjectManagerId: String? // phoneNumber or email
@@ -132,6 +133,7 @@ class CreateProjectViewModel: ObservableObject {
     @Published var location: String = ""
     @Published var plannedDate: Date = Date() // Planned start date - project becomes ACTIVE when this date arrives
     @Published var currency: String = "INR" // Only INR exposed in UI for now
+    @Published var projectType: String? = nil // Template name (e.g., "Residential Building", "Renovation")
     @Published var phases: [PhaseItem] = {
         var initialPhase = PhaseItem(phaseNumber: 1)
         initialPhase.hasStartDate = true
@@ -950,6 +952,7 @@ class CreateProjectViewModel: ObservableObject {
             client = project.client
             location = project.location
             currency = project.currency
+            projectType = project.projectType // Restore projectType
             
             // Parse planned date
             if let plannedDateStr = project.plannedDate {
@@ -1087,6 +1090,7 @@ class CreateProjectViewModel: ObservableObject {
         currency = template.currency
         plannedDate = template.plannedDate
         projectDescription = ""
+        projectType = template.name // Auto-fill projectType with template name
         allowTemplateOverrides = template.allowTemplateOverrides
         
         // Clear team selections
@@ -1343,6 +1347,11 @@ class CreateProjectViewModel: ObservableObject {
                         "updatedAt": Timestamp()
                     ]
                     
+                    // Add projectType if set
+                    if let projectType = projectType {
+                        updateData["projectType"] = projectType
+                    }
+                    
                     // Add handoverDate and initialHandOverDate if calculated
                     if let handoverDateStr = handoverDateStr {
                         updateData["handoverDate"] = handoverDateStr
@@ -1375,6 +1384,7 @@ class CreateProjectViewModel: ObservableObject {
                         client: client,
                         location: location,
                         currency: currency,
+                        projectType: projectType,
                         budget: totalBudget,
                         estimatedBudget: totalBudget, // Set estimated budget to total budget on creation (constant)
                         status: initialStatus,
@@ -1907,6 +1917,7 @@ class CreateProjectViewModel: ObservableObject {
             location: location,
             plannedDate: plannedDate,
             currency: currency,
+            projectType: projectType,
             allowTemplateOverrides: allowTemplateOverrides,
             phases: phasesToSave,
             selectedProjectManagerId: managerId,
@@ -1936,6 +1947,7 @@ class CreateProjectViewModel: ObservableObject {
         location = formState.location
         plannedDate = formState.plannedDate
         currency = formState.currency
+        projectType = formState.projectType
         allowTemplateOverrides = formState.allowTemplateOverrides
         phases = formState.phases
         attachmentURL = formState.attachmentURL
@@ -2071,6 +2083,7 @@ class CreateProjectViewModel: ObservableObject {
                     location: location,
                     plannedDate: plannedDate,
                     currency: currency,
+                    projectType: projectType,
                     allowTemplateOverrides: allowTemplateOverrides,
                     phases: phasesToSave,
                     selectedProjectManagerId: managerId,
@@ -2213,6 +2226,7 @@ class CreateProjectViewModel: ObservableObject {
         location = formState.location
         plannedDate = formState.plannedDate
         currency = formState.currency
+        projectType = formState.projectType
         allowTemplateOverrides = formState.allowTemplateOverrides
         phases = formState.phases
         attachmentURL = formState.attachmentURL
