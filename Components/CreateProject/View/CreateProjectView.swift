@@ -2334,10 +2334,10 @@ struct PhaseCardView: View {
                     .id("phase_\(phase.id)_departments")
                     .padding(.horizontal, DesignSystem.Spacing.medium)
                     
-                    // Phase Budget Summary
-                    phaseBudgetView(for: phase.id)
-                        .padding(.horizontal, DesignSystem.Spacing.medium)
-                        .padding(.top, DesignSystem.Spacing.small)
+//                    // Phase Budget Summary
+//                    phaseBudgetView(for: phase.id)
+//                        .padding(.horizontal, DesignSystem.Spacing.medium)
+//                        .padding(.top, DesignSystem.Spacing.small)
                 }
                 .transition(.opacity.combined(with: .move(edge: .top)))
             }
@@ -2600,15 +2600,30 @@ private struct DepartmentInputRow: View {
                     HStack(spacing: 4) {
                         Image(systemName: "square.grid.3x3.square")
                             .font(.system(size: 9, weight: .medium))
-                            .foregroundColor(.white)
+                            .foregroundColor(.blue)
                             .symbolRenderingMode(.hierarchical)
                             .padding(4)
-                            .background(Color.blue)
+//                            .background(Color.blue)
                             .clipShape(Circle())
                         Text("Department")
                             .font(.system(size: 10, weight: .medium))
                             .foregroundColor(.secondary)
                             .textCase(.uppercase)
+                        if canDelete {
+                            Button(action: {
+                                HapticManager.selection()
+                                onDelete()
+                            }) {
+                                Image(systemName: "trash")
+                                    .foregroundColor(.red)
+                            .font(.system(size: 9))
+                            .frame(width: 14, height: 14)
+                                    .contentShape(Rectangle())
+                            }
+                            .buttonStyle(.plain)
+                            .accessibilityLabel("Delete department")
+                            .accessibilityHint("Removes this department from the phase")
+                        }
                     }
                     
                     TextField("e.g., Marketing", text: $item.name)
@@ -2632,22 +2647,22 @@ private struct DepartmentInputRow: View {
                     .font(.system(size: 10, weight: .medium))
                             .foregroundColor(.secondary)
                             .textCase(.uppercase)
-                        
-                        if canDelete {
-                            Button(action: {
-                                HapticManager.selection()
-                                onDelete()
-                            }) {
-                                Image(systemName: "trash")
-                                    .foregroundColor(.red)
-                            .font(.system(size: 9))
-                            .frame(width: 14, height: 14)
-                                    .contentShape(Rectangle())
-                            }
-                            .buttonStyle(.plain)
-                            .accessibilityLabel("Delete department")
-                            .accessibilityHint("Removes this department from the phase")
-                        }
+                                        
+//                        if canDelete {
+//                            Button(action: {
+//                                HapticManager.selection()
+//                                onDelete()
+//                            }) {
+//                                Image(systemName: "trash")
+//                                    .foregroundColor(.red)
+//                            .font(.system(size: 9))
+//                            .frame(width: 14, height: 14)
+//                                    .contentShape(Rectangle())
+//                            }
+//                            .buttonStyle(.plain)
+//                            .accessibilityLabel("Delete department")
+//                            .accessibilityHint("Removes this department from the phase")
+//                        }
                     }
                     
                     Text(totalDepartmentBudget.formattedCurrency)
