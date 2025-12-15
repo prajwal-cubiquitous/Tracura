@@ -1250,7 +1250,7 @@ struct CreateProjectView: View {
                             .font(.system(size: 13, weight: .semibold))
                             .foregroundColor(.blue.opacity(0.6))
                     }
-                    .padding(.horizontal, 16)
+                    .padding(.horizontal, 14)
                     .padding(.vertical, 12)
                     .background {
                         RoundedRectangle(cornerRadius: 12)
@@ -1260,6 +1260,7 @@ struct CreateProjectView: View {
                                     .stroke(Color.blue.opacity(0.2), lineWidth: 0.5)
                             }
                     }
+                    .padding(.horizontal, 14)
                 }
                 .buttonStyle(.plain)
             }
