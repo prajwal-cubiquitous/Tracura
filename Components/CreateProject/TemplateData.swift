@@ -1273,6 +1273,7 @@ struct TemplateDataStore {
         }
         
         // Filter templates by IDs from the mapping
+        // Preserve the order from businessTypeMapping array instead of sorting alphabetically
         return templateIds.compactMap { templateId in
             guard let templateDict = templateData[templateId],
                   let id = templateDict["id"] as? String,
@@ -1294,7 +1295,6 @@ struct TemplateDataStore {
                 departmentsCount: departmentsCount
             )
         }
-        .sorted { $0.title < $1.title }
     }
     
     // MARK: - Get Default UOM based on ItemType and Item
