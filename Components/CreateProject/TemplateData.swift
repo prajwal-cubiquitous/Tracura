@@ -34,9 +34,10 @@ struct TemplateDataStore {
     static let businessTypeMapping: [String: [String]] = [
         "Construction": [
             "residential_building",
+            "renovation",
             "commercial_office",
             "road_infrastructure",
-            "renovation"
+            
         ],
         "Interior Design": [
             "interior_design_residential",
