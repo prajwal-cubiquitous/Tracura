@@ -26,14 +26,14 @@ struct LineItemRowView: View {
         VStack(alignment: .leading, spacing: DesignSystem.Spacing.extraSmall) {
             // First Line: Edit Icon + Item Details
             HStack(spacing: DesignSystem.Spacing.small) {
-                // Edit Icon - Compact
+                // Line Item Icon - Compact
             Button(action: {
                 HapticManager.selection()
                 onEdit()
             }) {
-                    Image(systemName: "pencil.circle.fill")
+                    Image(systemName: "square.fill.text.grid.1x2")
                         .font(.system(size: 16, weight: .medium))
-                        .foregroundColor(.orange)
+                        .foregroundColor(.blue)
                         .symbolRenderingMode(.hierarchical)
                 }
                 .buttonStyle(.plain)
@@ -1187,7 +1187,7 @@ struct CreateProjectView: View {
             VStack(spacing: DesignSystem.Spacing.medium) {
                 // Template description
                 Text("Standard template for residential building construction with common phases and departments")
-                    .font(DesignSystem.Typography.subheadline)
+                    .font(DesignSystem.Typography.footnote)
                     .foregroundColor(.secondary)
                     .multilineTextAlignment(.leading)
                     .frame(maxWidth: .infinity, alignment: .leading)
@@ -1343,7 +1343,7 @@ struct CreateProjectView: View {
             }
             .padding(.vertical, DesignSystem.Spacing.small)
         } header: {
-            SectionHeaderLabel(title: "Project Details", icon: "folder.badge.plus")
+            SectionHeaderLabel(title: "Project Details", icon: "building.2.crop.circle")
         }
     }
     
@@ -1395,7 +1395,7 @@ struct CreateProjectView: View {
             }
             .padding(.vertical, DesignSystem.Spacing.small)
         } header: {
-            SectionHeaderLabel(title: "Project Phases", icon: "arrow.triangle.2.circlepath")
+            SectionHeaderLabel(title: "Project Phases", icon: "square.3.layers.3d")
         } footer: {
             budgetFooterView
         }
@@ -1517,8 +1517,8 @@ struct CreateProjectView: View {
             // MARK: - Submit Action
             submitSectionScrollView
         }
-        .padding(.horizontal, DesignSystem.Spacing.medium)
-        .padding(.vertical, DesignSystem.Spacing.medium)
+        .padding(.horizontal, DesignSystem.Spacing.extraSmall)
+        .padding(.vertical, DesignSystem.Spacing.small)
     }
     
     // MARK: - Rejection Banner Helpers
@@ -1572,11 +1572,11 @@ struct CreateProjectView: View {
     // MARK: - ScrollView Compatible Sections
     
     private var projectDetailsSectionScrollView: some View {
-        FormSectionView(header: SectionHeaderLabel(title: "Project Details", icon: "folder.badge.plus")) {
+        FormSectionView(header: SectionHeaderLabel(title: "Project Details", icon: "building.2.crop.circle")) {
             VStack(spacing: DesignSystem.Spacing.medium) {
                 // Template description
                 Text("Standard template for residential building construction with common phases and departments")
-                    .font(DesignSystem.Typography.subheadline)
+                    .font(DesignSystem.Typography.footnote)
                     .foregroundColor(.secondary)
                     .multilineTextAlignment(.leading)
                     .frame(maxWidth: .infinity, alignment: .leading)
@@ -1743,7 +1743,7 @@ struct CreateProjectView: View {
     }
     
     private var phasesSectionScrollView: some View {
-        FormSectionView(header: SectionHeaderLabel(title: "Project Phases", icon: "arrow.triangle.2.circlepath")) {
+        FormSectionView(header: SectionHeaderLabel(title: "Project Phases", icon: "square.3.layers.3d")) {
             VStack(spacing: DesignSystem.Spacing.large) {
                 ForEach(viewModel.phases) { phase in
                     PhaseCardView(
@@ -2286,9 +2286,15 @@ struct PhaseCardView: View {
 
                     // Departments
                     VStack(alignment: .leading, spacing: 12) {
-                        Text("Departments")
-                            .font(DesignSystem.Typography.subheadline)
-                            .foregroundColor(.secondary)
+                        HStack(spacing: DesignSystem.Spacing.small) {
+                            Image(systemName: "square.grid.3x3.square")
+                                .font(.system(size: 14, weight: .medium))
+                                .foregroundColor(.blue)
+                                .symbolRenderingMode(.hierarchical)
+                            Text("Departments")
+                                .font(DesignSystem.Typography.subheadline)
+                                .foregroundColor(.secondary)
+                        }
 
                         ForEach($phase.departments) { $dept in
                             DepartmentInputRow(
@@ -2542,7 +2548,7 @@ private struct SectionHeaderLabel: View {
     var body: some View {
         HStack(spacing: DesignSystem.Spacing.small) {
             Image(systemName: icon)
-                .foregroundColor(.accentColor)
+                .foregroundColor(.blue)
                 .font(DesignSystem.Typography.callout)
                 .symbolRenderingMode(.hierarchical)
             
@@ -2582,10 +2588,16 @@ private struct DepartmentInputRow: View {
     
     private var departmentNameField: some View {
         VStack(alignment: .leading, spacing: 2) {
-                    Text("Department")
-                .font(.system(size: 10, weight: .medium))
-                        .foregroundColor(.secondary)
-                        .textCase(.uppercase)
+                    HStack(spacing: 4) {
+                        Image(systemName: "square.grid.3x3.square")
+                            .font(.system(size: 9, weight: .medium))
+                            .foregroundColor(.blue)
+                            .symbolRenderingMode(.hierarchical)
+                        Text("Department")
+                            .font(.system(size: 10, weight: .medium))
+                            .foregroundColor(.secondary)
+                            .textCase(.uppercase)
+                    }
                     
                     TextField("e.g., Marketing", text: $item.name)
                 .font(.system(size: 14))
@@ -3353,8 +3365,9 @@ private struct CreateProjectAddDepartmentSheet: View {
                             showingLineItemSheet = true
                         }) {
                             HStack(spacing: DesignSystem.Spacing.small) {
-                                Image(systemName: "plus.circle.fill")
+                                Image(systemName: "square.fill.text.grid.1x2")
                                     .font(.system(size: 16, weight: .medium))
+                                    .foregroundColor(.blue)
                                 Text("Add Line Item")
                                     .font(DesignSystem.Typography.callout)
                                     .fontWeight(.medium)

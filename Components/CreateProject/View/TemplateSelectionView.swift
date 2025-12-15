@@ -87,18 +87,18 @@ struct TemplateSelectionView: View {
         NavigationView {
             VStack(spacing: 0) {
                 // Search Bar
-                HStack {
-                    Image(systemName: "magnifyingglass")
-                        .foregroundColor(.secondary)
-                    
-                    TextField("Search templates...", text: $searchText)
-                        .textFieldStyle(.plain)
-                }
-                .padding()
-                .background(Color(.tertiarySystemGroupedBackground))
-                .cornerRadius(10)
-                .padding(.horizontal)
-                .padding(.top, 8)
+                    HStack {
+                        Image(systemName: "magnifyingglass")
+                            .foregroundColor(.secondary)
+                        
+                        TextField("Search templates...", text: $searchText)
+                            .textFieldStyle(.plain)
+                    }
+                    .padding()
+                    .background(Color(.tertiarySystemGroupedBackground))
+                    .cornerRadius(10)
+                    .padding(.horizontal)
+                    .padding(.top, 8)
                 
                 // Templates List
                 if isLoadingBusinessType {
@@ -141,7 +141,7 @@ struct TemplateSelectionView: View {
                                     if let projectTemplate = templateItem.projectTemplate {
                                         print("✅ TemplateSelectionView: Selected template '\(templateItem.id)' with \(projectTemplate.phases.count) phases")
                                         onSelectTemplate(projectTemplate)
-                                        dismiss()
+                                    dismiss()
                                     } else {
                                         print("❌ TemplateSelectionView: Failed to load template '\(templateItem.id)' - projectTemplate is nil")
                                         // Show error or fallback behavior
