@@ -1185,6 +1185,15 @@ struct CreateProjectView: View {
     private var projectDetailsSection: some View {
         Section {
             VStack(spacing: DesignSystem.Spacing.medium) {
+                // Template description
+                Text("Standard template for residential building construction with common phases and departments")
+                    .font(DesignSystem.Typography.subheadline)
+                    .foregroundColor(.secondary)
+                    .multilineTextAlignment(.leading)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(.top, DesignSystem.Spacing.extraSmall)
+                    .padding(.bottom, DesignSystem.Spacing.small)
+                
                 VStack(alignment: .leading, spacing: DesignSystem.Spacing.small) {
                     Text("Project Name")
                         .font(DesignSystem.Typography.headline)
@@ -1565,6 +1574,16 @@ struct CreateProjectView: View {
     private var projectDetailsSectionScrollView: some View {
         FormSectionView(header: SectionHeaderLabel(title: "Project Details", icon: "folder.badge.plus")) {
             VStack(spacing: DesignSystem.Spacing.medium) {
+                // Template description
+                Text("Standard template for residential building construction with common phases and departments")
+                    .font(DesignSystem.Typography.subheadline)
+                    .foregroundColor(.secondary)
+                    .multilineTextAlignment(.leading)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(.top, DesignSystem.Spacing.small)
+                    .padding(.bottom, DesignSystem.Spacing.extraSmall)
+                    .padding(.horizontal, DesignSystem.Spacing.medium)
+                
                 VStack(alignment: .leading, spacing: DesignSystem.Spacing.small) {
                     Text("Project Name")
                         .font(DesignSystem.Typography.headline)
