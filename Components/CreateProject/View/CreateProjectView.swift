@@ -33,12 +33,12 @@ struct LineItemRowView: View {
                 HapticManager.selection()
                 onEdit()
             }) {
-                    Image(systemName: "square.fill.text.grid.1x2")
+                    Image(systemName: "pencil")
                         .font(.system(size: 16, weight: .medium))
                         .foregroundColor(.white)
                         .symbolRenderingMode(.hierarchical)
                         .padding(6)
-                        .background(Color.blue)
+                        .background(Color.orange)
                         .clipShape(Circle())
                 }
                 .buttonStyle(.plain)
@@ -3526,10 +3526,20 @@ private struct CreateProjectAddDepartmentSheet: View {
                     // Line Items Section
                     VStack(alignment: .leading, spacing: DesignSystem.Spacing.medium) {
                         HStack(alignment: .firstTextBaseline) {
-                            Text("Items")
-                                .font(DesignSystem.Typography.caption1)
-                                .foregroundColor(.secondary)
-                                .textCase(.uppercase)
+                            HStack{
+                                Text("Items")
+                                    .font(DesignSystem.Typography.caption1)
+                                    .foregroundColor(.secondary)
+                                    .textCase(.uppercase)
+                                
+                                Image(systemName: "square.grid.3x3.square")
+                                    .font(.system(size: 16, weight: .medium))
+                                    .foregroundColor(.white)
+                                    .symbolRenderingMode(.hierarchical)
+                                    .padding(6)
+                                    .background(Color.blue)
+                                    .clipShape(Circle())
+                            }
                             
                             Spacer()
                             
