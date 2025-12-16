@@ -2804,6 +2804,8 @@ private struct DepartmentInputRow: View {
                             .font(.system(size: 10, weight: .medium))
                             .foregroundColor(.secondary)
                             .textCase(.uppercase)
+                            .padding(.trailing, 14)
+                        
                         if canDelete {
                             Button(action: {
                                 HapticManager.selection()
