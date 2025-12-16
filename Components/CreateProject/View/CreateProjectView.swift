@@ -35,10 +35,10 @@ struct LineItemRowView: View {
             }) {
                     Image(systemName: "pencil")
                         .font(.system(size: 16, weight: .medium))
-                        .foregroundColor(.white)
+                        .foregroundColor(.orange)
                         .symbolRenderingMode(.hierarchical)
                         .padding(6)
-                        .background(Color.orange)
+                        .background(Color.orange.opacity(0.2))
                         .clipShape(Circle())
                 }
                 .buttonStyle(.plain)
@@ -2967,7 +2967,7 @@ private struct DepartmentInputRow: View {
                             
                             Text("Items")
                                 .font(DesignSystem.Typography.caption1)
-                                .foregroundColor(.secondary)
+                                .foregroundColor(.primary)
                                 .textCase(.uppercase)
                             
                             Spacer()
