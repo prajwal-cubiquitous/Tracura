@@ -2492,9 +2492,9 @@ struct PhaseCardView: View {
                                 .padding(5)
                                 .background(Color.blue)
                                 .clipShape(Circle())
-                            Text("Departments")
+                            Text("DEPARTMENTS")
                                 .font(DesignSystem.Typography.subheadline)
-                                .foregroundColor(.secondary)
+                                .foregroundColor(.primary)
                         }
 
                         ForEach($phase.departments) { $dept in
@@ -2955,6 +2955,14 @@ private struct DepartmentInputRow: View {
     
     private var lineItemsHeader: some View {
                         HStack(alignment: .firstTextBaseline) {
+                            
+                            Image(systemName: "square.fill.text.grid.1x2")
+                                .font(.system(size: 16, weight: .medium))
+                                .foregroundColor(.white)
+                                .padding(6)
+                                .background(Color.blue)
+                                .clipShape(Circle())
+                            
                             Text("Items")
                                 .font(DesignSystem.Typography.caption1)
                                 .foregroundColor(.secondary)
@@ -3526,19 +3534,19 @@ private struct CreateProjectAddDepartmentSheet: View {
                     // Line Items Section
                     VStack(alignment: .leading, spacing: DesignSystem.Spacing.medium) {
                         HStack(alignment: .firstTextBaseline) {
-                            HStack{
+                            HStack(spacing: DesignSystem.Spacing.small) {
+                                Image(systemName: "square.text.square.fill")
+                                    .font(.system(size: 14, weight: .medium))
+                                    .foregroundColor(.white)
+                                    .symbolRenderingMode(.hierarchical)
+                                    .padding(5)
+                                    .background(Color.blue)
+                                    .clipShape(Circle())
+                                
                                 Text("Items")
                                     .font(DesignSystem.Typography.caption1)
                                     .foregroundColor(.secondary)
                                     .textCase(.uppercase)
-                                
-                                Image(systemName: "square.grid.3x3.square")
-                                    .font(.system(size: 16, weight: .medium))
-                                    .foregroundColor(.white)
-                                    .symbolRenderingMode(.hierarchical)
-                                    .padding(6)
-                                    .background(Color.blue)
-                                    .clipShape(Circle())
                             }
                             
                             Spacer()
