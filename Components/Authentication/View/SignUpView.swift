@@ -356,8 +356,11 @@ struct SignUpView: View {
                                     .progressViewStyle(CircularProgressViewStyle(tint: .white))
                                     .scaleEffect(0.8)
                             } else {
-                                Text("Create Account")
-                                    .font(.system(size: 18, weight: .semibold, design: .rounded))
+                                HStack{
+                                    Image(systemName: "arrow.right")
+                                    Text("Create Account")
+                                }
+                                .font(.system(size: 18, weight: .semibold, design: .rounded))
                             }
                         }
                         .foregroundColor(.white)

@@ -981,6 +981,9 @@ struct CreateProjectView: View {
                                     showingClearFormConfirmation = true
                                 }) {
                                     Image(systemName: "arrow.counterclockwise.circle.fill")
+                                        .resizable()             // <--- Allows the image to scale
+                                        .aspectRatio(contentMode: .fit)
+                                        .frame(width: 27, height: 27)
                                         .foregroundColor(.orange)
                                         .symbolRenderingMode(.hierarchical)
                                 }
@@ -2959,7 +2962,7 @@ private struct DepartmentInputRow: View {
                         HStack(alignment: .firstTextBaseline) {
                             
                             Image(systemName: "square.fill.text.grid.1x2")
-                                .font(.system(size: 16, weight: .medium))
+                                .font(.system(size: 14, weight: .thin))
                                 .foregroundColor(.white)
                                 .padding(6)
                                 .background(Color.blue)
