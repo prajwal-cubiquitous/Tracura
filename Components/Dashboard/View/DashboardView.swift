@@ -3396,6 +3396,7 @@ private struct AddDepartmentSheet: View {
                                         }
                                     }
                                 )
+                                .presentationDragIndicator(.visible)
                             }
                         }
                         
@@ -7527,6 +7528,7 @@ private struct AddPhaseDepartmentRowView: View {
                                             }
                                         }
                                     )
+                                    .presentationDragIndicator(.visible)
                                 }
                             }
                             .onAppear {

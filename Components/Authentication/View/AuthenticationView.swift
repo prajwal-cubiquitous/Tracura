@@ -271,6 +271,7 @@ struct AuthenticationView: View {
         }
         .sheet(isPresented: $showingSignUp) {
             SignUpView()
+                .presentationDragIndicator(.visible)
                 .environmentObject(authService)
         }
     }

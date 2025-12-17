@@ -322,12 +322,15 @@ struct ProjectListView: View {
                     }
                 }
             )
+            .presentationDragIndicator(.visible)
         }
         .sheet(isPresented: $isShowingCreateSheet) {
             if let template = selectedTemplate {
                 CreateProjectView(template: template)
+                    .presentationDragIndicator(.visible)
             } else {
                 CreateProjectView()
+                    .presentationDragIndicator(.visible)
             }
         }
         .onChange(of: isShowingCreateSheet) { oldValue, newValue in
@@ -463,7 +466,7 @@ struct ProjectListView: View {
         .sheet(isPresented: $isShowingMenuSheet) {
             MenuSheetView()
                 .presentationDetents([.fraction(0.5)])
-                .presentationDragIndicator(.hidden)
+                .presentationDragIndicator(.visible)
                 .presentationCornerRadius(20)
                 .presentationBackground(.regularMaterial)
         }

@@ -852,7 +852,7 @@ struct LineItemEditSheet: View {
             }
         }
         .presentationDetents([.large])
-        .presentationDragIndicator(.visible)
+//        .presentationDragIndicator(.visible)
     }
 }
 
@@ -1208,7 +1208,7 @@ struct CreateProjectView: View {
                             }
                         )
                         .presentationDetents([.medium, .large])
-                        .presentationDragIndicator(.visible)
+//                        .presentationDragIndicator(.visible)
                     }
                 }
                 .sheet(isPresented: $showingAddPhaseSheet) {
@@ -1219,7 +1219,7 @@ struct CreateProjectView: View {
                         }
                     )
                     .presentationDetents([.medium, .large])
-                    .presentationDragIndicator(.visible)
+//                    .presentationDragIndicator(.visible)
                 }
             }
         }
@@ -3020,6 +3020,7 @@ private struct DepartmentInputRow: View {
                                         }
                                     }
                                 )
+                                .presentationDragIndicator(.visible)
             }
                             }
                         }
@@ -3598,6 +3599,7 @@ private struct CreateProjectAddDepartmentSheet: View {
                                         }
                                     }
                                 )
+                                .presentationDragIndicator(.visible)
                             }
                         }
                         
