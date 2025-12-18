@@ -251,15 +251,15 @@ class FirebaseAuthService: ObservableObject {
               .verifyPhoneNumber(fullPhoneNumber, uiDelegate: nil) { verificationID, error in
                             if let error = error {
                                 Task { @MainActor in
-                                    self.errorMessage = "Error: \(error.localizedDescription)"
+                                self.errorMessage = "Error: \(error.localizedDescription)"
                                     self.isLoading = false
                                 }
                                 return
                             }
                             Task { @MainActor in
-                                self.verificationID = verificationID
-                                self.isLoading = false
-                                self.errorMessage = nil
+                            self.verificationID = verificationID
+                            self.isLoading = false
+                            self.errorMessage = nil
                             }
                         }
             return true
