@@ -1026,11 +1026,11 @@ struct DeclinedProjectNotificationCell: View {
             onTap()
         }) {
             VStack(alignment: .leading, spacing: 10) {
-                // Project name (smaller, grey - like section header)
-                Text(project.name)
-                    .font(.system(size: 13, weight: .medium))
-                    .foregroundColor(.secondary)
-                    .lineLimit(1)
+//                // Project name (smaller, grey - like section header)
+//                Text(project.name)
+//                    .font(.system(size: 13, weight: .medium))
+//                    .foregroundColor(.secondary)
+//                    .lineLimit(1)
                 
                 // Project name (bold, primary color - main title)
                 Text(project.name)
