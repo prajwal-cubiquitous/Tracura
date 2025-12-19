@@ -415,6 +415,9 @@ class FirebaseAuthService: ObservableObject {
             await FirestoreManager.shared.removeToken()
         }
         
+        // Clear app icon badge on logout
+        BadgeManager.shared.clearBadge()
+        
         do {
             try auth.signOut()
             resetAuthState()

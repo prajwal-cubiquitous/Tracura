@@ -171,7 +171,8 @@ struct UnifiedNotificationPopupView: View {
                 role: role,
                 onNotificationTap: { notification in
                     // This will be handled in the view itself
-                }
+                },
+                phaseRequestNotificationViewModel: role == .ADMIN ? phaseRequestNotificationViewModel : nil
             )
         }
     }
@@ -283,6 +284,11 @@ struct UnifiedNotificationPopupView: View {
                     HapticManager.selection()
                     // Remove notification when clicked
                     NotificationManager.shared.removeNotification(byId: notification.id)
+                    
+                    // Update badge after removing notification
+                    notificationViewModel.updateAppIconBadge(
+                        phaseRequestCount: role == .ADMIN ? phaseRequestNotificationViewModel.pendingRequestsCount : 0
+                    )
                     
                     // Handle navigation when tapped
                     let data = notification.data.mapValues { $0.value }
@@ -524,6 +530,7 @@ struct AllNotificationsView: View {
     let project: Project
     let role: UserRole?
     let onNotificationTap: (AppNotification) -> Void
+    let phaseRequestNotificationViewModel: PhaseRequestNotificationViewModel?
     @Environment(\.dismiss) private var dismiss
     @StateObject private var notificationViewModel = NotificationViewModel()
     
@@ -571,89 +578,87 @@ struct AllNotificationsView: View {
     
     var body: some View {
         NavigationStack {
-            if notifications.isEmpty {
-                VStack(spacing: 20) {
-                    Image(systemName: "bell.slash.fill")
-                        .font(.system(size: 60))
-                        .foregroundColor(.secondary.opacity(0.6))
-                        .symbolRenderingMode(.hierarchical)
-                    
-                    Text("No Notifications")
-                        .font(.title2)
-                        .fontWeight(.semibold)
-                        .foregroundColor(.primary)
-                    
-                    Text("You're all caught up!")
-                        .font(.body)
-                        .foregroundColor(.secondary)
-                }
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
-                .background(Color(.systemGroupedBackground))
-                .navigationTitle("Notifications")
-                .navigationBarTitleDisplayMode(.large)
-                .toolbar {
-                    ToolbarItem(placement: .navigationBarTrailing) {
-                        Button("Done") {
-                            HapticManager.selection()
-                            dismiss()
-                        }
+            Group {
+                if notifications.isEmpty {
+                    VStack(spacing: 20) {
+                        Image(systemName: "bell.slash.fill")
+                            .font(.system(size: 60))
+                            .foregroundColor(.secondary.opacity(0.6))
+                            .symbolRenderingMode(.hierarchical)
+                        
+                        Text("No Notifications")
+                            .font(.title2)
+                            .fontWeight(.semibold)
+                            .foregroundColor(.primary)
+                        
+                        Text("You're all caught up!")
+                            .font(.body)
+                            .foregroundColor(.secondary)
                     }
-                }
-            } else {
-                List {
-                    ForEach(notifications) { notification in
-                        NotificationPopupRowView(
-                            icon: iconForNotification(notification),
-                            iconColor: colorForNotification(notification),
-                            title: notification.title,
-                            message: notification.body,
-                            timeAgo: timeAgoString(from: notification.date)
-                        ) {
-                            HapticManager.selection()
-                            // Remove notification when clicked
-                            NotificationManager.shared.removeNotification(byId: notification.id)
-                            
-                            // Handle navigation when tapped
-                            let data = notification.data.mapValues { $0.value }
-                            
-                            // Debug: Check if expenseId is in notification data
-                            if let screen = data["screen"] as? String, screen == "expense_detail" || screen == "expense_review" {
-                                if let expenseId = data["expenseId"] as? String {
-                                    print("📋 UnifiedNotificationPopupView: expense_detail, expenseId: \(expenseId)")
-                                } else {
-                                    print("⚠️ UnifiedNotificationPopupView: expense_detail but no expenseId in data")
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .background(Color(.systemGroupedBackground))
+                } else {
+                    List {
+                        ForEach(notifications) { notification in
+                            NotificationPopupRowView(
+                                icon: iconForNotification(notification),
+                                iconColor: colorForNotification(notification),
+                                title: notification.title,
+                                message: notification.body,
+                                timeAgo: timeAgoString(from: notification.date)
+                            ) {
+                                HapticManager.selection()
+                                // Remove notification when clicked
+                                NotificationManager.shared.removeNotification(byId: notification.id)
+                                
+                                // Update badge after removing notification
+                                let phaseRequestCount = (role == .ADMIN && phaseRequestNotificationViewModel != nil) 
+                                    ? phaseRequestNotificationViewModel!.pendingRequestsCount 
+                                    : 0
+                                notificationViewModel.updateAppIconBadge(phaseRequestCount: phaseRequestCount)
+                                
+                                // Handle navigation when tapped
+                                let data = notification.data.mapValues { $0.value }
+                                
+                                // Debug: Check if expenseId is in notification data
+                                if let screen = data["screen"] as? String, screen == "expense_detail" || screen == "expense_review" {
+                                    if let expenseId = data["expenseId"] as? String {
+                                        print("📋 UnifiedNotificationPopupView: expense_detail, expenseId: \(expenseId)")
+                                    } else {
+                                        print("⚠️ UnifiedNotificationPopupView: expense_detail but no expenseId in data")
+                                    }
+                                }
+                                
+                                // Close sheet first
+                                dismiss()
+                                
+                                // Small delay to allow sheet to close smoothly
+                                DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
+                                    // Handle navigation with role awareness and current project context
+                                    NotificationManager.shared.handleNavigation(
+                                        data: data,
+                                        currentRole: role,
+                                        currentProjectId: project.id
+                                    )
+                                }
+                                
+                                // Reload project-specific notifications after removal
+                                if let projectId = project.id {
+                                    notificationViewModel.loadSavedNotifications(for: projectId)
                                 }
                             }
-                            
-                            // Close sheet first
-                            dismiss()
-                            
-                            // Small delay to allow sheet to close smoothly
-                            DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
-                                // Handle navigation with role awareness and current project context
-                                NotificationManager.shared.handleNavigation(
-                                    data: data,
-                                    currentRole: role,
-                                    currentProjectId: project.id
-                                )
-                            }
-                            
-                            // Reload project-specific notifications after removal
-                            if let projectId = project.id {
-                                notificationViewModel.loadSavedNotifications(for: projectId)
-                            }
+                            .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 8, trailing: 16))
                         }
-                        .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 8, trailing: 16))
                     }
                 }
-                .navigationTitle("Notifications")
-                .navigationBarTitleDisplayMode(.large)
-                .toolbar {
-                    ToolbarItem(placement: .navigationBarTrailing) {
-                        Button("Done") {
-                            HapticManager.selection()
-                            dismiss()
-                        }
+            }
+            .navigationTitle("Notifications")
+            .navigationBarTitleDisplayMode(.large)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button("Done") {
+                        HapticManager.selection()
+                        dismiss()
                     }
                 }
             }

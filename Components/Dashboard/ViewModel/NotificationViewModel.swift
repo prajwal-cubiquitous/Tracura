@@ -30,10 +30,12 @@ class NotificationViewModel: ObservableObject {
             queue: .main
         ) { [weak self] _ in
             self?.loadSavedNotifications()
+            self?.updateAppIconBadge()
         }
         
         // Load saved notifications on init
         loadSavedNotifications()
+        updateAppIconBadge()
     }
     
     deinit {
@@ -95,6 +97,9 @@ class NotificationViewModel: ObservableObject {
             unreadMessagesCount = totalUnread
             expenseChatUpdatesCount = totalExpenseChats
             
+            // Update app icon badge after fetching
+            updateAppIconBadge()
+            
         } catch {
             errorMessage = "Failed to load notifications: \(error.localizedDescription)"
         }
@@ -115,6 +120,10 @@ class NotificationViewModel: ObservableObject {
             
             // Load saved notifications for this project
             loadSavedNotifications(for: projectId)
+            
+            // Update app icon badge after fetching
+            updateAppIconBadge()
+            
         } catch {
             errorMessage = "Failed to load notifications: \(error.localizedDescription)"
         }
@@ -257,6 +266,17 @@ class NotificationViewModel: ObservableObject {
     /// Returns all notifications (saved + counts) for display
     var allNotifications: [AppNotification] {
         return savedNotifications
+    }
+    
+    // MARK: - Badge Management
+    
+    /// Updates the app icon badge count
+    /// This should be called after notifications are loaded or updated
+    /// - Parameter phaseRequestCount: Optional phase request count (for ADMIN users)
+    func updateAppIconBadge(phaseRequestCount: Int = 0) {
+        // Base count from FCM notifications
+        let fcmCount = savedNotifications.count
+        BadgeManager.shared.updateBadgeCount(fcmCount: fcmCount, phaseRequestCount: phaseRequestCount)
     }
 }
 

@@ -220,6 +220,18 @@ struct DashboardView: View {
                     }
                     .refreshable {
                         await refreshAllData()
+                        
+                        // Update badge after refreshing data
+                        if let projectId = project?.id {
+                            notificationViewModel.loadSavedNotifications(for: projectId)
+                            if role == .ADMIN {
+                                notificationViewModel.updateAppIconBadge(
+                                    phaseRequestCount: phaseRequestNotificationViewModel.pendingRequestsCount
+                                )
+                            } else {
+                                notificationViewModel.updateAppIconBadge()
+                            }
+                        }
                     }
                     .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("PhaseUpdated"))) { _ in
                         // Refresh all data when a phase is created/updated
@@ -433,6 +445,11 @@ struct DashboardView: View {
                                         await phaseRequestNotificationViewModel.loadPendingRequests(
                                             projectId: projectId,
                                             customerId: customerId
+                                        )
+                                        
+                                        // Update badge after loading phase requests
+                                        notificationViewModel.updateAppIconBadge(
+                                            phaseRequestCount: phaseRequestNotificationViewModel.pendingRequestsCount
                                         )
                                     }
                                 }
@@ -658,6 +675,12 @@ struct DashboardView: View {
                                 projectId: capturedProjectId,
                                 customerId: capturedCustomerId
                             )
+                            
+                            // Update badge after reloading phase requests
+                            notificationViewModel.updateAppIconBadge(
+                                phaseRequestCount: role == .ADMIN ? phaseRequestNotificationViewModel.pendingRequestsCount : 0
+                            )
+                            
                             // Reload phases and extensions
                             await loadPhases()
                             // Wait for phases to fully load
@@ -682,6 +705,11 @@ struct DashboardView: View {
                             await phaseRequestNotificationViewModel.loadPendingRequests(
                                 projectId: capturedProjectId,
                                 customerId: capturedCustomerId
+                            )
+                            
+                            // Update badge after reloading phase requests
+                            notificationViewModel.updateAppIconBadge(
+                                phaseRequestCount: role == .ADMIN ? phaseRequestNotificationViewModel.pendingRequestsCount : 0
                             )
                             
                             // Close sheet after action completes
@@ -742,6 +770,22 @@ struct DashboardView: View {
         }
 
         .onAppear {
+            // Update badge when view appears
+            notificationViewModel.loadSavedNotifications()
+            if role == .ADMIN, let projectId = project?.id {
+                Task {
+                    await phaseRequestNotificationViewModel.loadPendingRequests(
+                        projectId: projectId,
+                        customerId: customerId
+                    )
+                    notificationViewModel.updateAppIconBadge(
+                        phaseRequestCount: phaseRequestNotificationViewModel.pendingRequestsCount
+                    )
+                }
+            } else {
+                notificationViewModel.updateAppIconBadge()
+            }
+            
             if let projectId = project?.id {
                 viewModel.loadDashboardData()
                 
@@ -771,6 +815,13 @@ struct DashboardView: View {
                                     projectId: projectId,
                                     customerId: customerId
                                 )
+                                
+                                // Update badge after loading phase requests
+                                await MainActor.run {
+                                    notificationViewModel.updateAppIconBadge(
+                                        phaseRequestCount: phaseRequestNotificationViewModel.pendingRequestsCount
+                                    )
+                                }
                             }
                         }()
                         
@@ -1042,6 +1093,11 @@ struct DashboardView: View {
                 await phaseRequestNotificationViewModel.loadPendingRequests(
                     projectId: foundProjectId,
                     customerId: customerId
+                )
+                
+                // Update badge after reloading phase requests
+                notificationViewModel.updateAppIconBadge(
+                    phaseRequestCount: role == .ADMIN ? phaseRequestNotificationViewModel.pendingRequestsCount : 0
                 )
                 
                 await MainActor.run {
@@ -1913,6 +1969,13 @@ struct DashboardView: View {
                     projectId: projectId,
                     customerId: customerId
                 )
+                
+                // Update badge after loading phase requests
+                await MainActor.run {
+                    notificationViewModel.updateAppIconBadge(
+                        phaseRequestCount: phaseRequestNotificationViewModel.pendingRequestsCount
+                    )
+                }
             }
         }()
         
