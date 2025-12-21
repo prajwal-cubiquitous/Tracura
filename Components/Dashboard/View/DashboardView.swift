@@ -3348,18 +3348,10 @@ private struct AddDepartmentSheet: View {
                                         }
                                     },
                                     canDelete: lineItems.count > 1,
-                                    isExpanded: expandedLineItemId == lineItem.id,
-                                    onToggleExpand: {
-                                        withAnimation(DesignSystem.Animation.standardSpring) {
-                                            if expandedLineItemId == lineItem.id {
-                                                expandedLineItemId = nil
-                                            } else {
-                                                expandedLineItemId = lineItem.id
-                                            }
-                                        }
-                                    },
                                     contractorMode: contractorMode,
-                                    uomError: shouldShowValidationErrors && lineItem.uom.trimmingCharacters(in: .whitespaces).isEmpty ? "UOM is required" : nil
+                                    onEdit: {
+                                        // Edit functionality can be added here if needed
+                                    }
                                 )
                             }
                         }
@@ -7292,6 +7284,13 @@ private struct AddPhaseDepartmentRowView: View {
         department.amount = formatAmountInput(String(department.totalBudget))
     }
     
+    private var duplicateErrorMessage: String {
+        let deptName = department.name.trimmingCharacters(in: .whitespacesAndNewlines)
+        let trimmedPhaseName = phaseName.trimmingCharacters(in: .whitespacesAndNewlines)
+        let location = trimmedPhaseName.isEmpty ? "this phase" : trimmedPhaseName
+        return "\"\(deptName)\" already exists in \"\(location)\". Enter a unique department name."
+    }
+    
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             // Collapsed Header - Always Visible
@@ -7392,7 +7391,7 @@ private struct AddPhaseDepartmentRowView: View {
                                     Image(systemName: "exclamationmark.circle.fill")
                                         .font(.system(size: 12))
                                         .foregroundColor(.red)
-                                    Text("\"\(department.name.trimmingCharacters(in: .whitespacesAndNewlines))\" already exists in \"\(phaseName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ? "this phase" : phaseName.trimmingCharacters(in: .whitespacesAndNewlines))\". Enter a unique department name.")
+                                    Text(duplicateErrorMessage)
                                         .font(DesignSystem.Typography.caption2)
                                         .foregroundColor(.red)
                                 }
@@ -7471,12 +7470,10 @@ private struct AddPhaseDepartmentRowView: View {
                                             onDeleteLineItem(lineItem.id)
                                         },
                                         canDelete: department.lineItems.count > 1,
-                                        isExpanded: expandedLineItemId == lineItem.id,
-                                        onToggleExpand: {
-                                            onToggleLineItemExpand(lineItem.id)
-                                        },
                                         contractorMode: department.contractorMode,
-                                        uomError: shouldShowValidationErrors && lineItem.uom.trimmingCharacters(in: .whitespaces).isEmpty ? "UOM is required" : nil
+                                        onEdit: {
+                                            // Edit functionality can be added here if needed
+                                        }
                                     )
                                     .onChange(of: lineItem.quantity) { _, _ in
                                         updateDepartmentAmount()
