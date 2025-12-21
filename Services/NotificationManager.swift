@@ -76,9 +76,6 @@ class NotificationManager: ObservableObject {
         // Persist to UserDefaults
         saveToUserDefaults()
         
-        // Update app icon badge
-        updateAppIconBadge()
-        
         // Notify observers that notifications were updated
         NotificationCenter.default.post(name: NSNotification.Name("NotificationManagerUpdated"), object: nil)
     }
@@ -127,7 +124,6 @@ class NotificationManager: ObservableObject {
     func clearAllNotifications() {
         notifications = []
         saveToUserDefaults()
-        updateAppIconBadge()
         NotificationCenter.default.post(name: NSNotification.Name("NotificationManagerUpdated"), object: nil)
     }
     
@@ -136,7 +132,6 @@ class NotificationManager: ObservableObject {
     func clearNotifications(for projectId: String) {
         notifications.removeAll { $0.projectId == projectId }
         saveToUserDefaults()
-        updateAppIconBadge()
         NotificationCenter.default.post(name: NSNotification.Name("NotificationManagerUpdated"), object: nil)
     }
     
@@ -145,7 +140,6 @@ class NotificationManager: ObservableObject {
     func removeNotification(byId notificationId: String) {
         notifications.removeAll { $0.id == notificationId }
         saveToUserDefaults()
-        updateAppIconBadge()
         NotificationCenter.default.post(name: NSNotification.Name("NotificationManagerUpdated"), object: nil)
     }
     
@@ -226,17 +220,6 @@ class NotificationManager: ObservableObject {
     /// Returns total unread notification count
     var totalUnreadCount: Int {
         return notifications.count
-    }
-    
-    // MARK: - Badge Management
-    
-    /// Updates the app icon badge count based on current notifications
-    /// Note: This only counts FCM notifications. Phase requests and other counts
-    /// should be added by the calling code based on user role.
-    private func updateAppIconBadge() {
-        // Base count from FCM notifications
-        let baseCount = notifications.count
-        BadgeManager.shared.updateBadgeCount(baseCount)
     }
 }
 

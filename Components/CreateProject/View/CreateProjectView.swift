@@ -35,10 +35,10 @@ struct LineItemRowView: View {
             }) {
                     Image(systemName: "pencil")
                         .font(.system(size: 16, weight: .medium))
-                        .foregroundColor(.orange)
+                        .foregroundColor(.white)
                         .symbolRenderingMode(.hierarchical)
                         .padding(6)
-                        .background(Color.orange.opacity(0.2))
+                        .background(Color.orange)
                         .clipShape(Circle())
                 }
                 .buttonStyle(.plain)
@@ -852,7 +852,7 @@ struct LineItemEditSheet: View {
             }
         }
         .presentationDetents([.large])
-//        .presentationDragIndicator(.visible)
+        .presentationDragIndicator(.visible)
     }
 }
 
@@ -981,9 +981,6 @@ struct CreateProjectView: View {
                                     showingClearFormConfirmation = true
                                 }) {
                                     Image(systemName: "arrow.counterclockwise.circle.fill")
-                                        .resizable()             // <--- Allows the image to scale
-                                        .aspectRatio(contentMode: .fit)
-                                        .frame(width: 27, height: 27)
                                         .foregroundColor(.orange)
                                         .symbolRenderingMode(.hierarchical)
                                 }
@@ -1208,7 +1205,7 @@ struct CreateProjectView: View {
                             }
                         )
                         .presentationDetents([.medium, .large])
-//                        .presentationDragIndicator(.visible)
+                        .presentationDragIndicator(.visible)
                     }
                 }
                 .sheet(isPresented: $showingAddPhaseSheet) {
@@ -1219,7 +1216,7 @@ struct CreateProjectView: View {
                         }
                     )
                     .presentationDetents([.medium, .large])
-//                    .presentationDragIndicator(.visible)
+                    .presentationDragIndicator(.visible)
                 }
             }
         }
@@ -2495,9 +2492,9 @@ struct PhaseCardView: View {
                                 .padding(5)
                                 .background(Color.blue)
                                 .clipShape(Circle())
-                            Text("DEPARTMENTS")
+                            Text("Departments")
                                 .font(DesignSystem.Typography.subheadline)
-                                .foregroundColor(.primary)
+                                .foregroundColor(.secondary)
                         }
 
                         ForEach($phase.departments) { $dept in
@@ -2807,8 +2804,6 @@ private struct DepartmentInputRow: View {
                             .font(.system(size: 10, weight: .medium))
                             .foregroundColor(.secondary)
                             .textCase(.uppercase)
-                            .padding(.trailing, 14)
-                        
                         if canDelete {
                             Button(action: {
                                 HapticManager.selection()
@@ -2960,17 +2955,9 @@ private struct DepartmentInputRow: View {
     
     private var lineItemsHeader: some View {
                         HStack(alignment: .firstTextBaseline) {
-                            
-                            Image(systemName: "square.fill.text.grid.1x2")
-                                .font(.system(size: 14, weight: .thin))
-                                .foregroundColor(.white)
-                                .padding(6)
-                                .background(Color.blue)
-                                .clipShape(Circle())
-                            
                             Text("Items")
                                 .font(DesignSystem.Typography.caption1)
-                                .foregroundColor(.primary)
+                                .foregroundColor(.secondary)
                                 .textCase(.uppercase)
                             
                             Spacer()
@@ -3020,7 +3007,6 @@ private struct DepartmentInputRow: View {
                                         }
                                     }
                                 )
-                                .presentationDragIndicator(.visible)
             }
                             }
                         }
@@ -3540,19 +3526,19 @@ private struct CreateProjectAddDepartmentSheet: View {
                     // Line Items Section
                     VStack(alignment: .leading, spacing: DesignSystem.Spacing.medium) {
                         HStack(alignment: .firstTextBaseline) {
-                            HStack(spacing: DesignSystem.Spacing.small) {
-                                Image(systemName: "square.text.square.fill")
-                                    .font(.system(size: 14, weight: .medium))
-                                    .foregroundColor(.white)
-                                    .symbolRenderingMode(.hierarchical)
-                                    .padding(5)
-                                    .background(Color.blue)
-                                    .clipShape(Circle())
-                                
+                            HStack(spacing: 8) {
                                 Text("Items")
                                     .font(DesignSystem.Typography.caption1)
                                     .foregroundColor(.secondary)
                                     .textCase(.uppercase)
+                                
+                                Image(systemName: "square.fill.text.grid.1x2")
+                                    .font(.system(size: 14, weight: .semibold))
+                                    .foregroundColor(.white)
+                                    .symbolRenderingMode(.hierarchical)
+                                    .frame(width: 28, height: 28)
+                                    .background(Color.blue)
+                                    .clipShape(Circle())
                             }
                             
                             Spacer()
@@ -3599,7 +3585,6 @@ private struct CreateProjectAddDepartmentSheet: View {
                                         }
                                     }
                                 )
-                                .presentationDragIndicator(.visible)
                             }
                         }
                         

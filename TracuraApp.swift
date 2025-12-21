@@ -137,11 +137,6 @@ struct TracuraApp: App {
                         if oldPhase == .background {
                             delegate.cleanupFCMTokenOnTermination()
                         }
-                    } else if newPhase == .active {
-                        // App became active - update badge count
-                        Task { @MainActor in
-                            BadgeManager.shared.updateBadgeCount()
-                        }
                     }
                     // Note: Views will mark themselves ready when becoming active via their own onChange handlers
                 }
@@ -373,9 +368,6 @@ extension AppDelegate : UNUserNotificationCenterDelegate {
                 data: data,
                 projectId: projectId
             )
-            
-            // Update badge after saving notification
-            BadgeManager.shared.updateBadgeCount()
             
             // Handle navigation
             NotificationManager.shared.handleNavigation(data: data)

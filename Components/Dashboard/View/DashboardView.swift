@@ -220,18 +220,6 @@ struct DashboardView: View {
                     }
                     .refreshable {
                         await refreshAllData()
-                        
-                        // Update badge after refreshing data
-                        if let projectId = project?.id {
-                            notificationViewModel.loadSavedNotifications(for: projectId)
-                            if role == .ADMIN {
-                                notificationViewModel.updateAppIconBadge(
-                                    phaseRequestCount: phaseRequestNotificationViewModel.pendingRequestsCount
-                                )
-                            } else {
-                                notificationViewModel.updateAppIconBadge()
-                            }
-                        }
                     }
                     .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("PhaseUpdated"))) { _ in
                         // Refresh all data when a phase is created/updated
@@ -445,11 +433,6 @@ struct DashboardView: View {
                                         await phaseRequestNotificationViewModel.loadPendingRequests(
                                             projectId: projectId,
                                             customerId: customerId
-                                        )
-                                        
-                                        // Update badge after loading phase requests
-                                        notificationViewModel.updateAppIconBadge(
-                                            phaseRequestCount: phaseRequestNotificationViewModel.pendingRequestsCount
                                         )
                                     }
                                 }
@@ -675,12 +658,6 @@ struct DashboardView: View {
                                 projectId: capturedProjectId,
                                 customerId: capturedCustomerId
                             )
-                            
-                            // Update badge after reloading phase requests
-                            notificationViewModel.updateAppIconBadge(
-                                phaseRequestCount: role == .ADMIN ? phaseRequestNotificationViewModel.pendingRequestsCount : 0
-                            )
-                            
                             // Reload phases and extensions
                             await loadPhases()
                             // Wait for phases to fully load
@@ -705,11 +682,6 @@ struct DashboardView: View {
                             await phaseRequestNotificationViewModel.loadPendingRequests(
                                 projectId: capturedProjectId,
                                 customerId: capturedCustomerId
-                            )
-                            
-                            // Update badge after reloading phase requests
-                            notificationViewModel.updateAppIconBadge(
-                                phaseRequestCount: role == .ADMIN ? phaseRequestNotificationViewModel.pendingRequestsCount : 0
                             )
                             
                             // Close sheet after action completes
@@ -770,22 +742,6 @@ struct DashboardView: View {
         }
 
         .onAppear {
-            // Update badge when view appears
-            notificationViewModel.loadSavedNotifications()
-            if role == .ADMIN, let projectId = project?.id {
-                Task {
-                    await phaseRequestNotificationViewModel.loadPendingRequests(
-                        projectId: projectId,
-                        customerId: customerId
-                    )
-                    notificationViewModel.updateAppIconBadge(
-                        phaseRequestCount: phaseRequestNotificationViewModel.pendingRequestsCount
-                    )
-                }
-            } else {
-                notificationViewModel.updateAppIconBadge()
-            }
-            
             if let projectId = project?.id {
                 viewModel.loadDashboardData()
                 
@@ -815,13 +771,6 @@ struct DashboardView: View {
                                     projectId: projectId,
                                     customerId: customerId
                                 )
-                                
-                                // Update badge after loading phase requests
-                                await MainActor.run {
-                                    notificationViewModel.updateAppIconBadge(
-                                        phaseRequestCount: phaseRequestNotificationViewModel.pendingRequestsCount
-                                    )
-                                }
                             }
                         }()
                         
@@ -1093,11 +1042,6 @@ struct DashboardView: View {
                 await phaseRequestNotificationViewModel.loadPendingRequests(
                     projectId: foundProjectId,
                     customerId: customerId
-                )
-                
-                // Update badge after reloading phase requests
-                notificationViewModel.updateAppIconBadge(
-                    phaseRequestCount: role == .ADMIN ? phaseRequestNotificationViewModel.pendingRequestsCount : 0
                 )
                 
                 await MainActor.run {
@@ -1969,13 +1913,6 @@ struct DashboardView: View {
                     projectId: projectId,
                     customerId: customerId
                 )
-                
-                // Update badge after loading phase requests
-                await MainActor.run {
-                    notificationViewModel.updateAppIconBadge(
-                        phaseRequestCount: phaseRequestNotificationViewModel.pendingRequestsCount
-                    )
-                }
             }
         }()
         
@@ -2768,9 +2705,7 @@ private struct AddDepartmentSheet: View {
     @State private var budgetText: String = ""
     @State private var contractorMode: ContractorMode = .labourOnly
     @State private var lineItems: [DepartmentLineItem] = [DepartmentLineItem()]
-    @State private var showingLineItemSheet = false
-    @State private var editingLineItem: DepartmentLineItem?
-    @State private var isNewLineItem = false
+    @State private var expandedLineItemId: UUID? = nil
     @State private var isSaving = false
     @State private var errorMessage: String?
     @State private var departmentNameError: String?
@@ -2947,16 +2882,15 @@ private struct AddDepartmentSheet: View {
         VStack(alignment: .leading, spacing: DesignSystem.Spacing.medium) {
             HStack(alignment: .top, spacing: DesignSystem.Spacing.medium) {
                 // Enhanced accent indicator with gradient
-                RoundedRectangle(cornerRadius: 5)
+                RoundedRectangle(cornerRadius: 4)
                     .fill(blueCyanGradient)
-                    .frame(width: 6)
-                    .shadow(color: Color.blue.opacity(0.4), radius: 6, x: 0, y: 3)
-                    .shadow(color: Color.cyan.opacity(0.2), radius: 10, x: 0, y: 5)
+                    .frame(width: 5)
+                    .shadow(color: Color.blue.opacity(0.3), radius: 4, x: 0, y: 2)
                     .padding(.top, 6)
                 
                 VStack(alignment: .leading, spacing: DesignSystem.Spacing.small) {
                     Text("Add Department")
-                        .font(.system(size: 16, weight: .bold, design: .rounded))
+                        .font(.system(size: 32, weight: .bold, design: .rounded))
                         .foregroundStyle(
                             LinearGradient(
                                 colors: [.primary, .primary.opacity(0.7)],
@@ -3042,14 +2976,13 @@ private struct AddDepartmentSheet: View {
     }
     
     private var departmentNameTextFieldBackground: some View {
-        RoundedRectangle(cornerRadius: 16)
+        RoundedRectangle(cornerRadius: 12)
             .fill(
                 focusedField == .name
                     ? LinearGradient(
                         colors: [
-                            Color.blue.opacity(0.12),
-                            Color.cyan.opacity(0.08),
-                            Color.blue.opacity(0.05)
+                            Color.blue.opacity(0.08),
+                            Color.cyan.opacity(0.04)
                         ],
                         startPoint: .topLeading,
                         endPoint: .bottomTrailing
@@ -3057,8 +2990,7 @@ private struct AddDepartmentSheet: View {
                     : LinearGradient(
                         colors: [
                             Color(.tertiarySystemGroupedBackground),
-                            Color(.tertiarySystemGroupedBackground).opacity(0.8),
-                            Color(.tertiarySystemGroupedBackground).opacity(0.6)
+                            Color(.tertiarySystemGroupedBackground).opacity(0.7)
                         ],
                         startPoint: .topLeading,
                         endPoint: .bottomTrailing
@@ -3088,15 +3020,11 @@ private struct AddDepartmentSheet: View {
             }
         }()
         
-        RoundedRectangle(cornerRadius: 16)
+        RoundedRectangle(cornerRadius: 12)
             .stroke(
                 focusedField == .name
                     ? LinearGradient(
-                        colors: [
-                            strokeColor,
-                            strokeColor.opacity(0.7),
-                            strokeColor.opacity(0.5)
-                        ],
+                        colors: [strokeColor, strokeColor.opacity(0.6)],
                         startPoint: .topLeading,
                         endPoint: .bottomTrailing
                     )
@@ -3110,20 +3038,18 @@ private struct AddDepartmentSheet: View {
     }
     
     private var dragIndicator: some View {
-        RoundedRectangle(cornerRadius: 4)
+        RoundedRectangle(cornerRadius: 3)
             .fill(
                 LinearGradient(
                     colors: [
-                        Color.secondary.opacity(0.35),
-                        Color.secondary.opacity(0.25),
+                        Color.secondary.opacity(0.3),
                         Color.secondary.opacity(0.2)
                     ],
                     startPoint: .leading,
                     endPoint: .trailing
                 )
             )
-            .frame(width: 44, height: 5.5)
-            .shadow(color: Color.secondary.opacity(0.1), radius: 2, x: 0, y: 1)
+            .frame(width: 40, height: 5)
             .padding(.top, DesignSystem.Spacing.medium + 4)
             .padding(.bottom, DesignSystem.Spacing.large)
     }
@@ -3149,7 +3075,7 @@ private struct AddDepartmentSheet: View {
                 .padding(.vertical, DesignSystem.Spacing.medium + 2)
                 .background(departmentNameTextFieldBackground)
                 .overlay(departmentNameTextFieldOverlay)
-                .clipShape(RoundedRectangle(cornerRadius: 16))
+                .cornerRadius(12)
                 .onChange(of: departmentName) { _, _ in
                     validateDepartmentName()
                 }
@@ -3186,35 +3112,32 @@ private struct AddDepartmentSheet: View {
     }
     
     private var departmentNameCardBackground: some View {
-        RoundedRectangle(cornerRadius: DesignSystem.CornerRadius.large + 4)
+        RoundedRectangle(cornerRadius: DesignSystem.CornerRadius.medium + 2)
             .fill(
                 LinearGradient(
                     colors: [
                         Color(.secondarySystemGroupedBackground),
-                        Color(.tertiarySystemGroupedBackground).opacity(0.6),
-                        Color(.secondarySystemGroupedBackground).opacity(0.8)
+                        Color(.tertiarySystemGroupedBackground).opacity(0.5)
                     ],
                     startPoint: .topLeading,
                     endPoint: .bottomTrailing
                 )
             )
             .overlay(
-                RoundedRectangle(cornerRadius: DesignSystem.CornerRadius.large + 4)
+                RoundedRectangle(cornerRadius: DesignSystem.CornerRadius.medium + 2)
                     .stroke(
                         LinearGradient(
                             colors: [
-                                Color.blue.opacity(0.25),
-                                Color.cyan.opacity(0.15),
-                                Color.blue.opacity(0.1)
+                                Color.blue.opacity(0.2),
+                                Color.cyan.opacity(0.1)
                             ],
                             startPoint: .topLeading,
                             endPoint: .bottomTrailing
                         ),
-                        lineWidth: 2
+                        lineWidth: 1.5
                     )
             )
-            .shadow(color: Color.blue.opacity(0.15), radius: 12, x: 0, y: 4)
-            .shadow(color: Color.blue.opacity(0.05), radius: 20, x: 0, y: 8)
+            .shadow(color: Color.blue.opacity(0.1), radius: 8, x: 0, y: 2)
     }
     
     private var contractorModeCard: some View {
@@ -3264,22 +3187,15 @@ private struct AddDepartmentSheet: View {
                 .foregroundColor(contractorMode == mode ? contractorModeTextColor : .primary)
                 .multilineTextAlignment(.center)
                 .padding(.horizontal, DesignSystem.Spacing.large)
-                .padding(.vertical, DesignSystem.Spacing.medium + 4)
+                .padding(.vertical, DesignSystem.Spacing.medium + 2)
                 .frame(maxWidth: .infinity)
                 .background(contractorModeButtonBackground(for: mode))
-                .clipShape(RoundedRectangle(cornerRadius: 18))
                 .overlay(contractorModeButtonOverlay(for: mode))
                 .shadow(
                     color: contractorMode == mode ? contractorModeShadowColor(for: mode) : Color.clear,
-                    radius: contractorMode == mode ? 12 : 0,
+                    radius: contractorMode == mode ? 8 : 0,
                     x: 0,
-                    y: contractorMode == mode ? 6 : 0
-                )
-                .shadow(
-                    color: contractorMode == mode ? Color.primary.opacity(0.1) : Color.clear,
-                    radius: contractorMode == mode ? 20 : 0,
-                    x: 0,
-                    y: contractorMode == mode ? 8 : 0
+                    y: contractorMode == mode ? 4 : 0
                 )
                 .scaleEffect(contractorMode == mode ? 1.02 : 1.0)
         }
@@ -3314,18 +3230,17 @@ private struct AddDepartmentSheet: View {
     @ViewBuilder
     private func contractorModeButtonOverlay(for mode: ContractorMode) -> some View {
         if contractorMode != mode {
-            RoundedRectangle(cornerRadius: 18)
+            RoundedRectangle(cornerRadius: 12)
                 .stroke(
                     LinearGradient(
                         colors: [
-                            Color(.separator).opacity(0.5),
-                            Color(.separator).opacity(0.3),
+                            Color(.separator).opacity(0.4),
                             Color(.separator).opacity(0.2)
                         ],
                         startPoint: .topLeading,
                         endPoint: .bottomTrailing
                     ),
-                    lineWidth: 2
+                    lineWidth: 1.5
                 )
         }
     }
@@ -3343,35 +3258,32 @@ private struct AddDepartmentSheet: View {
     }
     
     private var contractorModeCardBackground: some View {
-        RoundedRectangle(cornerRadius: DesignSystem.CornerRadius.large + 4)
+        RoundedRectangle(cornerRadius: DesignSystem.CornerRadius.medium + 2)
             .fill(
                 LinearGradient(
                     colors: [
                         Color(.secondarySystemGroupedBackground),
-                        Color(.tertiarySystemGroupedBackground).opacity(0.6),
-                        Color(.secondarySystemGroupedBackground).opacity(0.8)
+                        Color(.tertiarySystemGroupedBackground).opacity(0.5)
                     ],
                     startPoint: .topLeading,
                     endPoint: .bottomTrailing
                 )
             )
             .overlay(
-                RoundedRectangle(cornerRadius: DesignSystem.CornerRadius.large + 4)
+                RoundedRectangle(cornerRadius: DesignSystem.CornerRadius.medium + 2)
                     .stroke(
                         LinearGradient(
                             colors: [
-                                Color.purple.opacity(0.25),
-                                Color.indigo.opacity(0.15),
-                                Color.purple.opacity(0.1)
+                                Color.purple.opacity(0.2),
+                                Color.indigo.opacity(0.1)
                             ],
                             startPoint: .topLeading,
                             endPoint: .bottomTrailing
                         ),
-                        lineWidth: 2
+                        lineWidth: 1.5
                     )
             )
-            .shadow(color: Color.purple.opacity(0.15), radius: 12, x: 0, y: 4)
-            .shadow(color: Color.purple.opacity(0.05), radius: 20, x: 0, y: 8)
+            .shadow(color: Color.purple.opacity(0.1), radius: 8, x: 0, y: 2)
     }
     
     private var lineItemsSection: some View {
@@ -3429,96 +3341,86 @@ private struct AddDepartmentSheet: View {
                                     lineItem: $lineItem,
                                     onDelete: {
                                         if lineItems.count > 1 {
+                                            if expandedLineItemId == lineItem.id {
+                                                expandedLineItemId = nil
+                                            }
                                             lineItems.removeAll { $0.id == lineItem.id }
                                         }
                                     },
                                     canDelete: lineItems.count > 1,
-                                    contractorMode: contractorMode,
-                                    onEdit: {
-                                        editingLineItem = lineItem
-                                        isNewLineItem = false
-                                        showingLineItemSheet = true
-                                    }
-                                )
-                            }
-                        }
-                        .sheet(isPresented: $showingLineItemSheet) {
-                            if let editingItem = editingLineItem,
-                               let index = lineItems.firstIndex(where: { $0.id == editingItem.id }) {
-                                LineItemEditSheet(
-                                    lineItem: $lineItems[index],
-                                    contractorMode: contractorMode,
-                                    isNewItem: isNewLineItem,
-                                    onSave: {
-                                        // Budget updates automatically
-                                    },
-                                    onCancel: {
-                                        // If it's a new item and user cancels, remove it
-                                        if isNewLineItem, let editingItem = editingLineItem {
-                                            lineItems.removeAll { $0.id == editingItem.id }
+                                    isExpanded: expandedLineItemId == lineItem.id,
+                                    onToggleExpand: {
+                                        withAnimation(DesignSystem.Animation.standardSpring) {
+                                            if expandedLineItemId == lineItem.id {
+                                                expandedLineItemId = nil
+                                            } else {
+                                                expandedLineItemId = lineItem.id
+                                            }
                                         }
-                                    }
+                                    },
+                                    contractorMode: contractorMode,
+                                    uomError: shouldShowValidationErrors && lineItem.uom.trimmingCharacters(in: .whitespaces).isEmpty ? "UOM is required" : nil
                                 )
-                                .presentationDragIndicator(.visible)
                             }
                         }
                         
                         Button(action: {
                             HapticManager.selection()
+                            expandedLineItemId = nil
                             let newItem = DepartmentLineItem()
                             lineItems.append(newItem)
-                            editingLineItem = newItem
-                            isNewLineItem = true
-                            showingLineItemSheet = true
+                            Task { @MainActor in
+                                try? await Task.sleep(nanoseconds: 200_000_000)
+                                withAnimation(DesignSystem.Animation.standardSpring) {
+                                    expandedLineItemId = newItem.id
+                                }
+                            }
                         }) {
                             HStack(spacing: DesignSystem.Spacing.medium) {
                                 Image(systemName: "plus.circle.fill")
-                                    .font(.system(size: 20, weight: .bold))
+                                    .font(.system(size: 18, weight: .bold))
                                     .foregroundStyle(orangeAmberGradient)
                                     .symbolRenderingMode(.hierarchical)
                                 Text("Add Line Item")
-                                    .font(.system(size: 17, weight: .bold))
+                                    .font(.system(size: 16, weight: .bold))
                                     .foregroundStyle(
                                         LinearGradient(
-                                            colors: [.orange, amberColor, .orange],
+                                            colors: [.orange, amberColor],
                                             startPoint: .leading,
                                             endPoint: .trailing
                                         )
                                     )
                             }
                             .frame(maxWidth: .infinity)
-                            .padding(.vertical, DesignSystem.Spacing.large)
+                            .padding(.vertical, DesignSystem.Spacing.medium + 4)
                             .background(
-                                RoundedRectangle(cornerRadius: 20)
+                                RoundedRectangle(cornerRadius: 12)
                                     .fill(
                                         LinearGradient(
                                             colors: [
-                                                Color.orange.opacity(0.18),
-                                                amberColor.opacity(0.12),
-                                                Color.orange.opacity(0.08)
+                                                Color.orange.opacity(0.15),
+                                                amberColor.opacity(0.1)
                                             ],
                                             startPoint: .topLeading,
                                             endPoint: .bottomTrailing
                                         )
                                     )
                                     .overlay(
-                                        RoundedRectangle(cornerRadius: 20)
+                                        RoundedRectangle(cornerRadius: 12)
                                             .stroke(
                                                 LinearGradient(
                                                     colors: [
-                                                        Color.orange.opacity(0.35),
-                                                        amberColor.opacity(0.25),
-                                                        Color.orange.opacity(0.2)
+                                                        Color.orange.opacity(0.3),
+                                                        amberColor.opacity(0.2)
                                                     ],
                                                     startPoint: .topLeading,
                                                     endPoint: .bottomTrailing
                                                 ),
-                                                lineWidth: 2
+                                                lineWidth: 1.5
                                             )
                                     )
                             )
-                            .shadow(color: Color.orange.opacity(0.2), radius: 10, x: 0, y: 4)
-                            .shadow(color: Color.orange.opacity(0.1), radius: 20, x: 0, y: 8)
+                            .shadow(color: Color.orange.opacity(0.15), radius: 6, x: 0, y: 3)
                         }
                         .buttonStyle(.plain)
                         
@@ -3564,35 +3466,32 @@ private struct AddDepartmentSheet: View {
     }
     
     private var lineItemsCardBackground: some View {
-        RoundedRectangle(cornerRadius: DesignSystem.CornerRadius.large + 4)
+        RoundedRectangle(cornerRadius: DesignSystem.CornerRadius.medium + 2)
             .fill(
                 LinearGradient(
                     colors: [
                         Color(.secondarySystemGroupedBackground),
-                        Color(.tertiarySystemGroupedBackground).opacity(0.6),
-                        Color(.secondarySystemGroupedBackground).opacity(0.8)
+                        Color(.tertiarySystemGroupedBackground).opacity(0.5)
                     ],
                     startPoint: .topLeading,
                     endPoint: .bottomTrailing
                 )
             )
             .overlay(
-                RoundedRectangle(cornerRadius: DesignSystem.CornerRadius.large + 4)
+                RoundedRectangle(cornerRadius: DesignSystem.CornerRadius.medium + 2)
                     .stroke(
                         LinearGradient(
                             colors: [
-                                Color.orange.opacity(0.25),
-                                amberColor.opacity(0.15),
-                                Color.orange.opacity(0.1)
+                                Color.orange.opacity(0.2),
+                                amberColor.opacity(0.1)
                             ],
                             startPoint: .topLeading,
                             endPoint: .bottomTrailing
                         ),
-                        lineWidth: 2
+                        lineWidth: 1.5
                     )
             )
-            .shadow(color: Color.orange.opacity(0.15), radius: 12, x: 0, y: 4)
-            .shadow(color: Color.orange.opacity(0.05), radius: 20, x: 0, y: 8)
+            .shadow(color: Color.orange.opacity(0.1), radius: 8, x: 0, y: 2)
     }
     
     private var budgetSummaryCard: some View {
@@ -3614,10 +3513,6 @@ private struct AddDepartmentSheet: View {
                                 .font(.system(size: 26, weight: .bold))
                                 .foregroundStyle(greenMintGradient)
                                 .shadow(color: Color.green.opacity(0.2), radius: 2, x: 0, y: 1)
-                                .lineLimit(1)
-                                .minimumScaleFactor(0.7)
-                                .truncationMode(.tail)
-                                .fixedSize(horizontal: false, vertical: true)
                         }
                     }
         .padding(DesignSystem.Spacing.medium)
@@ -6253,6 +6148,7 @@ private struct AddPhaseSheet: View {
     @State private var endDate: Date = Date().addingTimeInterval(86400 * 30)
     @State private var departments: [AddPhaseDepartmentItem] = [AddPhaseDepartmentItem()]
     @State private var expandedDepartmentId: UUID? = nil
+    @State private var expandedLineItemIds: [UUID: UUID] = [:] // departmentId: lineItemId
     @State private var isSaving = false
     @State private var errorMessage: String?
     @State private var nextPhaseNumber: Int = 1
@@ -6590,13 +6486,24 @@ private struct AddPhaseSheet: View {
                                 AddPhaseDepartmentRowView(
                                     department: $dept,
                                     isExpanded: expandedDepartmentId == dept.id,
+                                    expandedLineItemId: expandedLineItemIds[dept.id],
                                     shouldShowValidationErrors: shouldShowValidationErrors,
                                     onToggleExpand: {
                                         withAnimation(DesignSystem.Animation.standardSpring) {
                                             if expandedDepartmentId == dept.id {
                                                 expandedDepartmentId = nil
+                                                expandedLineItemIds.removeValue(forKey: dept.id)
                                             } else {
                                                 expandedDepartmentId = dept.id
+                                            }
+                                        }
+                                    },
+                                    onToggleLineItemExpand: { lineItemId in
+                                        withAnimation(DesignSystem.Animation.standardSpring) {
+                                            if expandedLineItemIds[dept.id] == lineItemId {
+                                                expandedLineItemIds.removeValue(forKey: dept.id)
+                                            } else {
+                                                expandedLineItemIds[dept.id] = lineItemId
                                             }
                                         }
                                     },
@@ -6604,8 +6511,17 @@ private struct AddPhaseSheet: View {
                                         if departments.count > 1 {
                                             if expandedDepartmentId == dept.id {
                                                 expandedDepartmentId = nil
+                                                expandedLineItemIds.removeValue(forKey: dept.id)
                                             }
                                             departments.removeAll { $0.id == dept.id }
+                                        }
+                                    },
+                                    onDeleteLineItem: { lineItemId in
+                                        if dept.lineItems.count > 1 {
+                                            dept.lineItems.removeAll { $0.id == lineItemId }
+                                            if expandedLineItemIds[dept.id] == lineItemId {
+                                                expandedLineItemIds.removeValue(forKey: dept.id)
+                                            }
                                         }
                                     },
                                     canDelete: departments.count > 1,
@@ -7361,17 +7277,16 @@ private struct AddPhaseSheet: View {
 private struct AddPhaseDepartmentRowView: View {
     @Binding var department: AddPhaseDepartmentItem
     let isExpanded: Bool
+    let expandedLineItemId: UUID?
     let shouldShowValidationErrors: Bool
     let onToggleExpand: () -> Void
+    let onToggleLineItemExpand: (UUID) -> Void
     let onDelete: () -> Void
+    let onDeleteLineItem: (UUID) -> Void
     let canDelete: Bool
     let isDuplicate: Bool
     let phaseName: String
     let formatAmountInput: (String) -> String
-    
-    @State private var showingLineItemSheet = false
-    @State private var editingLineItem: DepartmentLineItem?
-    @State private var isNewLineItem = false
     
     private func updateDepartmentAmount() {
         department.amount = formatAmountInput(String(department.totalBudget))
@@ -7553,18 +7468,15 @@ private struct AddPhaseDepartmentRowView: View {
                                     LineItemRowView(
                                         lineItem: $lineItem,
                                         onDelete: {
-                                            if department.lineItems.count > 1 {
-                                                department.lineItems.removeAll { $0.id == lineItem.id }
-                                                updateDepartmentAmount()
-                                            }
+                                            onDeleteLineItem(lineItem.id)
                                         },
                                         canDelete: department.lineItems.count > 1,
+                                        isExpanded: expandedLineItemId == lineItem.id,
+                                        onToggleExpand: {
+                                            onToggleLineItemExpand(lineItem.id)
+                                        },
                                         contractorMode: department.contractorMode,
-                                        onEdit: {
-                                            editingLineItem = lineItem
-                                            isNewLineItem = false
-                                            showingLineItemSheet = true
-                                        }
+                                        uomError: shouldShowValidationErrors && lineItem.uom.trimmingCharacters(in: .whitespaces).isEmpty ? "UOM is required" : nil
                                     )
                                     .onChange(of: lineItem.quantity) { _, _ in
                                         updateDepartmentAmount()
@@ -7574,42 +7486,26 @@ private struct AddPhaseDepartmentRowView: View {
                                     }
                                 }
                             }
-                            .sheet(isPresented: $showingLineItemSheet) {
-                                if let editingItem = editingLineItem,
-                                   let index = department.lineItems.firstIndex(where: { $0.id == editingItem.id }) {
-                                    LineItemEditSheet(
-                                        lineItem: $department.lineItems[index],
-                                        contractorMode: department.contractorMode,
-                                        isNewItem: isNewLineItem,
-                                        onSave: {
-                                            updateDepartmentAmount()
-                                        },
-                                        onCancel: {
-                                            // If it's a new item and user cancels, remove it
-                                            if isNewLineItem, let editingItem = editingLineItem {
-                                                department.lineItems.removeAll { $0.id == editingItem.id }
-                                            }
-                                        }
-                                    )
-                                    .presentationDragIndicator(.visible)
-                                }
-                            }
                             .onAppear {
                                 updateDepartmentAmount()
                             }
                             
                             Button(action: {
                                 HapticManager.selection()
+                                // Collapse all line items when adding new
+                                onToggleLineItemExpand(UUID())
                                 let newItem = DepartmentLineItem()
                                 department.lineItems.append(newItem)
-                                editingLineItem = newItem
-                                isNewLineItem = true
-                                showingLineItemSheet = true
+                                // Expand the new item after a brief delay
+                                Task { @MainActor in
+                                    try? await Task.sleep(nanoseconds: 200_000_000) // 0.2 seconds
+                                    onToggleLineItemExpand(newItem.id)
+                                }
                             }) {
                                 HStack(spacing: DesignSystem.Spacing.small) {
                                     Image(systemName: "plus.circle.fill")
                                         .font(.system(size: 16, weight: .medium))
-                                    Text("Add Line Item")
+                                    Text("Add row")
                                         .font(DesignSystem.Typography.callout)
                                         .fontWeight(.medium)
                                 }

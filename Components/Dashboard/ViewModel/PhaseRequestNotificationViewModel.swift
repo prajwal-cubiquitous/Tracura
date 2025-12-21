@@ -279,19 +279,12 @@ class PhaseRequestNotificationViewModel: ObservableObject {
             // Sort by creation date (most recent first)
             allRequests.sort { $0.createdAt.dateValue() > $1.createdAt.dateValue() }
             
-            await MainActor.run {
-                self.pendingRequests = allRequests
-                self.isLoading = false
-                
-                // Notify badge manager to update badge
-                NotificationCenter.default.post(name: NSNotification.Name("PhaseRequestsUpdated"), object: nil)
-            }
+            self.pendingRequests = allRequests
+            self.isLoading = false
             
         } catch {
-            await MainActor.run {
-                self.errorMessage = "Failed to load phase requests: \(error.localizedDescription)"
-                self.isLoading = false
-            }
+            self.errorMessage = "Failed to load phase requests: \(error.localizedDescription)"
+            self.isLoading = false
             print("Error loading phase requests: \(error)")
         }
     }
