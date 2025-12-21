@@ -141,6 +141,12 @@ class PhaseRequestNotificationViewModel: ObservableObject {
                 }
             }
             
+            // Post notification to refresh phase requests in ProjectListView
+            await MainActor.run {
+                NotificationCenter.default.post(name: NSNotification.Name("PhaseRequestUpdated"), object: nil)
+                NotificationCenter.default.post(name: NSNotification.Name("PhaseUpdated"), object: nil)
+            }
+            
         } catch {
             await MainActor.run {
                 self.errorMessage = "Failed to \(action == .accept ? "accept" : "reject") request: \(error.localizedDescription)"

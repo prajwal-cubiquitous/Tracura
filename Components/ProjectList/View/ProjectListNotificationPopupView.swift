@@ -23,6 +23,7 @@ struct ProjectListNotificationPopupView: View {
     @State private var showingAllNotifications = false
     @State private var allPhaseRequests: [PhaseRequestItem] = []
     @State private var phaseRequestProjectMap: [String: String] = [:] // Maps request ID to project ID
+    @State private var phaseRequestProjectNameMap: [String: String] = [:] // Maps request ID to project name
     @EnvironmentObject var authService: FirebaseAuthService
     
     // Limit number of items shown in popup
@@ -80,14 +81,31 @@ struct ProjectListNotificationPopupView: View {
         .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("NotificationManagerUpdated"))) { _ in
             if role == .ADMIN {
                 notificationViewModel.loadSavedNotifications()
+                loadAllPhaseRequests() // Reload phase requests when notifications update
             } else if role == .APPROVER {
                 notificationViewModel.loadSavedNotifications()
+            }
+        }
+        .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("PhaseRequestUpdated"))) { _ in
+            if role == .ADMIN {
+                loadAllPhaseRequests() // Reload phase requests when phase requests are updated
+            }
+        }
+        .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("PhaseRequestSubmitted"))) { _ in
+            if role == .ADMIN {
+                loadAllPhaseRequests() // Reload phase requests when a new request is submitted
+            }
+        }
+        .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("ProjectUpdated"))) { _ in
+            if role == .ADMIN {
+                loadAllPhaseRequests() // Reload phase requests when projects are updated
             }
         }
         .sheet(isPresented: $showingAllPhaseRequests) {
             AllPhaseRequestsListView(
                 requests: allPhaseRequests,
                 projectMap: phaseRequestProjectMap,
+                projectNameMap: phaseRequestProjectNameMap,
                 projects: viewModel.projects,
                 onRequestTap: { request in
                     // Show phase request sheet for this request
@@ -138,7 +156,7 @@ struct ProjectListNotificationPopupView: View {
         Task {
             guard let customerId = customerId else { return }
             
-            var allRequests: [(PhaseRequestItem, String)] = [] // Store request with projectId
+            var allRequests: [(PhaseRequestItem, String, String)] = [] // Store request with projectId and projectName
             
             // Load phase requests from all projects
             for project in viewModel.projects {
@@ -147,9 +165,9 @@ struct ProjectListNotificationPopupView: View {
                         projectId: projectId,
                         customerId: customerId
                     )
-                    // Store requests with their projectId
+                    // Store requests with their projectId and projectName
                     for request in phaseRequestNotificationViewModel.pendingRequests {
-                        allRequests.append((request, projectId))
+                        allRequests.append((request, projectId, project.name))
                     }
                 }
             }
@@ -159,6 +177,8 @@ struct ProjectListNotificationPopupView: View {
                 allPhaseRequests = allRequests.map { $0.0 }
                 // Store projectId mapping in a dictionary for navigation
                 phaseRequestProjectMap = Dictionary(uniqueKeysWithValues: allRequests.map { ($0.0.id, $0.1) })
+                // Store projectName mapping for display
+                phaseRequestProjectNameMap = Dictionary(uniqueKeysWithValues: allRequests.map { ($0.0.id, $0.2) })
             }
         }
     }
@@ -410,6 +430,7 @@ struct ProjectListNotificationPopupView: View {
             // Phase request items (limited)
             let itemsToShow = Array(allPhaseRequests.prefix(maxItemsToShow))
             ForEach(Array(itemsToShow.enumerated()), id: \.element.id) { index, request in
+                let projectName = phaseRequestProjectNameMap[request.id]
                 PhaseRequestNotificationRow(
                     request: request,
                     onTap: {
@@ -425,7 +446,8 @@ struct ProjectListNotificationPopupView: View {
                                 onProjectSelected(project)
                             }
                         }
-                    }
+                    },
+                    projectName: projectName
                 )
                 
                 if index < itemsToShow.count - 1 {
@@ -1170,6 +1192,7 @@ struct InReviewProjectNotificationCell: View {
 struct AllPhaseRequestsListView: View {
     let requests: [PhaseRequestItem]
     let projectMap: [String: String]
+    let projectNameMap: [String: String]
     let projects: [Project]
     let onRequestTap: (PhaseRequestItem) -> Void
     @Environment(\.dismiss) private var dismiss
@@ -1198,22 +1221,26 @@ struct AllPhaseRequestsListView: View {
                 } else {
                     List {
                         ForEach(requests) { request in
+                            let projectName = projectNameMap[request.id]
                             PhaseRequestNotificationRow(
                                 request: request,
                                 onTap: {
                                     onRequestTap(request)
-                                }
+                                },
+                                projectName: projectName
                             )
                             .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 8, trailing: 16))
                             .swipeActions(edge: .trailing, allowsFullSwipe: false) {
-                                if let projectId = projectMap[request.id],
-                                   let project = projects.first(where: { $0.id == projectId }) {
-                                    Button {
-                                        onRequestTap(request)
-                                    } label: {
-                                        Label("View Project", systemImage: "arrow.right.circle")
+                                if let projectId = projectMap[request.id] {
+                                    let matchingProject = projects.first(where: { $0.id == projectId })
+                                    if let project = matchingProject {
+                                        Button {
+                                            onRequestTap(request)
+                                        } label: {
+                                            Label("View Project", systemImage: "arrow.right.circle")
+                                        }
+                                        .tint(.blue)
                                     }
-                                    .tint(.blue)
                                 }
                             }
                         }

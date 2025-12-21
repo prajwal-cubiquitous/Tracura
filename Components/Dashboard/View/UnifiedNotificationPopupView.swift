@@ -413,6 +413,7 @@ struct UnifiedNotificationPopupView: View {
 struct PhaseRequestNotificationRow: View {
     let request: PhaseRequestItem
     let onTap: () -> Void
+    var projectName: String? = nil // Optional project name for multi-project views
     
     private var dateFormatter: DateFormatter {
         let formatter = DateFormatter()
@@ -453,6 +454,14 @@ struct PhaseRequestNotificationRow: View {
                         Text(requestDate)
                             .font(.system(size: 11, weight: .regular))
                             .foregroundColor(.secondary)
+                    }
+                    
+                    // Show project name if available (for multi-project views)
+                    if let projectName = projectName, !projectName.isEmpty {
+                        Text(projectName)
+                            .font(.system(size: 12, weight: .semibold))
+                            .foregroundColor(.accentColor)
+                            .lineLimit(1)
                     }
                     
                     if let userName = request.userName, !userName.isEmpty {
