@@ -9,9 +9,9 @@ struct RoleManagementView: View {
             List {
                 Section {
                     roleCard(
-                        role: .ADMIN,
-                        title: "Administrator",
-                        description: "System administrator for support, security, and backups.",
+                        role: .BUSINESSHEAD,
+                        title: "BusinessHead",
+                        description: "System businessHead for support, security, and backups.",
                         permissions: [
                             "Maintain system configuration and integrations",
                             "Manage data backups and recovery",
@@ -31,11 +31,11 @@ struct RoleManagementView: View {
                         ]
                     )
                     
-                    // Information card: Production Head (maps to admin-level permissions)
+                    // Information card: Production Head (maps to businessHead-level permissions)
                     roleCard(
                         role: .HEAD,
                         title: "Production Head",
-                        description: "Full administrative access to manage projects, users, and approvals",
+                        description: "Full businessHead access to manage projects, users, and approvals",
                         permissions: [
                             "Oversee all projects and budgets",
                             "Manage users and roles",
@@ -110,7 +110,7 @@ struct RoleManagementView: View {
     
     private func roleColor(for role: UserRole) -> Color {
         switch role {
-        case .ADMIN:
+        case .BUSINESSHEAD:
             return .purple
         case .APPROVER:
             return .blue

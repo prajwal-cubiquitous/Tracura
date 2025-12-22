@@ -47,7 +47,7 @@ struct ChatsView: View {
                 
                 // Find project first
                 if let projectId{                    // Determine current user's identifier used in chatId generation
-                    let rawCurrent = (currentUserRole == .ADMIN) ? "Admin" : viewModel.currentUserPhone
+                    let rawCurrent = (currentUserRole == .BUSINESSHEAD) ? "BusinessHead" : viewModel.currentUserPhone
                     if let rawCurrent{
                         let current = rawCurrent.hasPrefix("+91") ? String(rawCurrent.dropFirst(3)) : rawCurrent
                         
@@ -55,8 +55,8 @@ struct ChatsView: View {
                         let parts = chatId.split(separator: "_").map(String.init)
                         let otherId = parts.first { $0 != current } ?? ""
                         
-                        // Build minimal participant; if Admin use admin role
-                        let participantRole: UserRole = (otherId == "Admin") ? .ADMIN : .USER
+                        // Build minimal participant; if BusinessHead use businessHead role
+                        let participantRole: UserRole = (otherId == "BusinessHead") ? .BUSINESSHEAD : .USER
                         let participant = ChatParticipant(
                             id: otherId,
                             name: otherId,

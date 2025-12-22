@@ -880,6 +880,6 @@ class DelegateViewModel: ObservableObject {
 //            createdAt: Timestamp(date: Date()),
 //            updatedAt: Timestamp(date: Date())
 //        ),
-//        currentUserRole: .ADMIN, showingDelegate: .constant(false)
+//        currentUserRole: .BUSINESSHEAD, showingDelegate: .constant(false)
 //    )
 //}

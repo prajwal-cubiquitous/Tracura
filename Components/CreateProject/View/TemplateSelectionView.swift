@@ -29,7 +29,7 @@ struct TemplateSelectionView: View {
             // Get current customer ID
             let customerId: String
             if let currentUser = Auth.auth().currentUser {
-                // Check if user logged in via email (admin) or phone
+                // Check if user logged in via email (businessHead) or phone
                 if let phoneNumber = currentUser.phoneNumber {
                     // OTP user - get ownerID from users collection
                     let cleanPhone = phoneNumber.replacingOccurrences(of: "+91", with: "")
@@ -45,7 +45,7 @@ struct TemplateSelectionView: View {
                         customerId = currentUser.uid
                     }
                 } else {
-                    // Email user (admin) - use UID as customer ID
+                    // Email user (businessHead) - use UID as customer ID
                     customerId = currentUser.uid
                 }
             } else {

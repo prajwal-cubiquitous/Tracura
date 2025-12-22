@@ -60,9 +60,9 @@ class UserServices: ObservableObject {
             // User authenticated via phone (OTP)
             phone = cleanPhoneNumber(phoneNumber)
         } else if let email = user.email {
-            // Admin user authenticated via email
-            print("Admin user logged in: \(email)")
-            phone = nil // Admin users don't have phone numbers
+            // BusinessHead user authenticated via email
+            print("BusinessHead user logged in: \(email)")
+            phone = nil // BusinessHead users don't have phone numbers
         }
         
         currentUserPhone = phone
@@ -89,7 +89,7 @@ class UserServices: ObservableObject {
     // MARK: - User Data Loading
     private func loadCurrentUser(phone: String?) async {
         guard let phone = phone else {
-            // This might be an admin user, currentUser will be set by FirebaseAuthService
+            // This might be a businessHead user, currentUser will be set by FirebaseAuthService
             return
         }
         
@@ -118,7 +118,7 @@ class UserServices: ObservableObject {
     }
     
     func isCurrentUserAdmin() -> Bool {
-        return currentUser?.role == .ADMIN
+        return currentUser?.role == .BUSINESSHEAD
     }
     
     func isCurrentUserApprover() -> Bool {

@@ -255,17 +255,17 @@ struct ExpenseChatView: View {
     
     // MARK: - Helper Methods
     private var senderId: String {
-        // For admin/approver roles, use "Admin" as identifier, otherwise use phone number
-        if role == .ADMIN || role == .APPROVER {
-            return "Admin"
+        // For businessHead/approver roles, use "BusinessHead" as identifier, otherwise use phone number
+        if role == .BUSINESSHEAD || role == .APPROVER {
+            return "BusinessHead"
         }
         return userPhoneNumber
     }
     
     private func isMessageFromCurrentUser(_ message: ExpenseChat) -> Bool {
-        // For admin/approver, check if senderId is "Admin" and current user is admin/approver
-        if message.senderId == "Admin" {
-            return role == .ADMIN || role == .APPROVER
+        // For businessHead/approver, check if senderId is "BusinessHead" and current user is businessHead/approver
+        if message.senderId == "BusinessHead" {
+            return role == .BUSINESSHEAD || role == .APPROVER
         }
         // For regular users, check phone number match
         return message.senderId == userPhoneNumber
@@ -375,7 +375,7 @@ struct ExpenseChatView: View {
         // Create unique filename with user UID for better permissions
         let timestamp = Int(Date().timeIntervalSince1970)
         let filename = "expense_chat_\(expense.id ?? "unknown")_\(timestamp)_\(index).jpg"
-        // Use senderId (which handles admin/approver correctly) as the user identifier for storage path
+        // Use senderId (which handles businessHead/approver correctly) as the user identifier for storage path
         let imageRef = storageRef.child("expense_chat_images/\(senderId)/\(filename)")
         
         // Upload the image
@@ -397,7 +397,7 @@ struct ChatMessageBubble: View {
     let onImageTapped: (String, Int) -> Void
     
     private var senderDisplayName: String {
-        if message.senderId == "Admin" {
+        if message.senderId == "BusinessHead" {
             return message.senderRole.rawValue
         }
         if message.senderRole == .APPROVER {
@@ -728,6 +728,6 @@ struct ImageViewerView: View {
 #Preview {
     ExpenseChatView(
         expense: Expense.sampleData[0],
-        userPhoneNumber: "+919876543210", projectId: "I1kHn5UTOs6FCBA33Ke5", role: .ADMIN
+        userPhoneNumber: "+919876543210", projectId: "I1kHn5UTOs6FCBA33Ke5", role: .BUSINESSHEAD
     )
 }

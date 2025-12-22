@@ -56,7 +56,188 @@ struct AddExpenseView: View {
     var body: some View {
         NavigationView {
             ScrollViewReader { proxy in
-                Form {
+                formContent(proxy: proxy)
+                    .navigationTitle("New Expense")
+                    .navigationBarTitleDisplayMode(.inline)
+                    .toolbar {
+                        ToolbarItem(placement: .navigationBarLeading) {
+                            Button("Cancel") {
+                                dismiss()
+                            }
+                        }
+                    }
+                    .modifier(FormModifiers(
+                        viewModel: viewModel,
+                        proxy: proxy,
+                        showingCamera: $showingCamera,
+                        showingPaymentProofCamera: $showingPaymentProofCamera,
+                        showingFileViewer: $showingFileViewer,
+                        showingPaymentProofFileViewer: $showingPaymentProofFileViewer,
+                        customerId: customerId,
+                        dismiss: dismiss
+                    ))
+            }
+        }
+    }
+    
+    // MARK: - Form Modifiers
+    private struct FormModifiers: ViewModifier {
+        @ObservedObject var viewModel: AddExpenseViewModel
+        let proxy: ScrollViewProxy
+        @Binding var showingCamera: Bool
+        @Binding var showingPaymentProofCamera: Bool
+        @Binding var showingFileViewer: Bool
+        @Binding var showingPaymentProofFileViewer: Bool
+        let customerId: String?
+        let dismiss: DismissAction
+        
+        func body(content: Content) -> some View {
+            content
+                .onChange(of: viewModel.firstInvalidFieldId) { fieldId in
+                    if let fieldId = fieldId {
+                        print("🔄 Attempting to scroll to field: \(fieldId)")
+                        Task { @MainActor in
+                            try? await Task.sleep(nanoseconds: 300_000_000) // 0.3 seconds
+                            withAnimation(.easeInOut(duration: 0.6)) {
+                                proxy.scrollTo(fieldId, anchor: .top)
+                            }
+                        }
+                    }
+                }
+                .alert("Status", isPresented: $viewModel.showAlert) {
+                    Button("OK") {
+                        if viewModel.shouldDismissOnAlert {
+                            dismiss()
+                        }
+                    }
+                } message: {
+                    Text(viewModel.alertMessage)
+                }
+                .confirmationDialog("Select Receipt", isPresented: $viewModel.showingAttachmentOptions, titleVisibility: .visible) {
+                    Button("Camera") {
+                        showingCamera = true
+                    }
+                    
+                    Button("Select from Photos") {
+                        viewModel.showingImagePicker = true
+                    }
+                    
+                    Button("Select from Files") {
+                        viewModel.showingDocumentPicker = true
+                    }
+                    
+                    Button("Cancel", role: .cancel) { }
+                }
+                .confirmationDialog("Select Payment Proof", isPresented: $viewModel.showingPaymentProofOptions, titleVisibility: .visible) {
+                    Button("Camera") {
+                        showingPaymentProofCamera = true
+                    }
+                    
+                    Button("Select from Photos") {
+                        viewModel.showingPaymentProofImagePicker = true
+                    }
+                    
+                    Button("Select from Files") {
+                        viewModel.showingPaymentProofDocumentPicker = true
+                    }
+                    
+                    Button("Cancel", role: .cancel) { }
+                }
+                .sheet(isPresented: $viewModel.showingImagePicker) {
+                    ExpenseImagePicker(selectedImage: Binding(
+                        get: { nil },
+                        set: { image in
+                            viewModel.handleImageSelection(image)
+                        }
+                    ))
+                }
+                .sheet(isPresented: $viewModel.showingDocumentPicker) {
+                    DocumentPicker(
+                        allowedTypes: [.pdf, .image],
+                        onDocumentPicked: viewModel.handleDocumentSelection
+                    )
+                }
+                .sheet(isPresented: $showingCamera) {
+                    ExpenseCameraPicker(
+                        selectedImage: Binding(
+                            get: { nil },
+                            set: { image in
+                                viewModel.handleImageSelection(image)
+                            }
+                        ),
+                        onDismiss: {
+                            showingCamera = false
+                        }
+                    )
+                }
+                .sheet(isPresented: $viewModel.showingPaymentProofImagePicker) {
+                    ExpenseImagePicker(selectedImage: Binding(
+                        get: { nil },
+                        set: { image in
+                            viewModel.handlePaymentProofImageSelection(image)
+                        }
+                    ))
+                }
+                .sheet(isPresented: $viewModel.showingPaymentProofDocumentPicker) {
+                    DocumentPicker(
+                        allowedTypes: [.pdf, .image],
+                        onDocumentPicked: viewModel.handlePaymentProofDocumentSelection
+                    )
+                }
+                .sheet(isPresented: $showingPaymentProofCamera) {
+                    ExpenseCameraPicker(
+                        selectedImage: Binding(
+                            get: { nil },
+                            set: { image in
+                                viewModel.handlePaymentProofImageSelection(image)
+                            }
+                        ),
+                        onDismiss: {
+                            showingPaymentProofCamera = false
+                        }
+                    )
+                }
+                .sheet(isPresented: $showingFileViewer) {
+                    if let urlString = viewModel.attachmentURL,
+                       let url = URL(string: urlString) {
+                        FileViewerSheet(fileURL: url, fileName: viewModel.attachmentName)
+                    }
+                }
+                .sheet(isPresented: $showingPaymentProofFileViewer) {
+                    if let urlString = viewModel.paymentProofURL,
+                       let url = URL(string: urlString) {
+                        FileViewerSheet(fileURL: url, fileName: viewModel.paymentProofName)
+                    }
+                }
+                .onAppear {
+                    UserServices.shared.currentUserPhone
+                    // Update customerId in ViewModel when it becomes available
+                    if let customerId = customerId {
+                        viewModel.updateCustomerId(customerId)
+                    }
+                }
+                .onChange(of: viewModel.expenseDate) { newDate in
+                    // Reload phases when date changes
+                    viewModel.loadPhases(for: newDate)
+                }
+                .onChange(of: viewModel.selectedPhaseId) { _ in
+                    viewModel.checkBusinessHeadApprovalConditions()
+                }
+                .onChange(of: viewModel.selectedDepartment) { _ in
+                    viewModel.loadAvailableItemTypes()
+                    viewModel.checkBusinessHeadApprovalConditions()
+                }
+                .onChange(of: viewModel.quantity) { _ in
+                    viewModel.checkBusinessHeadApprovalConditions()
+                }
+                .onChange(of: viewModel.unitPrice) { _ in
+                    viewModel.checkBusinessHeadApprovalConditions()
+                }
+        }
+    }
+    
+    private func formContent(proxy: ScrollViewProxy) -> some View {
+        Form {
                 // MARK: - Project Header
                 Section {
                     VStack(alignment: .leading, spacing: 8) {
@@ -166,12 +347,13 @@ struct AddExpenseView: View {
                             
                             if let selectedPhase = viewModel.selectedPhase {
                                 Menu {
-                                    ForEach(selectedPhase.departments.sorted(by: { $0.name < $1.name }), id: \.id) { department in
+                                    let sortedDepts = selectedPhase.departments.sorted(by: { $0.name < $1.name })
+                                    ForEach(sortedDepts, id: \.id) { department in
                                         let deptKey = String.departmentKey(phaseId: selectedPhase.id, departmentName: department.name)
                                         Button {
                                             viewModel.selectedDepartment = deptKey
                                             viewModel.loadAvailableItemTypes()
-                                            viewModel.checkAdminApprovalConditions()
+                                            viewModel.checkBusinessHeadApprovalConditions()
                                         } label: {
                                             HStack {
                                                 Text(department.name)
@@ -222,9 +404,9 @@ struct AddExpenseView: View {
                         .frame(maxWidth: .infinity)
                     }
                     
-                    // Admin approval message
-                    if let message = viewModel.adminApprovalMessage {
-                        AdminApprovalMessageView(message: message)
+                    // BusinessHead approval message
+                    if let message = viewModel.businessHeadApprovalMessage {
+                        BusinessHeadApprovalMessageView(message: message)
                     }
                 } header: {
                     Text("Phase Selection")
@@ -304,158 +486,7 @@ struct AddExpenseView: View {
                 Section {
                     submitButton
                 }
-            }
-            .navigationTitle("New Expense")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .navigationBarLeading) {
-                    Button("Cancel") {
-                        dismiss()
-                    }
-                }
-            }
-            .onChange(of: viewModel.firstInvalidFieldId) { fieldId in
-                if let fieldId = fieldId {
-                    print("🔄 Attempting to scroll to field: \(fieldId)")
-                    Task { @MainActor in
-                        try? await Task.sleep(nanoseconds: 300_000_000) // 0.3 seconds
-                        withAnimation(.easeInOut(duration: 0.6)) {
-                            proxy.scrollTo(fieldId, anchor: .top)
-                        }
-                    }
-                }
-            }
-            .alert("Status", isPresented: $viewModel.showAlert) {
-                Button("OK") {
-                    if viewModel.shouldDismissOnAlert {
-                        dismiss()
-                    }
-                }
-            } message: {
-                Text(viewModel.alertMessage)
-            }
-            .confirmationDialog("Select Receipt", isPresented: $viewModel.showingAttachmentOptions, titleVisibility: .visible) {
-                Button("Camera") {
-                    showingCamera = true
-                }
-                
-                Button("Select from Photos") {
-                    viewModel.showingImagePicker = true
-                }
-                
-                Button("Select from Files") {
-                    viewModel.showingDocumentPicker = true
-                }
-                
-                Button("Cancel", role: .cancel) { }
-            }
-            .confirmationDialog("Select Payment Proof", isPresented: $viewModel.showingPaymentProofOptions, titleVisibility: .visible) {
-                Button("Camera") {
-                    showingPaymentProofCamera = true
-                }
-                
-                Button("Select from Photos") {
-                    viewModel.showingPaymentProofImagePicker = true
-                }
-                
-                Button("Select from Files") {
-                    viewModel.showingPaymentProofDocumentPicker = true
-                }
-                
-                Button("Cancel", role: .cancel) { }
-            }
-            .sheet(isPresented: $viewModel.showingImagePicker) {
-                ExpenseImagePicker(selectedImage: Binding(
-                    get: { nil },
-                    set: { image in
-                        viewModel.handleImageSelection(image)
-                    }
-                ))
-            }
-            .sheet(isPresented: $showingCamera) {
-                ExpenseCameraPicker(
-                    selectedImage: Binding(
-                        get: { nil },
-                        set: { image in
-                            viewModel.handleImageSelection(image)
-                        }
-                    ),
-                    onDismiss: {
-                        showingCamera = false
-                    }
-                )
-            }
-            .sheet(isPresented: $viewModel.showingDocumentPicker) {
-                DocumentPicker(
-                    allowedTypes: [.pdf, .image],
-                    onDocumentPicked: viewModel.handleDocumentSelection
-                )
-            }
-            .sheet(isPresented: $showingFileViewer) {
-                if let urlString = viewModel.attachmentURL,
-                   let url = URL(string: urlString) {
-                    FileViewerSheet(fileURL: url, fileName: viewModel.attachmentName)
-                }
-            }
-            .sheet(isPresented: $viewModel.showingPaymentProofImagePicker) {
-                ExpenseImagePicker(selectedImage: Binding(
-                    get: { nil },
-                    set: { image in
-                        viewModel.handlePaymentProofImageSelection(image)
-                    }
-                ))
-            }
-            .sheet(isPresented: $showingPaymentProofCamera) {
-                ExpenseCameraPicker(
-                    selectedImage: Binding(
-                        get: { nil },
-                        set: { image in
-                            viewModel.handlePaymentProofImageSelection(image)
-                        }
-                    ),
-                    onDismiss: {
-                        showingPaymentProofCamera = false
-                    }
-                )
-            }
-            .sheet(isPresented: $viewModel.showingPaymentProofDocumentPicker) {
-                DocumentPicker(
-                    allowedTypes: [.pdf, .image],
-                    onDocumentPicked: viewModel.handlePaymentProofDocumentSelection
-                )
-            }
-            .sheet(isPresented: $showingPaymentProofFileViewer) {
-                if let urlString = viewModel.paymentProofURL,
-                   let url = URL(string: urlString) {
-                    FileViewerSheet(fileURL: url, fileName: viewModel.paymentProofName)
-                }
-            }
-            }
         }
-            .onAppear{
-                UserServices.shared.currentUserPhone
-                // Update customerId in ViewModel when it becomes available
-                if let customerId = customerId {
-                    viewModel.updateCustomerId(customerId)
-                }
-            }
-            .onChange(of: viewModel.expenseDate) { newDate in
-                // Reload phases when date changes
-                viewModel.loadPhases(for: newDate)
-            }
-            .onChange(of: viewModel.selectedPhaseId) { _ in
-                viewModel.checkAdminApprovalConditions()
-            }
-            .onChange(of: viewModel.selectedDepartment) { _ in
-                viewModel.loadAvailableItemTypes()
-                viewModel.checkAdminApprovalConditions()
-            }
-            .onChange(of: viewModel.quantity) { _ in
-                viewModel.checkAdminApprovalConditions()
-            }
-            .onChange(of: viewModel.unitPrice) { _ in
-                viewModel.checkAdminApprovalConditions()
-            }
     }
     
     
@@ -589,12 +620,13 @@ struct AddExpenseView: View {
             
             if let selectedPhase = viewModel.selectedPhase {
                 Menu {
-                    ForEach(selectedPhase.departments.sorted(by: { $0.name < $1.name }), id: \.id) { department in
+                    let sortedDepartments = selectedPhase.departments.sorted(by: { $0.name < $1.name })
+                    ForEach(sortedDepartments, id: \.id) { department in
                         let deptKey = String.departmentKey(phaseId: selectedPhase.id, departmentName: department.name)
                         Button {
                             viewModel.selectedDepartment = deptKey
                             viewModel.loadAvailableItemTypes()
-                            viewModel.checkAdminApprovalConditions()
+                            viewModel.checkBusinessHeadApprovalConditions()
                         } label: {
                             HStack {
                                 TruncatedTextWithTooltip(
@@ -1674,8 +1706,8 @@ struct CategorySearchableDropdown: View {
     }
 }
 
-// MARK: - Admin Approval Message View
-struct AdminApprovalMessageView: View {
+// MARK: - BusinessHead Approval Message View
+struct BusinessHeadApprovalMessageView: View {
     let message: String
     
     var body: some View {

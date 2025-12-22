@@ -505,7 +505,7 @@ struct AdminProjectDetailView: View {
         .clipShape(RoundedRectangle(cornerRadius: DesignSystem.CornerRadius.large))
         .shadow(color: .black.opacity(0.05), radius: 8, x: 0, y: 2)
         .sheet(isPresented: $showingTeamMembersDetail) {
-            TeamMembersDetailView(project: project, role: .ADMIN, stateManager: stateManager)
+            TeamMembersDetailView(project: project, role: .BUSINESSHEAD, stateManager: stateManager)
                 .presentationDetents([.large])
         }
     }

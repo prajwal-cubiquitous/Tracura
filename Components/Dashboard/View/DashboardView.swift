@@ -83,7 +83,7 @@ struct DashboardView: View {
     let phoneNumber: String
     @State private var selectedProject: Project?
     
-    // Accept a single project as parameter - made @State to allow updates from AdminProjectDetailView
+    // Accept a single project as parameter - made @State to allow updates from BusinessHeadProjectDetailView
     @State var project: Project?
     
     // Customer ID for multi-tenant support
@@ -185,19 +185,24 @@ struct DashboardView: View {
         self._stateManager = StateObject(wrappedValue: stateManager ?? DashboardStateManager())
     }
     
+    // MARK: - Computed Properties
+    
+    private var backgroundGradient: some View {
+        LinearGradient(
+            colors: [
+                Color(.systemBackground),
+                Color(.secondarySystemBackground).opacity(0.3)
+            ],
+            startPoint: .top,
+            endPoint: .bottom
+        )
+        .ignoresSafeArea()
+    }
+    
     var body: some View {
         GeometryReader { geometry in
             ZStack {
-                // Modern gradient background
-                LinearGradient(
-                    colors: [
-                        Color(.systemBackground),
-                        Color(.secondarySystemBackground).opacity(0.3)
-                    ],
-                    startPoint: .top,
-                    endPoint: .bottom
-                )
-                .ignoresSafeArea()
+                backgroundGradient
                 
                 ScrollViewReader { proxy in
                     ScrollView {
@@ -249,7 +254,7 @@ struct DashboardView: View {
                                 VStack(spacing: 12) {
                                     // For ARCHIVE status, only show Analytics
                                     if isArchived {
-                                        if role == .ADMIN {
+                                        if role == .BUSINESSHEAD {
                                             ActionMenuButton(icon: "chart.line.uptrend.xyaxis", title: "Analytics", color: Color.indigo) {
                                                 showingAnalytics = true
                                                 showingActionMenu = false
@@ -258,7 +263,7 @@ struct DashboardView: View {
                                         }
                                     } else {
                                         // For other statuses, show all options (with appropriate disabling)
-                                        if role == .ADMIN {
+                                        if role == .BUSINESSHEAD {
                                             ActionMenuButton(icon: "person.2.badge.gearshape.fill", title: "Delegate", color: Color.purple) {
                                                 showingDelegate = true
                                                 showingActionMenu = false
@@ -310,7 +315,7 @@ struct DashboardView: View {
                                             }
                                         }
                                         
-                                        if role == .ADMIN {
+                                        if role == .BUSINESSHEAD {
                                             ActionMenuButton(
                                                 icon: "chart.line.uptrend.xyaxis",
                                                 title: "Analytics",
@@ -418,8 +423,8 @@ struct DashboardView: View {
             
             ToolbarItem(placement: .topBarTrailing) {
                 HStack(spacing: DesignSystem.Spacing.medium) {
-                    // Unified Notifications Button (for APPROVER and ADMIN roles)
-                    if role == .APPROVER || role == .ADMIN {
+                    // Unified Notifications Button (for APPROVER and BUSINESSHEAD roles)
+                    if role == .APPROVER || role == .BUSINESSHEAD {
                         Button {
                             HapticManager.selection()
                             // Reload notifications when opening popup to ensure fresh data
@@ -427,8 +432,8 @@ struct DashboardView: View {
                                 // Reload project-specific notifications
                                 notificationViewModel.loadSavedNotifications(for: projectId)
                                 
-                                // Reload phase requests when opening notifications (Admin only)
-                                if role == .ADMIN {
+                                // Reload phase requests when opening notifications (BusinessHead only)
+                                if role == .BUSINESSHEAD {
                                     Task {
                                         await phaseRequestNotificationViewModel.loadPendingRequests(
                                             projectId: projectId,
@@ -445,7 +450,7 @@ struct DashboardView: View {
                                     .foregroundColor(.primary)
                                 
                                 // Combined badge count
-                                let totalCount = role == .ADMIN 
+                                let totalCount = role == .BUSINESSHEAD 
                                     ? notificationViewModel.unreadNotificationCount + phaseRequestNotificationViewModel.pendingRequestsCount
                                     : notificationViewModel.unreadNotificationCount
                                 
@@ -469,8 +474,8 @@ struct DashboardView: View {
                         }
                     }
                     
-                    // Edit Button (always visible for ADMIN, but editing is restricted inside AdminProjectDetailView for archived projects)
-                    if let project = project, role == .ADMIN {
+                    // Edit Button (always visible for BUSINESSHEAD, but editing is restricted inside BusinessHeadProjectDetailView for archived projects)
+                    if let project = project, role == .BUSINESSHEAD {
                         NavigationLink(destination: AdminProjectDetailView(project: project)) {
                             Image(systemName: "pencil.circle.fill")
                                 .font(.title3)
@@ -537,11 +542,11 @@ struct DashboardView: View {
             }
         }
         .sheet(isPresented: $showingChats) {
-            if role == .ADMIN{
+            if role == .BUSINESSHEAD{
                 if let project = project {
                     ChatsView(
                         project: project,
-                        currentUserRole: .ADMIN
+                        currentUserRole: .BUSINESSHEAD
                     )
                     .presentationDetents([.large])
                 }
@@ -766,7 +771,7 @@ struct DashboardView: View {
                     // Load notifications in parallel (non-blocking)
                     if let projectId = project?.id {
                         async let phaseRequestsTask: Void = {
-                            if role == .ADMIN {
+                            if role == .BUSINESSHEAD {
                                 await phaseRequestNotificationViewModel.loadPendingRequests(
                                     projectId: projectId,
                                     customerId: customerId
@@ -775,7 +780,7 @@ struct DashboardView: View {
                         }()
                         
                         async let notificationsTask: Void = {
-                            if role == .APPROVER || role == .ADMIN {
+                            if role == .APPROVER || role == .BUSINESSHEAD {
                                 await notificationViewModel.fetchProjectNotifications(
                                     projectId: projectId,
                                     currentUserPhone: phoneNumber,
@@ -865,7 +870,7 @@ struct DashboardView: View {
             }
         }
         .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("ProjectUpdated"))) { notification in
-            // Reload project data when updated from AdminProjectDetailView
+            // Reload project data when updated from BusinessHeadProjectDetailView
             if let projectId = project?.id, let customerId = customerId {
                 Task {
                     // Reload project from Firestore to get latest changes
@@ -1383,14 +1388,14 @@ struct DashboardView: View {
                                                         .contentShape(Rectangle())
                                                 }
                                                 .buttonStyle(.plain)
-                                                .padding(.leading, role == .ADMIN ? 4 : 0)
+                                                .padding(.leading, role == .BUSINESSHEAD ? 4 : 0)
                                                 .padding(.vertical, 2)
                                             }
                                         }
 
                                         
                                             if isPhaseInProgress(phase) && (phaseEnabledMap[phase.id] ?? true) && !isPhaseCompleted(phase) {
-                                                if role == .ADMIN{
+                                                if role == .BUSINESSHEAD{
                                                     HStack{
                                                     // Enable toggle (not shown for completed phases or archived projects)
                                                     if project?.statusType != .ARCHIVE {
@@ -1863,7 +1868,7 @@ struct DashboardView: View {
     /// Comprehensive refresh function that fetches all data from Firebase
     /// Follows Apple's refreshable pattern for pull-to-refresh
     /// Reloads project from Firestore to get latest changes
-    /// This ensures DashboardView reflects changes made in AdminProjectDetailView
+    /// This ensures DashboardView reflects changes made in BusinessHeadProjectDetailView
     /// Follows Apple's best practices for data synchronization
     private func reloadProjectFromFirestore(projectId: String, customerId: String) async {
         do {
@@ -1908,7 +1913,7 @@ struct DashboardView: View {
         async let teamMembersTask = stateManager.loadTeamMembers(projectId: projectId, customerId: customerId)
         async let tempApproverTask = fetchTempApproverData()
         async let phaseRequestsTask: Void = {
-            if role == .ADMIN {
+            if role == .BUSINESSHEAD {
                 await phaseRequestNotificationViewModel.loadPendingRequests(
                     projectId: projectId,
                     customerId: customerId
@@ -2563,7 +2568,7 @@ struct DashboardView: View {
                 let approverPhoneNumber = user.phoneNumber
                 
                 // Always use the temp approver's phone number for the query
-                // This ensures temp approver details show for all users (admin, approver, etc.)
+                // This ensures temp approver details show for all users (businessHead, approver, etc.)
                 let approverPhone = user.phoneNumber
                 
                 // Fetch latest temp approver record from customer-specific project
@@ -4727,7 +4732,7 @@ private struct AllPhasesView: View {
                             }
                             
                             // Hide Edit Phase button when project is archived
-                            if role == .ADMIN && project?.statusType != .ARCHIVE {
+                            if role == .BUSINESSHEAD && project?.statusType != .ARCHIVE {
                                 Button {
                                     HapticManager.selection()
                                     phaseToEdit = phase
@@ -4861,7 +4866,7 @@ private struct AllPhasesView: View {
                         .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
-                .padding(.leading, role == .ADMIN ? 4 : 0)
+                .padding(.leading, role == .BUSINESSHEAD ? 4 : 0)
                 .padding(.vertical, 2)
             }
             
@@ -4883,12 +4888,12 @@ private struct AllPhasesView: View {
                         .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
-                .padding(.leading, role == .ADMIN ? 4 : 0)
+                .padding(.leading, role == .BUSINESSHEAD ? 4 : 0)
                 .padding(.vertical, 2)
             }
                 }
                 
-                if role == .ADMIN && !isPhaseCompleted(phase) {
+                if role == .BUSINESSHEAD && !isPhaseCompleted(phase) {
                     HStack{
                     // Enable toggle (not shown for completed phases or archived projects)
                     if project?.statusType != .ARCHIVE {
@@ -5106,7 +5111,7 @@ private struct AllPhasesView: View {
         .navigationTitle("All Phases")
         .navigationBarTitleDisplayMode(.large)
         .toolbar {
-            if role == .ADMIN && project?.statusType != .ARCHIVE {
+            if role == .BUSINESSHEAD && project?.statusType != .ARCHIVE {
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button {
                         HapticManager.selection()

@@ -112,7 +112,7 @@ class NotificationManager: ObservableObject {
     
     // MARK: - Get All Notifications (for Dashboard)
     
-    /// Returns all notifications (for APPROVER and ADMIN roles)
+    /// Returns all notifications (for APPROVER and BUSINESSHEAD roles)
     /// - Returns: Array of all notifications
     func getAllNotifications() -> [AppNotification] {
         return notifications
@@ -148,7 +148,7 @@ class NotificationManager: ObservableObject {
     /// Handles navigation based on notification data with role-aware flow
     /// - Parameters:
     ///   - data: Notification data dictionary
-    ///   - currentRole: Current user role (ADMIN, APPROVER, or USER)
+    ///   - currentRole: Current user role (BUSINESSHEAD, APPROVER, or USER)
     ///   - currentProjectId: Optional current project ID if already in a project view
     func handleNavigation(data: [String: Any], currentRole: UserRole? = nil, currentProjectId: String? = nil) {
         // Extract navigation parameters from data

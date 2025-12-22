@@ -88,13 +88,13 @@ class FirebaseAuthService: ObservableObject {
         isLoading = true
         errorMessage = nil
         
-        // Check if this is an admin user (email-based)
+        // Check if this is a businessHead user (email-based)
         if let email = firebaseUser.email, !email.isEmpty {
-            // This is an admin user - customer ID is the Firebase Auth UID
+            // This is a businessHead user - customer ID is the Firebase Auth UID
             currentCustomerId = firebaseUser.uid
-            // For admin users, ownerID is their own UID (they created their own account)
-            let adminUser = User.adminUser(email: email, name: firebaseUser.displayName ?? "Admin", ownerID: firebaseUser.uid)
-            updateUserState(user: adminUser)
+            // For businessHead users, ownerID is their own UID (they created their own account)
+            let businessHeadUser = User.businessHeadUser(email: email, name: firebaseUser.displayName ?? "BusinessHead", ownerID: firebaseUser.uid)
+            updateUserState(user: businessHeadUser)
         } else {
             // This is an OTP-based user (APPROVER or USER)
             if let phoneNumber = firebaseUser.phoneNumber {
@@ -147,7 +147,7 @@ class FirebaseAuthService: ObservableObject {
                     }
                     updateUserState(user: userData)
                 } else {
-                    errorMessage = "User not found. Please contact admin for access."
+                    errorMessage = "User not found. Please contact businessHead for access."
                     resetAuthState()
                 }
             }
@@ -163,28 +163,28 @@ class FirebaseAuthService: ObservableObject {
         isAuthenticated = true
         
         // Set role flags
-        isAdmin = (user.role == .ADMIN)
+        isAdmin = (user.role == .BUSINESSHEAD)
         isApprover = (user.role == .APPROVER)
         isUser = (user.role == .USER)
     }
     
-    // MARK: - Email Authentication (Admin only)
+    // MARK: - Email Authentication (BusinessHead only)
     func signInWithEmail(email: String, password: String) async -> Bool {
         isLoading = true
         errorMessage = nil
         
         do {
             let result = try await auth.signIn(withEmail: email, password: password)
-            // Admin user will be loaded automatically through auth state listener
+            // BusinessHead user will be loaded automatically through auth state listener
             
             // Save FCM token to customers collection after successful login
             Task {
                 do {
                     let token = try await Messaging.messaging().token()
-                    print("📱 FCM token at admin login: \(token)")
+                    print("📱 FCM token at businessHead login: \(token)")
                     await FirestoreManager.shared.saveToken(token: token)
                 } catch {
-                    print("⚠️ Error fetching/saving FCM token after admin login: \(error.localizedDescription)")
+                    print("⚠️ Error fetching/saving FCM token after businessHead login: \(error.localizedDescription)")
                 }
             }
             
@@ -218,7 +218,7 @@ class FirebaseAuthService: ObservableObject {
         do {
             let document = try await db.collection(FirebaseCollections.users).document(cleanPhoneNumber).getDocument()
             if !document.exists {
-                errorMessage = "Mobile Number not registered, please contact admin"
+                errorMessage = "Mobile Number not registered, please contact businessHead"
                 isLoading = false
                 return false
             }
@@ -306,10 +306,10 @@ class FirebaseAuthService: ObservableObject {
         }
     }
     
-    // MARK: - User Management (Admin only)
+    // MARK: - User Management (BusinessHead only)
     func createUser(phoneNumber: String, name: String, role: UserRole, overwrite: Bool = false) async -> Bool {
         guard isAdmin else {
-            errorMessage = "Only admin users can create new users"
+            errorMessage = "Only businessHead users can create new users"
             return false
         }
         

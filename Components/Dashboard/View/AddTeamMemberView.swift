@@ -167,7 +167,7 @@ struct AddTeamMemberView: View {
                 let customerId = try await FirebasePathHelper.shared.fetchEffectiveUserID()
                 
                 // Get member identifier (phone number for regular users, email for admin)
-                let memberId = user.role == .ADMIN ? (user.email ?? "") : user.phoneNumber
+                let memberId = user.role == .BUSINESSHEAD ? (user.email ?? "") : user.phoneNumber
                 
                 // Add member immediately to state manager (before Firebase update)
                 stateManager.addTeamMember(user, memberId: memberId)
@@ -212,7 +212,7 @@ struct AddTeamMemberView: View {
                 print("❌ Error adding team member: \(error)")
                 // Rollback state manager change
                 if let user = selectedUser {
-                    let memberId = user.role == .ADMIN ? (user.email ?? "") : user.phoneNumber
+                    let memberId = user.role == .BUSINESSHEAD ? (user.email ?? "") : user.phoneNumber
                     stateManager.removeTeamMember(memberId: memberId)
                 }
                 await MainActor.run {

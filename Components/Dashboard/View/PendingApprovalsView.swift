@@ -583,5 +583,5 @@ struct ModernExpenseApprovalRow: View {
 }
 
 //#Preview {
-//    PendingApprovalsView(role: .ADMIN, project: .constant(Project(id: "123", name: "Test"))
+//    PendingApprovalsView(role: .BUSINESSHEAD, project: .constant(Project(id: "123", name: "Test"))
 //} 

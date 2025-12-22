@@ -21,8 +21,8 @@ struct ChatParticipant: Identifiable, Hashable {
     let lastMessageTime: Date?
     
     var displayName: String {
-        if role == .ADMIN {
-            return "\(name) (Admin)"
+        if role == .BUSINESSHEAD {
+            return "\(name) (BusinessHead)"
         } else {
             return name
         }
@@ -30,7 +30,7 @@ struct ChatParticipant: Identifiable, Hashable {
     
     var roleColor: Color {
         switch role {
-        case .ADMIN:
+        case .BUSINESSHEAD:
             return .red
         case .APPROVER:
             return .orange
@@ -43,7 +43,7 @@ struct ChatParticipant: Identifiable, Hashable {
     
     var roleIcon: String {
         switch role {
-        case .ADMIN:
+        case .BUSINESSHEAD:
             return "crown.fill"
         case .APPROVER:
             return "person.badge.clock.fill"
@@ -110,13 +110,13 @@ class ChatsViewModel: ObservableObject {
         // Show basic participants immediately for faster UI
         var basicParticipants: [ChatParticipant] = []
         
-        // Add admin for non-admin users immediately
-        if currentUserRole != .ADMIN {
+        // Add businessHead for non-businessHead users immediately
+        if currentUserRole != .BUSINESSHEAD {
             basicParticipants.append(ChatParticipant(
-                id: "Admin", 
-                name: "Admin", 
+                id: "BusinessHead", 
+                name: "BusinessHead", 
                 phoneNumber: "123", 
-                role: .ADMIN, 
+                role: .BUSINESSHEAD, 
                 isOnline: true, 
                 lastSeen: nil,
                 unreadCount: 0,
@@ -175,27 +175,27 @@ class ChatsViewModel: ObservableObject {
                 return participants
             }
             
-            // Add admin with chat data if not admin user
+            // Add businessHead with chat data if not businessHead user
             var finalParticipants = detailedParticipants
-            if currentUserRole != .ADMIN {
-                let adminChatData = await fetchChatData(for: "Admin")
+            if currentUserRole != .BUSINESSHEAD {
+                let businessHeadChatData = await fetchChatData(for: "BusinessHead")
                 finalParticipants.append(ChatParticipant(
-                    id: "Admin", 
-                    name: "Admin", 
+                    id: "BusinessHead", 
+                    name: "BusinessHead", 
                     phoneNumber: "123", 
-                    role: .ADMIN, 
+                    role: .BUSINESSHEAD, 
                     isOnline: true, 
                     lastSeen: nil,
-                    unreadCount: adminChatData.unreadCount,
-                    lastMessage: adminChatData.lastMessage,
-                    lastMessageTime: adminChatData.lastMessageTime
+                    unreadCount: businessHeadChatData.unreadCount,
+                    lastMessage: businessHeadChatData.lastMessage,
+                    lastMessageTime: businessHeadChatData.lastMessageTime
                 ))
             }
             
-            // Sort participants: Admin first, then by role, then by name
+            // Sort participants: BusinessHead first, then by role, then by name
             let sortedParticipants = finalParticipants.sorted { first, second in
                 if first.role != second.role {
-                    let roleOrder: [UserRole] = [.ADMIN, .APPROVER, .USER]
+                    let roleOrder: [UserRole] = [.BUSINESSHEAD, .APPROVER, .USER]
                     let firstIndex = roleOrder.firstIndex(of: first.role) ?? 3
                     let secondIndex = roleOrder.firstIndex(of: second.role) ?? 3
                     return firstIndex < secondIndex
@@ -265,7 +265,7 @@ class ChatsViewModel: ObservableObject {
         
         do {
             // Create chat ID based on participants
-            let currentUserPhone = currentUserPhone ?? "Admin"
+            let currentUserPhone = currentUserPhone ?? "BusinessHead"
             let participants = [currentUserPhone, participantId].sorted()
             let chatId = participants.joined(separator: "_")
             
@@ -322,7 +322,7 @@ class ChatsViewModel: ObservableObject {
     func markMessagesAsRead(for participantId: String) async {
         guard let projectId = project.id else { return }
         
-        let currentUserPhone = currentUserPhone ?? "Admin"
+        let currentUserPhone = currentUserPhone ?? "BusinessHead"
         let participants = [currentUserPhone, participantId].sorted()
         let chatId = participants.joined(separator: "_")
         
@@ -390,7 +390,7 @@ class ChatsViewModel: ObservableObject {
     func updateUnreadCountForParticipant(_ participantId: String) async {
         guard let projectId = project.id else { return }
         
-        let currentUserPhone = currentUserPhone ?? "Admin"
+        let currentUserPhone = currentUserPhone ?? "BusinessHead"
         let participants = [currentUserPhone, participantId].sorted()
         let chatId = participants.joined(separator: "_")
         

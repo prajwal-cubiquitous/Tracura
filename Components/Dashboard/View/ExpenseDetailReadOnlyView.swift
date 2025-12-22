@@ -204,7 +204,7 @@ struct ExpenseDetailReadOnlyView: View {
             
             VStack(spacing: DesignSystem.Spacing.small) {
                 DetailRow(title: "Date", value: expense.dateFormatted)
-                DetailRow(title: "Submitted By", value: submitterName ?? (expense.submittedBy.lowercased() == "admin" ? "Admin" : expense.submittedBy.formatPhoneNumber))
+                DetailRow(title: "Submitted By", value: submitterName ?? (expense.submittedBy.lowercased() == "businessHead" ? "BusinessHead" : expense.submittedBy.formatPhoneNumber))
                 DetailRow(title: "Description", value: expense.description)
                 
                 if let existingRemark = expense.remark, !existingRemark.isEmpty {
@@ -787,10 +787,10 @@ struct ExpenseDetailReadOnlyView: View {
     
     // MARK: - Helper Methods
     private func loadAllNames() async {
-        // Load submitter name - check for "Admin" first
-        if expense.submittedBy.lowercased() == "admin" {
+        // Load submitter name - check for "BusinessHead" first
+        if expense.submittedBy.lowercased() == "businessHead" {
             await MainActor.run {
-                self.submitterName = "Admin"
+                self.submitterName = "BusinessHead"
             }
         } else {
             await loadUserName(phoneNumber: expense.submittedBy) { name in
@@ -800,9 +800,9 @@ struct ExpenseDetailReadOnlyView: View {
         
         // Load approver name if approved
         if expense.status == .approved, let approvedBy = expense.approvedBy {
-            if approvedBy.lowercased() == "admin" {
+            if approvedBy.lowercased() == "businessHead" {
                 await MainActor.run {
-                    self.approverName = "Admin"
+                    self.approverName = "BusinessHead"
                 }
             } else {
                 await loadUserName(phoneNumber: approvedBy) { name in
@@ -813,9 +813,9 @@ struct ExpenseDetailReadOnlyView: View {
         
         // Load rejector name if rejected
         if expense.status == .rejected, let rejectedBy = expense.rejectedBy {
-            if rejectedBy.lowercased() == "admin" {
+            if rejectedBy.lowercased() == "businessHead" {
                 await MainActor.run {
-                    self.rejectorName = "Admin"
+                    self.rejectorName = "BusinessHead"
                 }
             } else {
                 await loadUserName(phoneNumber: rejectedBy) { name in
@@ -826,10 +826,10 @@ struct ExpenseDetailReadOnlyView: View {
     }
     
     private func loadUserName(phoneNumber: String, completion: @escaping (String?) -> Void) async {
-        // Check if it's "Admin" first
-        if phoneNumber.lowercased() == "admin" {
+        // Check if it's "BusinessHead" first
+        if phoneNumber.lowercased() == "businessHead" {
             await MainActor.run {
-                completion("Admin")
+                completion("BusinessHead")
             }
             return
         }

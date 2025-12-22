@@ -60,11 +60,11 @@ struct UnifiedNotificationPopupView: View {
         }
         .onAppear {
             // For DashboardView: Always load project-specific notifications
-            // This ensures admin users only see notifications for the current project
+            // This ensures businessHead users only see notifications for the current project
             reloadNotifications()
             
-            // Load phase requests if admin (always project-specific)
-            if role == .ADMIN, let projectId = project.id, let customerId = customerId {
+            // Load phase requests if businessHead (always project-specific)
+            if role == .BUSINESSHEAD, let projectId = project.id, let customerId = customerId {
                 Task {
                     await phaseRequestNotificationViewModel.loadPendingRequests(
                         projectId: projectId,
@@ -105,13 +105,13 @@ struct UnifiedNotificationPopupView: View {
     
     private var hasNoNotifications: Bool {
         let hasFCMNotifications = !notificationViewModel.savedNotifications.isEmpty
-        let hasPhaseRequests = role == .ADMIN && !phaseRequestNotificationViewModel.pendingRequests.isEmpty
+        let hasPhaseRequests = role == .BUSINESSHEAD && !phaseRequestNotificationViewModel.pendingRequests.isEmpty
         return !hasFCMNotifications && !hasPhaseRequests
     }
     
     private var totalNotificationCount: Int {
         var count = notificationViewModel.unreadNotificationCount
-        if role == .ADMIN {
+        if role == .BUSINESSHEAD {
             count += phaseRequestNotificationViewModel.pendingRequestsCount
         }
         return count
@@ -133,8 +133,8 @@ struct UnifiedNotificationPopupView: View {
             
             ScrollView {
                 LazyVStack(spacing: 0) {
-                    // Phase Requests Section (Admin only)
-                    if role == .ADMIN && !phaseRequestNotificationViewModel.pendingRequests.isEmpty {
+                    // Phase Requests Section (BusinessHead only)
+                    if role == .BUSINESSHEAD && !phaseRequestNotificationViewModel.pendingRequests.isEmpty {
                         phaseRequestsSection
                         
                         if !notificationViewModel.savedNotifications.isEmpty {
@@ -242,8 +242,8 @@ struct UnifiedNotificationPopupView: View {
     
     private var fcmNotificationsSection: some View {
         VStack(alignment: .leading, spacing: 0) {
-            // Section header (always show for admin, or if no phase requests)
-            if role == .ADMIN {
+            // Section header (always show for businessHead, or if no phase requests)
+            if role == .BUSINESSHEAD {
                 HStack {
                     Text("NOTIFICATIONS")
                         .font(.system(size: 14, weight: .semibold))
@@ -267,8 +267,8 @@ struct UnifiedNotificationPopupView: View {
                 .padding(.bottom, 8)
             }
             
-            // FCM notification items (limited for admin)
-            let itemsToShow = role == .ADMIN 
+            // FCM notification items (limited for businessHead)
+            let itemsToShow = role == .BUSINESSHEAD 
                 ? Array(notificationViewModel.savedNotifications.prefix(maxItemsToShow))
                 : Array(notificationViewModel.savedNotifications)
             
@@ -313,8 +313,8 @@ struct UnifiedNotificationPopupView: View {
                 }
             }
             
-            // View All button for admin if there are more items
-            if role == .ADMIN && notificationViewModel.savedNotifications.count > maxItemsToShow {
+            // View All button for businessHead if there are more items
+            if role == .BUSINESSHEAD && notificationViewModel.savedNotifications.count > maxItemsToShow {
                 Button {
                     HapticManager.selection()
                     showingAllNotifications = true

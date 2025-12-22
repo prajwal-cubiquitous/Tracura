@@ -257,10 +257,10 @@ struct ProjectDetailView: View {
             }
         }
         .sheet(isPresented: $showingChats) {
-            if role == .ADMIN {
+            if role == .BUSINESSHEAD {
                 ChatsView(
                     project: project,
-                    currentUserRole: .ADMIN
+                    currentUserRole: .BUSINESSHEAD
                 )
                 .presentationDetents([.large])
             } else {
@@ -287,10 +287,10 @@ struct ProjectDetailView: View {
             TeamMembersModalView(teamMembers: project.teamMembers)
         }
         .sheet(isPresented: $showingChats) {
-            if role == .ADMIN {
+            if role == .BUSINESSHEAD {
                 ChatsView(
                     project: project,
-                    currentUserRole: .ADMIN
+                    currentUserRole: .BUSINESSHEAD
                 )
                 .presentationDetents([.large])
             } else {
@@ -3041,7 +3041,7 @@ struct ChatNavigationDestinationView: View {
     
     private func resolveChatDestination() async {
         // Determine current user's identifier
-        let rawCurrent = (role == .ADMIN) ? "Admin" : phoneNumber
+        let rawCurrent = (role == .BUSINESSHEAD) ? "BusinessHead" : phoneNumber
         let current = rawCurrent.hasPrefix("+91") ? String(rawCurrent.dropFirst(3)) : rawCurrent
         
         // Extract counterpart id from chatId
@@ -3050,7 +3050,7 @@ struct ChatNavigationDestinationView: View {
         
         if !otherId.isEmpty {
             // Build participant
-            let participantRole: UserRole = (otherId == "Admin") ? .ADMIN : .USER
+            let participantRole: UserRole = (otherId == "BusinessHead") ? .BUSINESSHEAD : .USER
             await MainActor.run {
                 self.participant = ChatParticipant(
                     id: otherId,
@@ -3080,7 +3080,7 @@ struct ProjectDetailView_Previews: PreviewProvider {
         // Wrap in a NavigationView to see the title and layout correctly
         NavigationView {
             // Use the first item from our sample data for the preview
-            ProjectDetailView(project: Project.sampleData[0], role: .ADMIN, phoneNumber: "1234567890")
+            ProjectDetailView(project: Project.sampleData[0], role: .BUSINESSHEAD, phoneNumber: "1234567890")
         }
     }
 }

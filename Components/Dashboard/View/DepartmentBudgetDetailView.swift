@@ -159,7 +159,7 @@ struct DepartmentBudgetDetailView: View {
                 
                 ToolbarItem(placement: .navigationBarTrailing) {
                     // Hide edit/delete options for "Other" department (anonymous expenses) or when project is archived
-                    if role == .ADMIN && department != "Other" && projectStatus != .ARCHIVE {
+                    if role == .BUSINESSHEAD && department != "Other" && projectStatus != .ARCHIVE {
                         Menu {
                             Button(role: .none) {
                                 showingEditBudget = true

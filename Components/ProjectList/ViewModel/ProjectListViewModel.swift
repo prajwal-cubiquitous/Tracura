@@ -85,7 +85,7 @@ class ProjectListViewModel: ObservableObject {
         // Create the appropriate query based on role and user
         let query: Query
         
-        if phoneNumber == "admin@avr.com" || role == .ADMIN {
+        if phoneNumber == "admin@avr.com" || role == .BUSINESSHEAD {
             query = projectsRef
         } else {
             switch role {
@@ -392,7 +392,7 @@ class ProjectListViewModel: ObservableObject {
     
     // Computed property for filtered projects
     var filteredProjects: [Project] {
-        guard phoneNumber == "admin@avr.com" || role == .ADMIN else {
+        guard phoneNumber == "admin@avr.com" || role == .BUSINESSHEAD else {
             return projects
         }
         
@@ -443,8 +443,8 @@ class ProjectListViewModel: ObservableObject {
             let projectsToCheck: [Project]
             
             switch role {
-            case .ADMIN:
-                // ADMIN sees all pending expenses from all projects
+            case .BUSINESSHEAD:
+                // BUSINESSHEAD sees all pending expenses from all projects
                 projectsToCheck = projects
                 
             case .APPROVER:

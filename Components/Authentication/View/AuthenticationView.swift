@@ -31,7 +31,7 @@ struct AuthenticationView: View {
         
         var title: String {
             switch self {
-            case .email: return "Admin Login"
+            case .email: return "BusinessHead Login"
             case .otp: return "Phone Login"
             }
         }
@@ -194,11 +194,11 @@ struct AuthenticationView: View {
     private var emailAuthForm: some View {
         VStack(spacing: DesignSystem.Spacing.large) {
             VStack(spacing: DesignSystem.Spacing.medium) {
-                Text("Administrator Access")
+                Text("BusinessHead Access")
                     .font(.system(size: 24, weight: .bold, design: .rounded))
                     .foregroundColor(.primary)
                 
-                Text("Enter your admin credentials to continue")
+                Text("Enter your businessHead credentials to continue")
                     .font(.system(size: 16, weight: .medium))
                     .foregroundColor(.secondary)
                     .multilineTextAlignment(.center)

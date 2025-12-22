@@ -45,12 +45,12 @@ struct ProjectListNotificationPopupView: View {
                 }
             
             // Popup content - centered
-            if role == .ADMIN {
-                // For ADMIN: Show sections with phase requests and notifications
-                if hasNoAdminNotifications {
+            if role == .BUSINESSHEAD {
+                // For BUSINESSHEAD: Show sections with phase requests and notifications
+                if hasNoBusinessHeadNotifications {
                     emptyStateView
                 } else {
-                    adminNotificationsListView
+                    businessHeadNotificationsListView
                 }
             } else if role == .APPROVER {
                 // For APPROVER: Show sections with IN_REVIEW projects and notifications
@@ -69,7 +69,7 @@ struct ProjectListNotificationPopupView: View {
             }
         }
         .onAppear {
-            if role == .ADMIN {
+            if role == .BUSINESSHEAD {
                 loadDeclinedProjects()
                 loadAllPhaseRequests()
                 notificationViewModel.loadSavedNotifications()
@@ -79,7 +79,7 @@ struct ProjectListNotificationPopupView: View {
             }
         }
         .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("NotificationManagerUpdated"))) { _ in
-            if role == .ADMIN {
+            if role == .BUSINESSHEAD {
                 notificationViewModel.loadSavedNotifications()
                 loadAllPhaseRequests() // Reload phase requests when notifications update
             } else if role == .APPROVER {
@@ -87,17 +87,17 @@ struct ProjectListNotificationPopupView: View {
             }
         }
         .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("PhaseRequestUpdated"))) { _ in
-            if role == .ADMIN {
+            if role == .BUSINESSHEAD {
                 loadAllPhaseRequests() // Reload phase requests when phase requests are updated
             }
         }
         .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("PhaseRequestSubmitted"))) { _ in
-            if role == .ADMIN {
+            if role == .BUSINESSHEAD {
                 loadAllPhaseRequests() // Reload phase requests when a new request is submitted
             }
         }
         .onReceive(NotificationCenter.default.publisher(for: NSNotification.Name("ProjectUpdated"))) { _ in
-            if role == .ADMIN {
+            if role == .BUSINESSHEAD {
                 loadAllPhaseRequests() // Reload phase requests when projects are updated
             }
         }
@@ -137,7 +137,7 @@ struct ProjectListNotificationPopupView: View {
     
     // MARK: - Computed Properties
     
-    private var hasNoAdminNotifications: Bool {
+    private var hasNoBusinessHeadNotifications: Bool {
         declinedProjects.isEmpty && 
         allPhaseRequests.isEmpty && 
         notificationViewModel.savedNotifications.isEmpty && 
@@ -326,9 +326,9 @@ struct ProjectListNotificationPopupView: View {
         .animation(.spring(response: 0.3, dampingFraction: 0.8), value: viewModel.showingFullNotifications)
     }
     
-    // MARK: - Admin Notifications List View
+    // MARK: - BusinessHead Notifications List View
     
-    private var adminNotificationsListView: some View {
+    private var businessHeadNotificationsListView: some View {
         VStack(spacing: 0) {
             // Header
             Text("Notifications")
@@ -766,7 +766,7 @@ struct ProjectListNotificationPopupView: View {
         return notification.body
     }
     
-    // MARK: - Declined Projects List (ADMIN) - Keep for backward compatibility
+    // MARK: - Declined Projects List (BUSINESSHEAD) - Keep for backward compatibility
     private var declinedProjectsListView: some View {
         VStack(spacing: 0) {
             // Header

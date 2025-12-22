@@ -9,14 +9,14 @@ import Foundation
 import FirebaseFirestore
 
 enum UserRole: String, CaseIterable, Codable {
-    case ADMIN = "ADMIN"
+    case BUSINESSHEAD = "BUSINESSHEAD"
     case APPROVER = "APPROVER" 
     case USER = "USER"
     case HEAD = "HEAD"
     
     var displayName: String {
         switch self {
-        case .ADMIN: return "Admin"
+        case .BUSINESSHEAD: return "BusinessHead"
         case .APPROVER: return "Approver"
         case .USER: return "User"
         case .HEAD: return "Head"
@@ -37,9 +37,9 @@ struct User: Identifiable, Codable, Hashable {
     var role: UserRole
     var createdAt: Date
     var isActive: Bool
-    var ownerID: String // UID of the customer/admin who created this user
+    var ownerID: String // UID of the customer/businessHead who created this user
     
-    // Only for ADMIN users (email-based login)
+    // Only for BUSINESSHEAD users (email-based login)
     var email: String?
     
     init(phoneNumber: String, name: String, role: UserRole, email: String? = nil, ownerID: String) {
@@ -52,13 +52,13 @@ struct User: Identifiable, Codable, Hashable {
         self.isActive = true
     }
     
-    // Admin initializer (no Firebase document needed)
-    static func adminUser(email: String, name: String = "Admin", ownerID: String) -> User {
-        return User(phoneNumber: "", name: name, role: .ADMIN, email: email, ownerID: ownerID)
+    // BusinessHead initializer (no Firebase document needed)
+    static func businessHeadUser(email: String, name: String = "BusinessHead", ownerID: String) -> User {
+        return User(phoneNumber: "", name: name, role: .BUSINESSHEAD, email: email, ownerID: ownerID)
     }
     
     func hash(into hasher: inout Hasher) {
-        if role == .ADMIN, let email = email {
+        if role == .BUSINESSHEAD, let email = email {
             hasher.combine(email)
         } else {
             hasher.combine(phoneNumber)
@@ -67,7 +67,7 @@ struct User: Identifiable, Codable, Hashable {
     }
     
     static func == (lhs: User, rhs: User) -> Bool {
-        if lhs.role == .ADMIN && rhs.role == .ADMIN {
+        if lhs.role == .BUSINESSHEAD && rhs.role == .BUSINESSHEAD {
             return lhs.email == rhs.email
         } else {
             return lhs.phoneNumber == rhs.phoneNumber && lhs.role == rhs.role

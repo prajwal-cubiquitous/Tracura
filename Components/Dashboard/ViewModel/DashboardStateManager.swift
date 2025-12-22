@@ -350,11 +350,11 @@ class DashboardStateManager: ObservableObject {
                 }
             }
             
-            // Sort members by role (Admin first, then by name)
+            // Sort members by role (BusinessHead first, then by name)
             loadedMembers.sort { first, second in
-                if first.role == .ADMIN && second.role != .ADMIN {
+                if first.role == .BUSINESSHEAD && second.role != .BUSINESSHEAD {
                     return true
-                } else if first.role != .ADMIN && second.role == .ADMIN {
+                } else if first.role != .BUSINESSHEAD && second.role == .BUSINESSHEAD {
                     return false
                 } else {
                     return first.name < second.name
@@ -400,11 +400,11 @@ class DashboardStateManager: ObservableObject {
         if !teamMembers.contains(where: { $0.id == user.id || $0.phoneNumber == user.phoneNumber }) {
             teamMembers.append(user)
             
-            // Sort members by role (Admin first, then by name)
+            // Sort members by role (BusinessHead first, then by name)
             teamMembers.sort { first, second in
-                if first.role == .ADMIN && second.role != .ADMIN {
+                if first.role == .BUSINESSHEAD && second.role != .BUSINESSHEAD {
                     return true
-                } else if first.role != .ADMIN && second.role == .ADMIN {
+                } else if first.role != .BUSINESSHEAD && second.role == .BUSINESSHEAD {
                     return false
                 } else {
                     return first.name < second.name
@@ -418,9 +418,9 @@ class DashboardStateManager: ObservableObject {
         // Remove from IDs
         teamMemberIds.removeAll { $0 == memberId }
         
-        // Remove from members (check both phone number and email for admin)
+        // Remove from members (check both phone number and email for businessHead)
         teamMembers.removeAll { user in
-            let userMemberId = user.role == .ADMIN ? (user.email ?? "") : user.phoneNumber
+            let userMemberId = user.role == .BUSINESSHEAD ? (user.email ?? "") : user.phoneNumber
             return userMemberId == memberId
         }
     }

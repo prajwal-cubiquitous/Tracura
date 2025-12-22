@@ -17,14 +17,14 @@ class FirebasePathHelper {
     private init() {}
     
     /// Get the projects collection reference for a specific customer
-    /// - Parameter customerId: The customer ID (Firebase Auth UID for admin users)
+    /// - Parameter customerId: The customer ID (Firebase Auth UID for businessHead users)
     /// - Returns: CollectionReference for customers/{customerId}/projects
     func projectsCollection(customerId: String) -> CollectionReference {
         return db.collection("customers").document(customerId).collection("projects")
     }
     
     /// Get the users collection reference for a specific customer
-    /// - Parameter customerId: The customer ID (Firebase Auth UID for admin users)
+    /// - Parameter customerId: The customer ID (Firebase Auth UID for businessHead users)
     /// - Returns: CollectionReference for customers/{customerId}/users
     func usersCollection(customerId: String) -> CollectionReference {
         return db.collection("users")

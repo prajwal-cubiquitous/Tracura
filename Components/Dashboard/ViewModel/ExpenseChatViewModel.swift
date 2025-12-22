@@ -149,7 +149,7 @@ class ExpenseChatViewModel: ObservableObject {
     private func getCurrentUserRole() -> UserRole {
         // This should be determined based on the current user's role
         // For now, returning ADMIN as default
-        return .ADMIN
+        return .BUSINESSHEAD
     }
     
     private func getChatParticipants() -> [String] {
@@ -182,19 +182,19 @@ extension ExpenseChatViewModel {
                 textMessage: "Hi, I need clarification on this expense.",
                 timeStamp: Date().addingTimeInterval(-3600),
                 senderId: "+919876543210",
-                senderRole: .ADMIN
+                senderRole: .BUSINESSHEAD
             ),
             ExpenseChat(
                 textMessage: "Sure, what would you like to know?",
                 timeStamp: Date().addingTimeInterval(-3500),
                 senderId: "+919876543211",
-                senderRole: .ADMIN
+                senderRole: .BUSINESSHEAD
             ),
             ExpenseChat(
                 textMessage: "Is the amount within the approved budget?",
                 timeStamp: Date().addingTimeInterval(-3400),
                 senderId: "+919876543210",
-                senderRole: .ADMIN
+                senderRole: .BUSINESSHEAD
             )
         ]
         

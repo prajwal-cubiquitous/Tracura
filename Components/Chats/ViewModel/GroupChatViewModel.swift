@@ -154,13 +154,13 @@ class GroupChatViewModel: ObservableObject {
             }
         }
         
-        // Add admin if current user is not admin
-        if role != .ADMIN {
+        // Add businessHead if current user is not businessHead
+        if role != .BUSINESSHEAD {
             members.append(ProjectMember(
-                id: "Admin",
-                name: "Admin",
-                phoneNumber: "Admin",
-                role: .ADMIN
+                id: "BusinessHead",
+                name: "BusinessHead",
+                phoneNumber: "BusinessHead",
+                role: .BUSINESSHEAD
             ))
         }
         

@@ -921,7 +921,7 @@ struct CreateProjectView: View {
                     customerId = currentUser.uid
                 }
             } else {
-                // Email user (admin) - use UID as customer ID
+                // Email user (businessHead) - use UID as customer ID
                 customerId = currentUser.uid
             }
             

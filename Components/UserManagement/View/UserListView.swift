@@ -106,7 +106,7 @@ struct UserRow: View {
     
     private var roleColor: Color {
         switch user.role {
-        case .ADMIN:
+        case .BUSINESSHEAD:
             return .purple
         case .APPROVER:
             return .blue

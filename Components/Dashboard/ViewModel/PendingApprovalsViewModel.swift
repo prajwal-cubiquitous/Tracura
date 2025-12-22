@@ -86,9 +86,9 @@ class PendingApprovalsViewModel: ObservableObject {
         isLoading = true
         
         Task {
-            if currentUserRole == .ADMIN {
-                await loadExpensesFromFirebaseAdmin()
-                await loadAvailableDepartmentsAdmin()
+            if currentUserRole == .BUSINESSHEAD {
+                await loadExpensesFromFirebaseBusinessHead()
+                await loadAvailableDepartmentsBusinessHead()
             } else {
                 await loadExpensesFromFirebase()
                 await loadAvailableDepartments()
@@ -138,7 +138,7 @@ class PendingApprovalsViewModel: ObservableObject {
         }
     }
     
-    private func loadExpensesFromFirebaseAdmin() async {
+    private func loadExpensesFromFirebaseBusinessHead() async {
         do {
             guard let projectId = project.id else { return }
             
@@ -217,7 +217,7 @@ class PendingApprovalsViewModel: ObservableObject {
         return departmentString
     }
     
-    private func loadAvailableDepartmentsAdmin() async {
+    private func loadAvailableDepartmentsBusinessHead() async {
         do {
             guard let projectId = project.id else{ return }
             
@@ -302,15 +302,15 @@ class PendingApprovalsViewModel: ObservableObject {
                             "updatedAt": Timestamp()
                         ]
                         
-                        if currentUserRole == .ADMIN{
+                        if currentUserRole == .BUSINESSHEAD{
                             if newStatus == .approved {
                                 updateData["approvedAt"] = Timestamp()
-                                updateData["approvedBy"] = "Admin"
+                                updateData["approvedBy"] = "BusinessHead"
                                 updateData["rejectedAt"] = FieldValue.delete()
                                 updateData["rejectedBy"] = FieldValue.delete()
                             } else {
                                 updateData["rejectedAt"] = Timestamp()
-                                updateData["rejectedBy"] = "Admin"
+                                updateData["rejectedBy"] = "BusinessHead"
                                 updateData["approvedAt"] = FieldValue.delete()
                                 updateData["approvedBy"] = FieldValue.delete()
                             }
@@ -329,9 +329,9 @@ class PendingApprovalsViewModel: ObservableObject {
 
                         }
 
-                        // Add admin approval note if current user is admin
-                        if currentUserRole == .ADMIN {
-                            let adminNote = newStatus == .approved ? "Admin approved" : "Admin rejected"
+                        // Add businessHead approval note if current user is businessHead
+                        if currentUserRole == .BUSINESSHEAD {
+                            let adminNote = newStatus == .approved ? "BusinessHead approved" : "BusinessHead rejected"
                             updateData["remark"] = adminNote
                         }
                         
@@ -355,8 +355,8 @@ class PendingApprovalsViewModel: ObservableObject {
             }
             
             // Refresh the list
-            if currentUserRole == .ADMIN {
-                await loadExpensesFromFirebaseAdmin()
+            if currentUserRole == .BUSINESSHEAD {
+                await loadExpensesFromFirebaseBusinessHead()
             } else {
                 await loadExpensesFromFirebase()
             }

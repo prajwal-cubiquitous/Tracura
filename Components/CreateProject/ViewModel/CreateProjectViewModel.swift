@@ -895,7 +895,7 @@ class CreateProjectViewModel: ObservableObject {
         }
         
         do {
-            // Filter users by ownerID to match the current customer/admin's UID
+            // Filter users by ownerID to match the current customer/businessHead's UID
             // This ensures each customer only sees their own users/approvers
             let querySnapshot = try await db.collection("users")
                 .whereField("role", in: [UserRole.USER.rawValue, UserRole.APPROVER.rawValue])

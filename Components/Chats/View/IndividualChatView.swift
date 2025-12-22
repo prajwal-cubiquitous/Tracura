@@ -286,8 +286,8 @@ struct IndividualChatView: View {
         viewModel.isSendingMessage = true
         // Determine senderId based on role
         let senderId: String
-        if role == .ADMIN {
-            senderId = "Admin"
+        if role == .BUSINESSHEAD {
+            senderId = "BusinessHead"
         } else {
             senderId = currentUserPhoneNumber ?? UserDefaults.standard.string(forKey: "currentUserPhone") ?? ""
         }
@@ -418,7 +418,7 @@ struct IndividualChatView: View {
         }
         
         // Determine current user identifier
-        let currentUserPhone = (role == .ADMIN) ? "Admin" : currentUserPhoneNumber
+        let currentUserPhone = (role == .BUSINESSHEAD) ? "BusinessHead" : currentUserPhoneNumber
         
         guard let currentUser = currentUserPhone else { return }
         
@@ -468,9 +468,9 @@ struct MessageBubble: View {
     }
     
     private var isFromCurrentUser: Bool {
-        // For admin, check if senderId is "Admin" and current user is admin
-        if message.senderId == "Admin" {
-            return currentUserRole == .ADMIN
+        // For businessHead, check if senderId is "BusinessHead" and current user is businessHead
+        if message.senderId == "BusinessHead" {
+            return currentUserRole == .BUSINESSHEAD
         } else {
             // For regular users, check phone number match
             let currentPhone = currentUserPhone ?? UserDefaults.standard.string(forKey: "currentUserPhone") ?? ""
@@ -1246,7 +1246,7 @@ struct DocumentView: View {
             lastSeen: Date()
         ),
         project: Project.sampleData[0],
-        role: .ADMIN,
+        role: .BUSINESSHEAD,
         currentUserPhoneNumber: nil,
         onMessagesRead: nil
     )

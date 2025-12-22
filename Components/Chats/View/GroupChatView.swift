@@ -263,8 +263,8 @@ struct GroupChatView: View {
         
         // Determine senderId based on role
         let senderId: String
-        if role == .ADMIN {
-            senderId = "Admin"
+        if role == .BUSINESSHEAD {
+            senderId = "BusinessHead"
         } else {
             senderId = currentUserPhone ?? UserDefaults.standard.string(forKey: "currentUserPhone") ?? ""
         }
@@ -386,9 +386,9 @@ struct GroupMessageBubble: View {
     }
     
     private var isFromCurrentUser: Bool {
-        // For admin, check if senderId is "Admin" and current user is admin
-        if message.senderId == "Admin" {
-            return currentUserRole == .ADMIN
+        // For businessHead, check if senderId is "BusinessHead" and current user is businessHead
+        if message.senderId == "BusinessHead" {
+            return currentUserRole == .BUSINESSHEAD
         } else {
             // For regular users, check phone number match
             let currentPhone = currentUserPhone ?? UserDefaults.standard.string(forKey: "currentUserPhone") ?? ""

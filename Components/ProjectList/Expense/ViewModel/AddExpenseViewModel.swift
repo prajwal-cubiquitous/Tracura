@@ -107,7 +107,7 @@ class AddExpenseViewModel: ObservableObject {
     // MARK: - Project Data
     let project: Project
     @Published var availablePhases: [PhaseInfo] = []
-    @Published var adminApprovalMessage: String? = nil
+    @Published var businessHeadApprovalMessage: String? = nil
     var customerId: String? // Customer ID for multi-tenant support
     
     struct PhaseInfo: Identifiable, Equatable {
@@ -533,7 +533,7 @@ class AddExpenseViewModel: ObservableObject {
                     }
                     
                     // Check admin approval conditions
-                    self.checkAdminApprovalConditions()
+                    self.checkBusinessHeadApprovalConditions()
                 }
             } catch {
                 print("Error loading phases: \(error)")
@@ -556,7 +556,7 @@ class AddExpenseViewModel: ObservableObject {
         loadAvailableItemTypes()
         
         // Check admin approval conditions when department changes
-        checkAdminApprovalConditions()
+        checkBusinessHeadApprovalConditions()
     }
     
     // MARK: - Load Available Item Types from Department
@@ -635,11 +635,11 @@ class AddExpenseViewModel: ObservableObject {
         return qty * price
     }
     
-    // MARK: - Admin Approval Check
+    // MARK: - BusinessHead Approval Check
     
-    func checkAdminApprovalConditions() {
+    func checkBusinessHeadApprovalConditions() {
         guard lineAmount > 0 else {
-            adminApprovalMessage = nil
+            businessHeadApprovalMessage = nil
             return
         }
         
@@ -648,9 +648,9 @@ class AddExpenseViewModel: ObservableObject {
         // Check phase conditions
         if let phase = selectedPhase {
             if phase.totalBudget == 0 {
-                messages.append("Phase total budget is 0, so expense will be approved by admin")
+                messages.append("Phase total budget is 0, so expense will be approved by businessHead")
             } else if lineAmount > phase.remainingAmount {
-                messages.append("Entered amount is greater than remaining amount in phase, so expense will be approved by admin")
+                messages.append("Entered amount is greater than remaining amount in phase, so expense will be approved by businessHead")
             }
         }
         
@@ -663,17 +663,17 @@ class AddExpenseViewModel: ObservableObject {
             
             if let dept = selectedDept {
                 if dept.totalBudget == 0 {
-                    messages.append("Department total budget is 0, so expense will be approved by admin")
+                    messages.append("Department total budget is 0, so expense will be approved by businessHead")
                 } else if lineAmount > dept.remainingAmount {
-                    messages.append("Entered amount is greater than remaining amount in department, so expense will be approved by admin")
+                    messages.append("Entered amount is greater than remaining amount in department, so expense will be approved by businessHead")
                 }
             }
         }
         
-        adminApprovalMessage = messages.isEmpty ? nil : messages.joined(separator: ". ")
+        businessHeadApprovalMessage = messages.isEmpty ? nil : messages.joined(separator: ". ")
     }
     
-    // MARK: - Calculate isAdmin
+    // MARK: - Calculate isBusinessHead
     
     var isAdmin: Bool {
         guard lineAmount > 0 else { return false }
@@ -1347,7 +1347,7 @@ class AddExpenseViewModel: ObservableObject {
             return
         }
         
-        let currentUserPhone = UserServices.shared.currentUserPhone != nil ? UserServices.shared.currentUserPhone! : "Admin"
+        let currentUserPhone = UserServices.shared.currentUserPhone != nil ? UserServices.shared.currentUserPhone! : "BusinessHead"
         
         isLoading = true
         

@@ -266,7 +266,7 @@ struct ExpenseDetailView: View {
             
             VStack(spacing: DesignSystem.Spacing.small) {
                 DetailRow(title: "Date", value: expense.dateFormatted)
-                DetailRow(title: "Submitted By", value: submitterName ?? (expense.submittedBy.lowercased() == "admin" ? "Admin" : expense.submittedBy.formatPhoneNumber))
+                DetailRow(title: "Submitted By", value: submitterName ?? (expense.submittedBy.lowercased() == "businessHead" ? "BusinessHead" : expense.submittedBy.formatPhoneNumber))
                 DetailRow(title: "Description", value: expense.description)
                 
                 if let existingRemark = expense.remark, !existingRemark.isEmpty {
@@ -624,9 +624,9 @@ struct ExpenseDetailView: View {
     
     // MARK: - Load Submitter Name
     private func loadSubmitterName() {
-        // Check if it's "Admin" first
-        if expense.submittedBy.lowercased() == "admin" {
-            submitterName = "Admin"
+        // Check if it's "BusinessHead" first
+        if expense.submittedBy.lowercased() == "businessHead" {
+            submitterName = "BusinessHead"
             return
         }
         
@@ -985,8 +985,8 @@ struct ExpenseDetailView: View {
                 // Find the project and update the expense
                 let projectsSnapshot: QuerySnapshot
                 
-                if currentUserRole == .ADMIN {
-                    // Admin can approve expenses from all projects
+                if currentUserRole == .BUSINESSHEAD {
+                    // BusinessHead can approve expenses from all projects
                     projectsSnapshot = try await db.collection("customers").document(customerID).collection("projects").getDocuments()
                 } else {
                     // Regular users can approve expenses from their managed projects or where they are temp approver
@@ -1014,9 +1014,9 @@ struct ExpenseDetailView: View {
                             "approvedBy": currentUserPhone
                         ]
                         
-                        // Add remark if provided or if admin
-                        if currentUserRole == .ADMIN {
-                            let adminNote = status == .approved ? "Admin approved" : "Admin Rejected"
+                        // Add remark if provided or if businessHead
+                        if currentUserRole == .BUSINESSHEAD {
+                            let adminNote = status == .approved ? "BusinessHead approved" : "BusinessHead Rejected"
                             updateData["remark"] = adminNote
                         } else if !remark.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
                             updateData["remark"] = remark.trimmingCharacters(in: .whitespacesAndNewlines)

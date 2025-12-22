@@ -4,7 +4,7 @@ struct AdminMainView: View {
     @EnvironmentObject var authService: FirebaseAuthService
     @State private var selectedTab: AdminTab = .projects
     @State private var isShowingCreateProject = false
-    @StateObject private var projectListViewModel = ProjectListViewModel(phoneNumber: "admin@avr.com", role: .ADMIN)
+    @StateObject private var projectListViewModel = ProjectListViewModel(phoneNumber: "admin@avr.com", role: .BUSINESSHEAD)
     
     enum AdminTab: String, CaseIterable {
         case projects = "Projects"

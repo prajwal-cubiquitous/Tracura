@@ -61,10 +61,10 @@ class IndividualChatViewModel: ObservableObject {
         
         guard let projectId = project.id else { return nil }
         
-        // 1️⃣ Handle special case for "Admin" participant
+        // 1️⃣ Handle special case for "BusinessHead" participant
         let otherUserId: String
-        if phoneNumber == "Admin" || phoneNumber == "123" {
-            otherUserId = "Admin"
+        if phoneNumber == "BusinessHead" || phoneNumber == "123" {
+            otherUserId = "BusinessHead"
         } else {
             // Lookup other user's phone number by phone number (it's already the phone number)
             // The phoneNumber parameter is already the phone number we need
@@ -72,9 +72,9 @@ class IndividualChatViewModel: ObservableObject {
         }
         
         // 2️⃣ Build participants deterministically using phone numbers
-        // Use "Admin" string when role is ADMIN, otherwise use the actual phone number
+        // Use "BusinessHead" string when role is BUSINESSHEAD, otherwise use the actual phone number
         let myPhoneIdentifier: String = {
-            if role == .ADMIN { return "Admin" }
+            if role == .BUSINESSHEAD { return "BusinessHead" }
             return currentUserPhone?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
         }()
 
@@ -435,7 +435,7 @@ class IndividualChatViewModel: ObservableObject {
                 isGroupMessage: false
             ),
             Message(
-                senderId: currentUserPhone ?? "Admin",
+                senderId: currentUserPhone ?? "BusinessHead",
                 text: "Great! We're making good progress on the budget allocation.",
                 media: nil,
                 timestamp: Date().addingTimeInterval(-3500),
@@ -457,7 +457,7 @@ class IndividualChatViewModel: ObservableObject {
                 isGroupMessage: false
             ),
             Message(
-                senderId: currentUserPhone ?? "Admin",
+                senderId: currentUserPhone ?? "BusinessHead",
                 text: "Thanks! I'll keep you updated.",
                 media: nil,
                 timestamp: Date().addingTimeInterval(-3300),

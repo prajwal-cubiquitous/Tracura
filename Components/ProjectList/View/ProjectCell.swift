@@ -157,7 +157,7 @@ struct ProjectCell: View {
                         .buttonStyle(.plain)
                     }
                     
-                    if role == .ADMIN && project.status != ProjectStatus.DECLINED.rawValue{
+                    if role == .BUSINESSHEAD && project.status != ProjectStatus.DECLINED.rawValue{
                         NavigationLink(destination: AdminProjectDetailView(project: project)) {
                             Image(systemName: "pencil.circle.fill")
                                 .font(.title3)
@@ -223,7 +223,7 @@ struct ProjectCell: View {
                     
                     if !project.client.isEmpty {
                         HStack(spacing: 4) {
-                            Image(systemName: "person.fill")
+                            Image(systemName: "Admin")
                                 .font(.system(size: 10, weight: .medium))
                                 .foregroundColor(.secondary)
                                 .frame(width: 12, height: 12)
@@ -587,5 +587,5 @@ struct ProjectNamePopoverView: View {
 }
 
 #Preview{
-    ProjectCell(project: Project.sampleData[0], role: .ADMIN, tempApproverStatus: .pending)
+    ProjectCell(project: Project.sampleData[0], role: .BUSINESSHEAD, tempApproverStatus: .pending)
 }

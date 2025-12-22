@@ -139,7 +139,7 @@ struct TeamMembersDetailView: View {
                 
                 HStack(spacing: 16) {
                     // Add User Button (only for admin)
-                    if role == .ADMIN {
+                    if role == .BUSINESSHEAD {
                         Button(action: {
                             HapticManager.selection()
                             showingAddUser = true
@@ -254,7 +254,7 @@ struct TeamMembersDetailView: View {
                 ForEach(filteredMembers) { member in
                     TeamMemberRowView(
                         member: member,
-                        isAdmin: role == .ADMIN,
+                        isAdmin: role == .BUSINESSHEAD,
                         onTap: {
                             selectedMember = member
                             showingMemberExpenses = true
@@ -287,7 +287,7 @@ struct TeamMembersDetailView: View {
             }
             
             // Get member identifier (phone number for regular users, email for admin)
-            let memberId = member.role == .ADMIN ? (member.email ?? "") : member.phoneNumber
+            let memberId = member.role == .BUSINESSHEAD ? (member.email ?? "") : member.phoneNumber
             
                 // Remove member immediately from state manager (before Firebase update)
                 stateManager.removeTeamMember(memberId: memberId)
@@ -461,9 +461,9 @@ class TeamMembersDetailViewModel: ObservableObject {
             
             // Sort members by role (Admin first, then by name)
             loadedMembers.sort { first, second in
-                if first.role == .ADMIN && second.role != .ADMIN {
+                if first.role == .BUSINESSHEAD && second.role != .BUSINESSHEAD {
                     return true
-                } else if first.role != .ADMIN && second.role == .ADMIN {
+                } else if first.role != .BUSINESSHEAD && second.role == .BUSINESSHEAD {
                     return false
                 } else {
                     return first.name < second.name
@@ -517,7 +517,7 @@ class TeamMembersDetailViewModel: ObservableObject {
 extension UserRole {
     var color: Color {
         switch self {
-        case .ADMIN:
+        case .BUSINESSHEAD:
             return .red
         case .APPROVER:
             return .orange

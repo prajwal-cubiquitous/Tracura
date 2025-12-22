@@ -102,8 +102,8 @@ struct ProjectListView: View {
                             .padding(.horizontal, 4)
                         }
                         
-                        // Status Filter for Admin
-                        if role == .ADMIN && !viewModel.projects.isEmpty {
+                        // Status Filter for BusinessHead
+                        if role == .BUSINESSHEAD && !viewModel.projects.isEmpty {
                             Menu {
                                 Button("All Projects") {
                                     viewModel.updateStatusFilter(nil)
@@ -169,7 +169,7 @@ struct ProjectListView: View {
                 }
                 
                 // Floating Action Buttons
-                if role == .ADMIN && !viewModel.projects.isEmpty {
+                if role == .BUSINESSHEAD && !viewModel.projects.isEmpty {
                     VStack {
                         Spacer()
                         HStack {
@@ -191,8 +191,8 @@ struct ProjectListView: View {
             .navigationDestination(item: $navigationManager.activeProjectId) { projectNavigationItem in
                 let projectId = projectNavigationItem.id
                 if let project = viewModel.project(for: projectId) {
-                    // If project is DECLINED and user is ADMIN, show edit view
-                    if role == .ADMIN && project.statusType == .DECLINED {
+                    // If project is DECLINED and user is BUSINESSHEAD, show edit view
+                    if role == .BUSINESSHEAD && project.statusType == .DECLINED {
                         CreateProjectView(projectToEdit: project)
                     } else if role == .USER {
                         ProjectDetailView(project: project,
@@ -426,8 +426,8 @@ struct ProjectListView: View {
                     role: role,
                     onProjectSelected: { project in
                         Task { @MainActor in
-                            if role == .ADMIN {
-                                // For ADMIN: Open CreateProjectView for declined projects
+                            if role == .BUSINESSHEAD {
+                                // For BUSINESSHEAD: Open CreateProjectView for declined projects
                                 selectedDeclinedProject = project
                                 viewModel.showingFullNotifications = false
                                 // Small delay to allow popup to close before showing sheet
@@ -572,7 +572,7 @@ struct ProjectListView: View {
         }
         
         do {
-            // Update project status to DECLINED so admin can edit and resubmit
+            // Update project status to DECLINED so businessHead can edit and resubmit
             try await FirebasePathHelper.shared
                 .projectDocument(customerId: customerId, projectId: projectId)
                 .updateData([
@@ -689,12 +689,12 @@ struct ProjectListView: View {
             Spacer()
             
             VStack(spacing: DesignSystem.Spacing.medium) {
-                Image(systemName: role == .ADMIN ? "folder.badge.plus" : "folder.badge.questionmark")
+                Image(systemName: role == .BUSINESSHEAD ? "folder.badge.plus" : "folder.badge.questionmark")
                     .font(.system(size: 60))
                     .foregroundColor(.secondary.opacity(0.6))
                     .symbolRenderingMode(.hierarchical)
                 
-                Text(role == .ADMIN ? "No Projects Yet" : "No Projects Assigned")
+                Text(role == .BUSINESSHEAD ? "No Projects Yet" : "No Projects Assigned")
                     .font(DesignSystem.Typography.title2)
                     .foregroundColor(.primary)
                 
@@ -705,7 +705,7 @@ struct ProjectListView: View {
                     .padding(.horizontal, DesignSystem.Spacing.extraLarge)
             }
             
-            if role == .ADMIN {
+            if role == .BUSINESSHEAD {
                 Menu {
                     Button {
                         HapticManager.selection()
@@ -796,9 +796,9 @@ struct ProjectListView: View {
         }
     }
     
-    /// Notification badge count - declined projects for ADMIN, IN_REVIEW for APPROVER, pending expenses for others
+    /// Notification badge count - declined projects for BUSINESSHEAD, IN_REVIEW for APPROVER, pending expenses for others
     private var notificationBadgeCount: Int {
-        if role == .ADMIN {
+        if role == .BUSINESSHEAD {
             return viewModel.projects.filter { $0.statusType == .DECLINED }.count
         } else if role == .APPROVER {
             return viewModel.projects.filter { $0.statusType == .IN_REVIEW }.count
@@ -815,14 +815,14 @@ struct ProjectListView: View {
     // MARK: - Helper Properties
     private var emptyStateMessage: String {
         switch role {
-        case .ADMIN:
+        case .BUSINESSHEAD:
             return "You have not created any project yet. Start by creating your first project to organize and track your entertainment productions."
         case .APPROVER:
-            return "You haven't been assigned as a manager to any projects yet. Please contact the admin to get assigned to projects."
+            return "You haven't been assigned as a manager to any projects yet. Please contact the businessHead to get assigned to projects."
         case .USER:
-            return "You haven't been added to any projects yet. Please contact the admin to get assigned to a project team."
+            return "You haven't been added to any projects yet. Please contact the businessHead to get assigned to a project team."
         default:
-            return "No projects available. Please contact the administrator."
+            return "No projects available. Please contact the businessHead."
         }
     }
     
@@ -867,7 +867,7 @@ struct ProjectListView: View {
                             .simultaneousGesture(TapGesture().onEnded {
                                 HapticManager.selection()
                             })
-                        } else if role == .ADMIN {
+                        } else if role == .BUSINESSHEAD {
                             // If project is DECLINED, navigate to edit view, otherwise to dashboard
                             if project.statusType == .DECLINED {
                                 NavigationLink(destination: CreateProjectView(projectToEdit: project).environmentObject(navigationManager)) {
