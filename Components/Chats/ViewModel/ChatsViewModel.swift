@@ -36,7 +36,7 @@ struct ChatParticipant: Identifiable, Hashable {
             return .orange
         case .USER:
             return .blue
-        case .HEAD:
+        case .ADMIN:
             return .blue
         }
     }
@@ -49,7 +49,7 @@ struct ChatParticipant: Identifiable, Hashable {
             return "person.badge.clock.fill"
         case .USER:
             return "person.fill"
-        case .HEAD:
+        case .ADMIN:
             return "person.fill"
         }
     }

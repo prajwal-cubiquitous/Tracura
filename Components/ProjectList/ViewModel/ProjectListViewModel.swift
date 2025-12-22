@@ -458,7 +458,7 @@ class ProjectListViewModel: ObservableObject {
             case .USER:
                 // USER doesn't see pending expense notifications (they can't approve)
                 projectsToCheck = []
-            case .HEAD:
+            case .ADMIN:
                 return
             }
             

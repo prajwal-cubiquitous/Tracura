@@ -523,7 +523,7 @@ extension UserRole {
             return .orange
         case .USER:
             return .blue
-        case .HEAD:
+        case .ADMIN:
             return .green
         }
     }

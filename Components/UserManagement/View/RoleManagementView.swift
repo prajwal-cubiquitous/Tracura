@@ -9,8 +9,8 @@ struct RoleManagementView: View {
             List {
                 Section {
                     roleCard(
-                        role: .BUSINESSHEAD,
-                        title: "BusinessHead",
+                        role: .ADMIN,
+                        title: "Admin",
                         description: "System businessHead for support, security, and backups.",
                         permissions: [
                             "Maintain system configuration and integrations",
@@ -33,8 +33,8 @@ struct RoleManagementView: View {
                     
                     // Information card: Production Head (maps to businessHead-level permissions)
                     roleCard(
-                        role: .HEAD,
-                        title: "Production Head",
+                        role: .BUSINESSHEAD,
+                        title: "Business Head",
                         description: "Full businessHead access to manage projects, users, and approvals",
                         permissions: [
                             "Oversee all projects and budgets",
@@ -116,7 +116,7 @@ struct RoleManagementView: View {
             return .blue
         case .USER:
             return .green
-        case .HEAD:
+        case .ADMIN:
             return .orange
         @unknown default:
             return .gray

@@ -12,14 +12,14 @@ enum UserRole: String, CaseIterable, Codable {
     case BUSINESSHEAD = "BUSINESSHEAD"
     case APPROVER = "APPROVER" 
     case USER = "USER"
-    case HEAD = "HEAD"
+    case ADMIN = "Admin"
     
     var displayName: String {
         switch self {
         case .BUSINESSHEAD: return "BusinessHead"
         case .APPROVER: return "Approver"
         case .USER: return "User"
-        case .HEAD: return "Head"
+        case .ADMIN: return "Admin"
         }
     }
 }
