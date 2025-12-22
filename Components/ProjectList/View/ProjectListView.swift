@@ -51,7 +51,7 @@ struct ProjectListView: View {
                 VStack {
                     // Common Header with menu button
                     HStack(spacing: 8) {
-                        HStack(spacing: 0) {
+                        HStack(alignment: .bottom, spacing: 0) {
                             Text(truncatedBusinessName)
                                 .font(.title2)
                                 .fontWeight(.bold)
@@ -60,15 +60,17 @@ struct ProjectListView: View {
 //                                .truncationMode(.tail)
 //                                .allowsTightening(false)
 //                            
-                            if shouldShowTruncation {
-                                Text("...")  // Whatever dots YOU want
-                                    .font(.title2)
-                                    .fontWeight(.bold)
-                                    .foregroundColor(.accentColor)
-                                    .onTapGesture {
-                                        HapticManager.selection()
-                                        showingBusinessNameAlert = true
-                                    }
+                            HStack(alignment: .bottom){
+                                if shouldShowTruncation {
+                                    Text("...")  // Whatever dots YOU want
+                                        .font(.title2)
+                                        .fontWeight(.bold)
+                                        .foregroundColor(.primary)
+                                        .onTapGesture {
+                                            HapticManager.selection()
+                                            showingBusinessNameAlert = true
+                                        }
+                                }
                             }
                         }
 
