@@ -18,6 +18,7 @@ struct Phase: Identifiable, Codable {
     let departments: [String: Double] // Departments with their budgets
     let categories: [String] // Categories for this phase
     let isEnabled: Bool? // Whether this phase is enabled (default true)
+    let phaseOverProofUrl: String? // URL for phase over proof document
     
     // Firestore Timestamps
     let createdAt: Timestamp

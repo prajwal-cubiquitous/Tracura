@@ -1431,6 +1431,7 @@ class CreateProjectViewModel: ObservableObject {
                         departments: [:], // Empty dictionary - departments are stored in subcollection
                         categories: phase.categories,
                         isEnabled: true,
+                        phaseOverProofUrl: nil,
                         createdAt: Timestamp(),
                         updatedAt: Timestamp()
                     )

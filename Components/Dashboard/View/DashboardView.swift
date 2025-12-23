@@ -8,6 +8,10 @@
 import SwiftUI
 import FirebaseFirestore
 import FirebaseAuth
+import FirebaseStorage
+import PhotosUI
+import UIKit
+import UniformTypeIdentifiers
 
 struct DepartmentSelection: Identifiable {
     let id = UUID()
@@ -73,6 +77,16 @@ struct DashboardView: View {
     @State private var phaseToComplete: PhaseSummary? = nil
     @State private var showingStartNowConfirmation = false
     @State private var phaseToStart: PhaseSummary? = nil
+    @State private var showingProofUploadSheet = false
+    @State private var selectedProofPhoto: PhotosPickerItem? = nil
+    @State private var selectedProofImage: UIImage? = nil
+    @State private var showingImagePicker = false
+    @State private var showingDocumentPicker = false
+    @State private var selectedProofFileURL: URL? = nil
+    @State private var isUploadingProof = false
+    @State private var uploadProgress: Double = 0.0
+    @State private var showingProofViewer = false
+    @State private var proofURLToView: String? = nil
     @State private var showingExpenseChat = false
     @State private var expenseForChat: Expense? = nil
     @State private var showingExpenseDetail = false
@@ -122,6 +136,7 @@ struct DashboardView: View {
         let end: Date?
         let departments: [String: Double] // Keep for backward compatibility
         let departmentList: [DepartmentSummary] // New: List of departments from subcollection
+        let phaseOverProofUrl: String? // URL for phase completion proof
     }
     
     struct DepartmentSummary: Identifiable, Hashable {
@@ -700,6 +715,55 @@ struct DashboardView: View {
                     reasonToReact: $phaseRequestNotificationViewModel.reasonToReact
                 )
                 .presentationDetents([.medium])
+            }
+        }
+        .sheet(isPresented: $showingProofUploadSheet) {
+            if let phase = phaseToComplete {
+                PhaseProofUploadSheet(
+                    phaseName: phase.name,
+                    selectedPhoto: $selectedProofPhoto,
+                    selectedImage: $selectedProofImage,
+                    showingImagePicker: $showingImagePicker,
+                    showingDocumentPicker: $showingDocumentPicker,
+                    selectedFileURL: $selectedProofFileURL,
+                    isUploading: $isUploadingProof,
+                    uploadProgress: $uploadProgress,
+                    onCancel: {
+                        phaseToComplete = nil
+                        selectedProofPhoto = nil
+                        selectedProofImage = nil
+                        selectedProofFileURL = nil
+                    },
+                    onConfirm: {
+                        Task {
+                            await handlePhaseProofUpload(phase: phase)
+                        }
+                    }
+                )
+                .presentationDetents([.medium])
+                .presentationDragIndicator(.visible)
+            }
+        }
+        .sheet(isPresented: $showingImagePicker) {
+            CameraImagePicker(image: $selectedProofImage)
+        }
+        .sheet(isPresented: $showingProofViewer) {
+            if let proofURL = proofURLToView {
+                PhaseProofViewer(proofURL: proofURL)
+            }
+        }
+        .fileImporter(
+            isPresented: $showingDocumentPicker,
+            allowedContentTypes: [.pdf, .image, .data],
+            allowsMultipleSelection: false
+        ) { result in
+            switch result {
+            case .success(let urls):
+                if let url = urls.first {
+                    selectedProofFileURL = url
+                }
+            case .failure(let error):
+                print("Error selecting file: \(error.localizedDescription)")
             }
         }
         .alert("Complete Phase", isPresented: $showingCompletePhaseConfirmation) {
@@ -1314,15 +1378,31 @@ struct DashboardView: View {
                                     VStack(spacing: 4){
                                         // Show "Completed" badge if phase is completed
                                         if isPhaseCompleted(phase) {
-                                            Text("Completed")
-                                                .font(DesignSystem.Typography.caption2)
-                                                .fontWeight(.semibold)
-                                                .foregroundColor(.blue)
-                                                .padding(.horizontal, 8)
-                                                .padding(.vertical, 4)
-                                                .background(Color.blue.opacity(0.12))
-                                                .clipShape(Capsule())
-                                                .accessibilityLabel("Phase status: Completed")
+                                            HStack(spacing: 6) {
+                                                Text("Completed")
+                                                    .font(DesignSystem.Typography.caption2)
+                                                    .fontWeight(.semibold)
+                                                    .foregroundColor(.blue)
+                                                
+                                                // Show proof indicator if proof exists
+                                                if let proofURL = phase.phaseOverProofUrl, !proofURL.isEmpty {
+                                                    Button {
+                                                        HapticManager.selection()
+                                                        proofURLToView = proofURL
+                                                        showingProofViewer = true
+                                                    } label: {
+                                                        Image(systemName: "paperclip.circle.fill")
+                                                            .font(.caption2)
+                                                            .foregroundColor(.blue)
+                                                    }
+                                                    .accessibilityLabel("View phase proof")
+                                                }
+                                            }
+                                            .padding(.horizontal, 8)
+                                            .padding(.vertical, 4)
+                                            .background(Color.blue.opacity(0.12))
+                                            .clipShape(Capsule())
+                                            .accessibilityLabel("Phase status: Completed")
                                         }
                                         // Show "In Progress" badge if phase is in progress AND enabled
                                         else if isPhaseInProgress(phase) && (phaseEnabledMap[phase.id] ?? true) {
@@ -1376,7 +1456,7 @@ struct DashboardView: View {
                                                     Button(role: .destructive) {
                                                         HapticManager.selection()
                                                         phaseToComplete = phase
-                                                        showingCompletePhaseConfirmation = true
+                                                        showingProofUploadSheet = true
                                                     } label: {
                                                         Label("Complete Phase", systemImage: "checkmark.circle.fill")
                                                     }
@@ -2053,7 +2133,8 @@ struct DashboardView: View {
                     start: phaseData.startDate,
                     end: phaseData.endDate,
                     departments: deptDict,
-                    departmentList: deptList
+                    departmentList: deptList,
+                    phaseOverProofUrl: phaseData.phase.phaseOverProofUrl
                 ))
             }
             
@@ -2393,7 +2474,7 @@ struct DashboardView: View {
     }
     
     // MARK: - Complete Phase
-    private func completePhase(_ phase: PhaseSummary) async {
+    private func completePhase(_ phase: PhaseSummary, proofURL: String? = nil) async {
         guard let projectId = project?.id,
               let customerId = customerId else {
             return
@@ -2405,14 +2486,22 @@ struct DashboardView: View {
             let yesterday = calendar.date(byAdding: .day, value: -1, to: Date()) ?? Date()
             let endDateStr = phaseDateFormatter.string(from: yesterday)
             
+            // Prepare update data
+            var updateData: [String: Any] = [
+                "endDate": endDateStr,
+                "updatedAt": Timestamp()
+            ]
+            
+            // Add proof URL if provided
+            if let proofURL = proofURL {
+                updateData["phaseOverProofUrl"] = proofURL
+            }
+            
             // Update phase end date to yesterday
             try await FirebasePathHelper.shared
                 .phasesCollection(customerId: customerId, projectId: projectId)
                 .document(phase.id)
-                .updateData([
-                    "endDate": endDateStr,
-                    "updatedAt": Timestamp()
-                ])
+                .updateData(updateData)
             
             // Log timeline change to Firebase changes collection
             guard let currentUserUID = Auth.auth().currentUser?.uid else {
@@ -2453,6 +2542,127 @@ struct DashboardView: View {
         } catch {
             print("Error completing phase: \(error.localizedDescription)")
             await MainActor.run {
+                HapticManager.notification(.error)
+            }
+        }
+    }
+    
+    // MARK: - Upload Phase Proof
+    private func uploadPhaseProof(image: UIImage?, fileURL: URL?, phaseId: String) async throws -> String {
+        guard let projectId = project?.id,
+              let customerId = customerId else {
+            throw NSError(domain: "PhaseProof", code: 1, userInfo: [NSLocalizedDescriptionKey: "Missing project or customer ID"])
+        }
+        
+        let storage = Storage.storage()
+        let storageRef = storage.reference()
+        
+        let timestamp = Int(Date().timeIntervalSince1970)
+        var data: Data
+        var fileName: String
+        var contentType: String
+        
+        if let image = image {
+            // Handle image upload
+            guard let imageData = image.jpegData(compressionQuality: 0.8) else {
+                throw NSError(domain: "PhaseProof", code: 2, userInfo: [NSLocalizedDescriptionKey: "Failed to convert image to data"])
+            }
+            data = imageData
+            fileName = "phase_proof_\(phaseId)_\(timestamp).jpg"
+            contentType = "image/jpeg"
+        } else if let fileURL = fileURL {
+            // Handle file upload
+            do {
+                data = try Data(contentsOf: fileURL)
+                let originalFileName = fileURL.lastPathComponent
+                let fileExtension = (originalFileName as NSString).pathExtension
+                fileName = "phase_proof_\(phaseId)_\(timestamp).\(fileExtension)"
+                
+                // Determine content type based on extension
+                switch fileExtension.lowercased() {
+                case "pdf":
+                    contentType = "application/pdf"
+                case "jpg", "jpeg":
+                    contentType = "image/jpeg"
+                case "png":
+                    contentType = "image/png"
+                case "doc", "docx":
+                    contentType = "application/msword"
+                default:
+                    contentType = "application/octet-stream"
+                }
+            } catch {
+                throw NSError(domain: "PhaseProof", code: 3, userInfo: [NSLocalizedDescriptionKey: "Failed to read file: \(error.localizedDescription)"])
+            }
+        } else {
+            throw NSError(domain: "PhaseProof", code: 4, userInfo: [NSLocalizedDescriptionKey: "No image or file provided"])
+        }
+        
+        // Create storage path: customers/{customerId}/projects/{projectId}/phases/{phaseId}/proofs/{fileName}
+        let proofRef = storageRef
+            .child("customers")
+            .child(customerId)
+            .child("projects")
+            .child(projectId)
+            .child("phases")
+            .child(phaseId)
+            .child("proofs")
+            .child(fileName)
+        
+        // Create metadata
+        let metadata = StorageMetadata()
+        metadata.contentType = contentType
+        
+        // Upload file
+        _ = try await proofRef.putDataAsync(data, metadata: metadata)
+        
+        // Get download URL
+        let downloadURL = try await proofRef.downloadURL()
+        return downloadURL.absoluteString
+    }
+    
+    // MARK: - Handle Phase Proof Upload
+    private func handlePhaseProofUpload(phase: PhaseSummary) async {
+        await MainActor.run {
+            isUploadingProof = true
+            uploadProgress = 0.0
+        }
+        
+        do {
+            var proofURL: String? = nil
+            
+            // Handle photo picker item
+            if let photoItem = selectedProofPhoto {
+                if let data = try? await photoItem.loadTransferable(type: Data.self),
+                   let image = UIImage(data: data) {
+                    proofURL = try await uploadPhaseProof(image: image, fileURL: nil, phaseId: phase.id)
+                }
+            }
+            // Handle direct image
+            else if let image = selectedProofImage {
+                proofURL = try await uploadPhaseProof(image: image, fileURL: nil, phaseId: phase.id)
+            }
+            // Handle file URL
+            else if let fileURL = selectedProofFileURL {
+                proofURL = try await uploadPhaseProof(image: nil, fileURL: fileURL, phaseId: phase.id)
+            }
+            
+            // Complete phase with proof URL
+            await completePhase(phase, proofURL: proofURL)
+            
+            await MainActor.run {
+                isUploadingProof = false
+                showingProofUploadSheet = false
+                phaseToComplete = nil
+                selectedProofPhoto = nil
+                selectedProofImage = nil
+                selectedProofFileURL = nil
+                HapticManager.notification(.success)
+            }
+        } catch {
+            print("Error uploading proof: \(error.localizedDescription)")
+            await MainActor.run {
+                isUploadingProof = false
                 HapticManager.notification(.error)
             }
         }
@@ -4236,6 +4446,16 @@ private struct AllPhasesView: View {
     @State private var phaseToComplete: DashboardView.PhaseSummary? = nil
     @State private var showingStartNowConfirmation = false
     @State private var phaseToStart: DashboardView.PhaseSummary? = nil
+    @State private var showingProofUploadSheet = false
+    @State private var selectedProofPhoto: PhotosPickerItem? = nil
+    @State private var selectedProofImage: UIImage? = nil
+    @State private var showingImagePicker = false
+    @State private var showingDocumentPicker = false
+    @State private var selectedProofFileURL: URL? = nil
+    @State private var isUploadingProof = false
+    @State private var uploadProgress: Double = 0.0
+    @State private var showingProofViewer = false
+    @State private var proofURLToView: String? = nil
     
     private var phaseDateFormatter: DateFormatter {
         let df = DateFormatter()
@@ -4495,6 +4715,108 @@ private struct AllPhasesView: View {
         }
     }
     
+    // MARK: - Upload Phase Proof (AllPhasesView)
+    private func uploadPhaseProofForAllPhasesView(image: UIImage?, fileURL: URL?, phaseId: String, projectId: String, customerId: String) async throws -> String {
+        let storage = Storage.storage()
+        let storageRef = storage.reference()
+        
+        let timestamp = Int(Date().timeIntervalSince1970)
+        var data: Data
+        var fileName: String
+        var contentType: String
+        
+        if let image = image {
+            guard let imageData = image.jpegData(compressionQuality: 0.8) else {
+                throw NSError(domain: "PhaseProof", code: 2, userInfo: [NSLocalizedDescriptionKey: "Failed to convert image to data"])
+            }
+            data = imageData
+            fileName = "phase_proof_\(phaseId)_\(timestamp).jpg"
+            contentType = "image/jpeg"
+        } else if let fileURL = fileURL {
+            do {
+                data = try Data(contentsOf: fileURL)
+                let originalFileName = fileURL.lastPathComponent
+                let fileExtension = (originalFileName as NSString).pathExtension
+                fileName = "phase_proof_\(phaseId)_\(timestamp).\(fileExtension)"
+                
+                switch fileExtension.lowercased() {
+                case "pdf":
+                    contentType = "application/pdf"
+                case "jpg", "jpeg":
+                    contentType = "image/jpeg"
+                case "png":
+                    contentType = "image/png"
+                case "doc", "docx":
+                    contentType = "application/msword"
+                default:
+                    contentType = "application/octet-stream"
+                }
+            } catch {
+                throw NSError(domain: "PhaseProof", code: 3, userInfo: [NSLocalizedDescriptionKey: "Failed to read file: \(error.localizedDescription)"])
+            }
+        } else {
+            throw NSError(domain: "PhaseProof", code: 4, userInfo: [NSLocalizedDescriptionKey: "No image or file provided"])
+        }
+        
+        let proofRef = storageRef
+            .child("customers")
+            .child(customerId)
+            .child("projects")
+            .child(projectId)
+            .child("phases")
+            .child(phaseId)
+            .child("proofs")
+            .child(fileName)
+        
+        let metadata = StorageMetadata()
+        metadata.contentType = contentType
+        
+        _ = try await proofRef.putDataAsync(data, metadata: metadata)
+        let downloadURL = try await proofRef.downloadURL()
+        return downloadURL.absoluteString
+    }
+    
+    // MARK: - Handle Phase Proof Upload (AllPhasesView)
+    private func handlePhaseProofUploadForAllPhasesView(phase: DashboardView.PhaseSummary, projectId: String, customerId: String) async {
+        await MainActor.run {
+            isUploadingProof = true
+            uploadProgress = 0.0
+        }
+        
+        do {
+            var proofURL: String? = nil
+            
+            if let photoItem = selectedProofPhoto {
+                if let data = try? await photoItem.loadTransferable(type: Data.self),
+                   let image = UIImage(data: data) {
+                    proofURL = try await uploadPhaseProofForAllPhasesView(image: image, fileURL: nil, phaseId: phase.id, projectId: projectId, customerId: customerId)
+                }
+            } else if let image = selectedProofImage {
+                proofURL = try await uploadPhaseProofForAllPhasesView(image: image, fileURL: nil, phaseId: phase.id, projectId: projectId, customerId: customerId)
+            } else if let fileURL = selectedProofFileURL {
+                proofURL = try await uploadPhaseProofForAllPhasesView(image: nil, fileURL: fileURL, phaseId: phase.id, projectId: projectId, customerId: customerId)
+            }
+            
+            await completePhaseInAllPhasesView(phase: phase, projectId: projectId, customerId: customerId, proofURL: proofURL)
+            
+            await MainActor.run {
+                isUploadingProof = false
+                showingProofUploadSheet = false
+                phaseToComplete = nil
+                selectedProofPhoto = nil
+                selectedProofImage = nil
+                selectedProofFileURL = nil
+                HapticManager.notification(.success)
+            }
+        } catch {
+            print("Error uploading proof: \(error.localizedDescription)")
+            await MainActor.run {
+                isUploadingProof = false
+                HapticManager.notification(.error)
+            }
+        }
+    }
+    
     private func loadPhaseAnonymousExpenses() {
         guard let projectId = project?.id else { return }
         Task {
@@ -4612,7 +4934,7 @@ private struct AllPhasesView: View {
     }
     
     // MARK: - Complete Phase in AllPhasesView
-    private func completePhaseInAllPhasesView(phase: DashboardView.PhaseSummary, projectId: String, customerId: String) async {
+    private func completePhaseInAllPhasesView(phase: DashboardView.PhaseSummary, projectId: String, customerId: String, proofURL: String? = nil) async {
         do {
             let dateFormatter = DateFormatter()
             dateFormatter.dateFormat = "dd/MM/yyyy"
@@ -4622,14 +4944,22 @@ private struct AllPhasesView: View {
             let yesterday = calendar.date(byAdding: .day, value: -1, to: Date()) ?? Date()
             let endDateStr = dateFormatter.string(from: yesterday)
             
+            // Prepare update data
+            var updateData: [String: Any] = [
+                "endDate": endDateStr,
+                "updatedAt": Timestamp()
+            ]
+            
+            // Add proof URL if provided
+            if let proofURL = proofURL {
+                updateData["phaseOverProofUrl"] = proofURL
+            }
+            
             // Update phase end date to yesterday
             try await FirebasePathHelper.shared
                 .phasesCollection(customerId: customerId, projectId: projectId)
                 .document(phase.id)
-                .updateData([
-                    "endDate": endDateStr,
-                    "updatedAt": Timestamp()
-                ])
+                .updateData(updateData)
             
             // Log timeline change to Firebase changes collection
             guard let currentUserUID = Auth.auth().currentUser?.uid else {
@@ -4791,11 +5121,27 @@ private struct AllPhasesView: View {
             VStack(spacing: 4) {
                 // Show "Completed" badge if phase is completed
                 if isPhaseCompleted(phase) {
-                    Text("Completed")
-                        .font(DesignSystem.Typography.caption2)
-                        .fontWeight(.semibold)
-                        .foregroundColor(.blue)
-                        .padding(.horizontal, 6)
+                    HStack(spacing: 6) {
+                        Text("Completed")
+                            .font(DesignSystem.Typography.caption2)
+                            .fontWeight(.semibold)
+                            .foregroundColor(.blue)
+                        
+                        // Show proof indicator if proof exists
+                        if let proofURL = phase.phaseOverProofUrl, !proofURL.isEmpty {
+                            Button {
+                                HapticManager.selection()
+                                proofURLToView = proofURL
+                                showingProofViewer = true
+                            } label: {
+                                Image(systemName: "paperclip.circle.fill")
+                                    .font(.caption2)
+                                    .foregroundColor(.blue)
+                            }
+                            .accessibilityLabel("View phase proof")
+                        }
+                    }
+                    .padding(.horizontal, 6)
                         .padding(.vertical, 3)
                         .background(Color.blue.opacity(0.12))
                         .clipShape(Capsule())
@@ -4854,7 +5200,7 @@ private struct AllPhasesView: View {
                     Button(role: .destructive) {
                         HapticManager.selection()
                         phaseToComplete = phase
-                        showingCompletePhaseConfirmation = true
+                        showingProofUploadSheet = true
                     } label: {
                         Label("Complete Phase", systemImage: "checkmark.circle.fill")
                     }
@@ -5228,6 +5574,58 @@ private struct AllPhasesView: View {
                 onSaved: { onPhaseAdded?() }
             )
             .presentationDetents([.medium])
+        }
+        .sheet(isPresented: $showingProofUploadSheet) {
+            if let phase = phaseToComplete {
+                PhaseProofUploadSheet(
+                    phaseName: phase.name,
+                    selectedPhoto: $selectedProofPhoto,
+                    selectedImage: $selectedProofImage,
+                    showingImagePicker: $showingImagePicker,
+                    showingDocumentPicker: $showingDocumentPicker,
+                    selectedFileURL: $selectedProofFileURL,
+                    isUploading: $isUploadingProof,
+                    uploadProgress: $uploadProgress,
+                    onCancel: {
+                        phaseToComplete = nil
+                        selectedProofPhoto = nil
+                        selectedProofImage = nil
+                        selectedProofFileURL = nil
+                    },
+                    onConfirm: {
+                        Task {
+                            if let projectId = project?.id,
+                               let customerId = try? await FirebasePathHelper.shared.fetchEffectiveUserID() {
+                                await handlePhaseProofUploadForAllPhasesView(phase: phase, projectId: projectId, customerId: customerId)
+                            }
+                        }
+                    }
+                )
+                .presentationDetents([.medium])
+                .presentationDragIndicator(.visible)
+            }
+        }
+        .sheet(isPresented: $showingImagePicker) {
+            CameraImagePicker(image: $selectedProofImage)
+        }
+        .fileImporter(
+            isPresented: $showingDocumentPicker,
+            allowedContentTypes: [.pdf, .image, .data],
+            allowsMultipleSelection: false
+        ) { result in
+            switch result {
+            case .success(let urls):
+                if let url = urls.first {
+                    selectedProofFileURL = url
+                }
+            case .failure(let error):
+                print("Error selecting file: \(error.localizedDescription)")
+            }
+        }
+        .sheet(isPresented: $showingProofViewer) {
+            if let proofURL = proofURLToView {
+                PhaseProofViewer(proofURL: proofURL)
+            }
         }
         .alert("Complete Phase", isPresented: $showingCompletePhaseConfirmation) {
             Button("Cancel", role: .cancel) {
@@ -6917,6 +7315,7 @@ private struct AddPhaseSheet: View {
                     departments: [:], // Empty dictionary - departments are stored in subcollection
                     categories: [],
                     isEnabled: true,
+                    phaseOverProofUrl: nil,
                     createdAt: Timestamp(),
                     updatedAt: Timestamp()
                 )
@@ -8317,6 +8716,381 @@ private struct SectionHeader: View {
     var body: some View {
         Text(title)
             .sectionHeaderStyle()
+    }
+}
+
+// MARK: - Phase Proof Upload Sheet
+struct PhaseProofUploadSheet: View {
+    let phaseName: String
+    @Binding var selectedPhoto: PhotosPickerItem?
+    @Binding var selectedImage: UIImage?
+    @Binding var showingImagePicker: Bool
+    @Binding var showingDocumentPicker: Bool
+    @Binding var selectedFileURL: URL?
+    @Binding var isUploading: Bool
+    @Binding var uploadProgress: Double
+    let onCancel: () -> Void
+    let onConfirm: () -> Void
+    
+    @Environment(\.dismiss) private var dismiss
+    
+    var body: some View {
+        NavigationView {
+            VStack(spacing: 24) {
+                // Header
+                VStack(spacing: 8) {
+                    Text("Upload Phase Proof")
+                        .font(.title2)
+                        .fontWeight(.semibold)
+                    
+                    Text("Complete Phase: \(phaseName)")
+                        .font(.subheadline)
+                        .foregroundColor(.secondary)
+                }
+                .padding(.top)
+                
+                // Preview Section
+                if let image = selectedImage {
+                    VStack(spacing: 12) {
+                        Text("Selected Image")
+                            .font(.headline)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                        
+                        Image(uiImage: image)
+                            .resizable()
+                            .aspectRatio(contentMode: .fit)
+                            .frame(maxHeight: 200)
+                            .cornerRadius(12)
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 12)
+                                    .stroke(Color.secondary.opacity(0.3), lineWidth: 1)
+                            )
+                    }
+                    .padding(.horizontal)
+                } else if let fileURL = selectedFileURL {
+                    VStack(spacing: 12) {
+                        Text("Selected File")
+                            .font(.headline)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                        
+                        HStack {
+                            Image(systemName: "doc.fill")
+                                .font(.system(size: 40))
+                                .foregroundColor(.blue)
+                            
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text(fileURL.lastPathComponent)
+                                    .font(.body)
+                                    .lineLimit(2)
+                                
+                                Text(fileURL.pathExtension.uppercased())
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                            }
+                            
+                            Spacer()
+                        }
+                        .padding()
+                        .background(Color(.systemGray6))
+                        .cornerRadius(12)
+                    }
+                    .padding(.horizontal)
+                }
+                
+                // Upload Options
+                if selectedImage == nil && selectedFileURL == nil {
+                    VStack(spacing: 16) {
+                        // Photo Library
+                        PhotosPicker(
+                            selection: $selectedPhoto,
+                            matching: .images
+                        ) {
+                            HStack {
+                                Image(systemName: "photo.on.rectangle")
+                                    .font(.title2)
+                                Text("Choose from Photos")
+                                    .font(.body)
+                                Spacer()
+                                Image(systemName: "chevron.right")
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                            }
+                            .padding()
+                            .background(Color(.systemGray6))
+                            .cornerRadius(12)
+                        }
+                        
+                        // Camera
+                        Button {
+                            showingImagePicker = true
+                        } label: {
+                            HStack {
+                                Image(systemName: "camera.fill")
+                                    .font(.title2)
+                                Text("Take Photo")
+                                    .font(.body)
+                                Spacer()
+                                Image(systemName: "chevron.right")
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                            }
+                            .padding()
+                            .background(Color(.systemGray6))
+                            .cornerRadius(12)
+                        }
+                        
+                        // Files
+                        Button {
+                            showingDocumentPicker = true
+                        } label: {
+                            HStack {
+                                Image(systemName: "folder.fill")
+                                    .font(.title2)
+                                Text("Choose File")
+                                    .font(.body)
+                                Spacer()
+                                Image(systemName: "chevron.right")
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                            }
+                            .padding()
+                            .background(Color(.systemGray6))
+                            .cornerRadius(12)
+                        }
+                    }
+                    .padding(.horizontal)
+                }
+                
+                // Upload Progress
+                if isUploading {
+                    VStack(spacing: 8) {
+                        ProgressView(value: uploadProgress)
+                            .progressViewStyle(LinearProgressViewStyle())
+                        
+                        Text("Uploading proof...")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
+                    }
+                    .padding(.horizontal)
+                }
+                
+                Spacer()
+                
+                // Action Buttons
+                HStack(spacing: 12) {
+                    Button {
+                        onCancel()
+                        dismiss()
+                    } label: {
+                        Text("Cancel")
+                            .font(.body)
+                            .fontWeight(.medium)
+                            .frame(maxWidth: .infinity)
+                            .padding()
+                            .background(Color(.systemGray5))
+                            .foregroundColor(.primary)
+                            .cornerRadius(12)
+                    }
+                    
+                    Button {
+                        onConfirm()
+                    } label: {
+                        Text("Complete Phase")
+                            .font(.body)
+                            .fontWeight(.semibold)
+                            .frame(maxWidth: .infinity)
+                            .padding()
+                            .background(selectedImage != nil || selectedFileURL != nil ? Color.red : Color.gray)
+                            .foregroundColor(.white)
+                            .cornerRadius(12)
+                    }
+                    .disabled(selectedImage == nil && selectedFileURL == nil || isUploading)
+                }
+                .padding(.horizontal)
+                .padding(.bottom)
+            }
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button("Cancel") {
+                        onCancel()
+                        dismiss()
+                    }
+                }
+            }
+        }
+        .onChange(of: selectedPhoto) { newValue in
+            if let newValue = newValue {
+                Task {
+                    if let data = try? await newValue.loadTransferable(type: Data.self),
+                       let image = UIImage(data: data) {
+                        await MainActor.run {
+                            selectedImage = image
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+// MARK: - Phase Proof Viewer
+struct PhaseProofViewer: View {
+    let proofURL: String
+    @Environment(\.dismiss) private var dismiss
+    @State private var isLoading = true
+    @State private var image: UIImage? = nil
+    @State private var fileData: Data? = nil
+    @State private var errorMessage: String? = nil
+    
+    var body: some View {
+        NavigationView {
+            ZStack {
+                Color.black.ignoresSafeArea()
+                
+                if isLoading {
+                    ProgressView()
+                        .progressViewStyle(CircularProgressViewStyle(tint: .white))
+                } else if let image = image {
+                    ScrollView {
+                        Image(uiImage: image)
+                            .resizable()
+                            .aspectRatio(contentMode: .fit)
+                            .frame(maxWidth: .infinity)
+                    }
+                } else if let fileData = fileData {
+                    // For PDF or other files, show download option
+                    VStack(spacing: 20) {
+                        Image(systemName: "doc.fill")
+                            .font(.system(size: 60))
+                            .foregroundColor(.white)
+                        
+                        Text("File Preview")
+                            .font(.title2)
+                            .foregroundColor(.white)
+                        
+                        Button {
+                            // Open file in external app
+                            let tempURL = FileManager.default.temporaryDirectory.appendingPathComponent("proof.\(proofURL.components(separatedBy: ".").last ?? "pdf")")
+                            try? fileData.write(to: tempURL)
+                            UIApplication.shared.open(tempURL)
+                        } label: {
+                            Text("Open File")
+                                .font(.body)
+                                .fontWeight(.semibold)
+                                .foregroundColor(.black)
+                                .padding()
+                                .frame(maxWidth: 200)
+                                .background(Color.white)
+                                .cornerRadius(12)
+                        }
+                    }
+                } else if let error = errorMessage {
+                    VStack(spacing: 16) {
+                        Image(systemName: "exclamationmark.triangle")
+                            .font(.system(size: 50))
+                            .foregroundColor(.white)
+                        
+                        Text("Error loading proof")
+                            .font(.headline)
+                            .foregroundColor(.white)
+                        
+                        Text(error)
+                            .font(.caption)
+                            .foregroundColor(.white.opacity(0.8))
+                            .multilineTextAlignment(.center)
+                    }
+                }
+            }
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button {
+                        dismiss()
+                    } label: {
+                        Image(systemName: "xmark.circle.fill")
+                            .foregroundColor(.white)
+                    }
+                }
+            }
+        }
+        .task {
+            await loadProof()
+        }
+    }
+    
+    private func loadProof() async {
+        guard let url = URL(string: proofURL) else {
+            await MainActor.run {
+                errorMessage = "Invalid URL"
+                isLoading = false
+            }
+            return
+        }
+        
+        do {
+            let (data, _) = try await URLSession.shared.data(from: url)
+            
+            // Try to load as image first
+            if let loadedImage = UIImage(data: data) {
+                await MainActor.run {
+                    image = loadedImage
+                    isLoading = false
+                }
+            } else {
+                // Store as file data
+                await MainActor.run {
+                    fileData = data
+                    isLoading = false
+                }
+            }
+        } catch {
+            await MainActor.run {
+                errorMessage = error.localizedDescription
+                isLoading = false
+            }
+        }
+    }
+}
+
+// MARK: - Camera Image Picker
+struct CameraImagePicker: UIViewControllerRepresentable {
+    @Binding var image: UIImage?
+    @Environment(\.dismiss) private var dismiss
+    
+    func makeUIViewController(context: Context) -> UIImagePickerController {
+        let picker = UIImagePickerController()
+        picker.delegate = context.coordinator
+        picker.sourceType = .camera
+        picker.allowsEditing = true
+        return picker
+    }
+    
+    func updateUIViewController(_ uiViewController: UIImagePickerController, context: Context) {}
+    
+    func makeCoordinator() -> Coordinator {
+        Coordinator(self)
+    }
+    
+    class Coordinator: NSObject, UIImagePickerControllerDelegate, UINavigationControllerDelegate {
+        let parent: CameraImagePicker
+        
+        init(_ parent: CameraImagePicker) {
+            self.parent = parent
+        }
+        
+        func imagePickerController(_ picker: UIImagePickerController, didFinishPickingMediaWithInfo info: [UIImagePickerController.InfoKey : Any]) {
+            if let editedImage = info[.editedImage] as? UIImage {
+                parent.image = editedImage
+            } else if let originalImage = info[.originalImage] as? UIImage {
+                parent.image = originalImage
+            }
+            parent.dismiss()
+        }
+        
+        func imagePickerControllerDidCancel(_ picker: UIImagePickerController) {
+            parent.dismiss()
+        }
     }
 }
 

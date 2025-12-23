@@ -107,7 +107,8 @@ class DashboardStateManager: ObservableObject {
                 start: updatedPhase.start,
                 end: updatedPhase.end,
                 departments: updatedDepartments,
-                departmentList: updatedPhase.departmentList
+                departmentList: updatedPhase.departmentList,
+                phaseOverProofUrl: updatedPhase.phaseOverProofUrl
             )
             allPhases[index] = updatedPhase
             
@@ -135,7 +136,8 @@ class DashboardStateManager: ObservableObject {
                 start: updatedPhase.start,
                 end: updatedPhase.end,
                 departments: updatedDepartments,
-                departmentList: updatedPhase.departmentList
+                departmentList: updatedPhase.departmentList,
+                phaseOverProofUrl: updatedPhase.phaseOverProofUrl
             )
             allPhases[index] = updatedPhase
             
@@ -249,7 +251,8 @@ class DashboardStateManager: ObservableObject {
                 start: updatedPhase.start,
                 end: updatedPhase.end,
                 departments: updatedDepartments,
-                departmentList: updatedPhase.departmentList
+                departmentList: updatedPhase.departmentList,
+                phaseOverProofUrl: updatedPhase.phaseOverProofUrl
             )
             allPhases[index] = updatedPhase
             
@@ -489,7 +492,8 @@ class DashboardStateManager: ObservableObject {
                         start: s,
                         end: e,
                         departments: departmentsDict,
-                        departmentList: departmentList
+                        departmentList: departmentList,
+                        phaseOverProofUrl: p.phaseOverProofUrl
                     ))
                     enabledMap[phaseId] = p.isEnabledValue
                 }
