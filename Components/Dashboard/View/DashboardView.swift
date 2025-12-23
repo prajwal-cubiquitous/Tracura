@@ -8955,10 +8955,9 @@ struct PhaseProofViewer: View {
                             .foregroundColor(.white.opacity(0.8))
                     }
                 } else if let image = image {
-                    ScrollView([.horizontal, .vertical], showsIndicators: true) {
-                        ZoomableImageView(image: image)
-                            .frame(maxWidth: .infinity, maxHeight: .infinity)
-                    }
+                    ZoomableImageView(image: image)
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                        .edgesIgnoringSafeArea(.all)
                 } else if let fileData = fileData {
                     // For PDF or other files, show download option
                     VStack(spacing: 20) {
@@ -9051,11 +9050,13 @@ struct PhaseProofViewer: View {
             
             // Try to load as image first
             if let loadedImage = UIImage(data: data) {
+                print("✅ Successfully loaded image: \(loadedImage.size)")
                 await MainActor.run {
                     image = loadedImage
                     isLoading = false
                 }
             } else {
+                print("⚠️ Data is not a valid image, storing as file data. Size: \(data.count) bytes")
                 // Store as file data
                 await MainActor.run {
                     fileData = data
@@ -9083,23 +9084,36 @@ struct ZoomableImageView: UIViewRepresentable {
         scrollView.showsHorizontalScrollIndicator = true
         scrollView.showsVerticalScrollIndicator = true
         scrollView.backgroundColor = .black
+        scrollView.contentInsetAdjustmentBehavior = .never
+        scrollView.bouncesZoom = true
         
         let imageView = UIImageView(image: image)
         imageView.contentMode = .scaleAspectFit
-        imageView.frame = scrollView.bounds
-        imageView.autoresizingMask = [.flexibleWidth, .flexibleHeight]
+        imageView.backgroundColor = .black
+        imageView.isUserInteractionEnabled = true
         
         scrollView.addSubview(imageView)
         context.coordinator.imageView = imageView
+        context.coordinator.scrollView = scrollView
+        context.coordinator.parent = self
+        
+        // Layout image view after view is created
+        DispatchQueue.main.async {
+            context.coordinator.layoutImageView()
+        }
         
         return scrollView
     }
     
     func updateUIView(_ uiView: UIScrollView, context: Context) {
-        // Update image if needed
-        if let imageView = context.coordinator.imageView {
-            imageView.image = image
-            imageView.frame = uiView.bounds
+        guard let imageView = context.coordinator.imageView else { return }
+        
+        // Update image
+        imageView.image = image
+        
+        // Layout image view after view updates
+        DispatchQueue.main.async {
+            context.coordinator.layoutImageView()
         }
     }
     
@@ -9109,9 +9123,53 @@ struct ZoomableImageView: UIViewRepresentable {
     
     class Coordinator: NSObject, UIScrollViewDelegate {
         var imageView: UIImageView?
+        var scrollView: UIScrollView?
+        var parent: ZoomableImageView?
         
         func viewForZooming(in scrollView: UIScrollView) -> UIView? {
             return imageView
+        }
+        
+        func layoutImageView() {
+            guard let scrollView = scrollView,
+                  let imageView = imageView,
+                  let parent = parent else { return }
+            
+            let scrollViewSize = scrollView.bounds.size
+            guard scrollViewSize.width > 0 && scrollViewSize.height > 0 else {
+                // Retry after a short delay if bounds aren't ready
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                    self.layoutImageView()
+                }
+                return
+            }
+            
+            let imageSize = parent.image.size
+            guard imageSize.width > 0 && imageSize.height > 0 else { return }
+            
+            // Calculate the size to fit the image in the scroll view
+            let widthRatio = scrollViewSize.width / imageSize.width
+            let heightRatio = scrollViewSize.height / imageSize.height
+            let minScale = min(widthRatio, heightRatio)
+            
+            let scaledImageSize = CGSize(
+                width: imageSize.width * minScale,
+                height: imageSize.height * minScale
+            )
+            
+            // Set image view frame centered
+            imageView.frame = CGRect(
+                x: (scrollViewSize.width - scaledImageSize.width) / 2,
+                y: (scrollViewSize.height - scaledImageSize.height) / 2,
+                width: scaledImageSize.width,
+                height: scaledImageSize.height
+            )
+            
+            // Set content size to allow scrolling when zoomed
+            scrollView.contentSize = CGSize(
+                width: max(scaledImageSize.width, scrollViewSize.width),
+                height: max(scaledImageSize.height, scrollViewSize.height)
+            )
         }
         
         func scrollViewDidZoom(_ scrollView: UIScrollView) {
@@ -9121,6 +9179,7 @@ struct ZoomableImageView: UIViewRepresentable {
             let boundsSize = scrollView.bounds.size
             var frameToCenter = imageView.frame
             
+            // If image is smaller than scroll view, center it
             if frameToCenter.size.width < boundsSize.width {
                 frameToCenter.origin.x = (boundsSize.width - frameToCenter.size.width) / 2
             } else {
@@ -9134,6 +9193,11 @@ struct ZoomableImageView: UIViewRepresentable {
             }
             
             imageView.frame = frameToCenter
+        }
+        
+        func scrollViewDidEndZooming(_ scrollView: UIScrollView, with view: UIView?, atScale scale: CGFloat) {
+            // Re-layout after zoom ends
+            layoutImageView()
         }
     }
 }
