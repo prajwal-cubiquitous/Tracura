@@ -99,6 +99,9 @@ class AddExpenseViewModel: ObservableObject {
     @Published var isUploading: Bool = false
     @Published var paymentProofUploadProgress: Double = 0.0
     @Published var isUploadingPaymentProof: Bool = false
+    @Published var showingReceiptScanner: Bool = false
+    @Published var isAnalyzingReceipt: Bool = false
+    @Published var receiptAnalysisProgress: Double = 0.0
     
     // MARK: - Validation State
     @Published var shouldShowValidationErrors: Bool = false
@@ -1617,5 +1620,99 @@ extension AddExpenseViewModel {
     func handlePaymentProofImageSelection(_ image: UIImage?) {
         guard let image = image else { return }
         uploadPaymentProofImage(image)
+    }
+    
+    // MARK: - Receipt Scanning
+    func analyzeReceipt(image: UIImage) async {
+        isAnalyzingReceipt = true
+        receiptAnalysisProgress = 0.0
+        
+        do {
+            receiptAnalysisProgress = 0.3
+            
+            // Analyze receipt using OpenAI
+            let result = try await ReceiptAnalysisService.shared.analyzeReceipt(image: image)
+            
+            receiptAnalysisProgress = 0.7
+            
+            // Fill form with extracted data
+            await MainActor.run {
+                // Fill date if available
+                if let date = result.date {
+                    expenseDate = date
+                }
+                
+                // Fill amount
+                if let amount = result.amount {
+                    self.amount = formatAmountInput(String(amount))
+                }
+                
+                // Fill description
+                if !result.description.isEmpty {
+                    description = result.description
+                }
+                
+                // Fill categories
+                if !result.categories.isEmpty {
+                    categories = result.categories
+                    // Initialize category search texts
+                    for (index, category) in result.categories.enumerated() {
+                        categorySearchTexts[index] = category
+                    }
+                }
+                
+                // Fill payment mode
+                selectedPaymentMode = result.paymentMode
+                
+                // Fill material details
+                if !result.itemType.isEmpty {
+                    selectedItemType = result.itemType
+                    loadAvailableItemTypes()
+                }
+                
+                if !result.item.isEmpty {
+                    selectedItem = result.item
+                }
+                
+                if !result.brand.isEmpty {
+                    brand = result.brand
+                }
+                
+                if !result.spec.isEmpty {
+                    selectedSpec = result.spec
+                }
+                
+                if !result.quantity.isEmpty {
+                    quantity = result.quantity
+                }
+                
+                if !result.uom.isEmpty {
+                    uom = result.uom
+                }
+                
+                if !result.unitPrice.isEmpty {
+                    unitPrice = formatAmountInput(result.unitPrice)
+                }
+                
+                // Also upload the scanned image as attachment
+                uploadImage(image)
+                
+                receiptAnalysisProgress = 1.0
+                
+                // Show success message
+                alertMessage = "Receipt analyzed successfully! Form fields have been filled."
+                showAlert = true
+            }
+        } catch {
+            await MainActor.run {
+                alertMessage = "Failed to analyze receipt: \(error.localizedDescription)"
+                showAlert = true
+            }
+        }
+        
+        await MainActor.run {
+            isAnalyzingReceipt = false
+            receiptAnalysisProgress = 0.0
+        }
     }
 } 

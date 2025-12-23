@@ -11,6 +11,31 @@ struct AddExpenseView: View {
     @State private var showingFileViewer = false
     @State private var showingCamera = false
     @State private var showingPaymentProofFileViewer = false
+    
+    // MARK: - Helper Functions
+    private func scanUploadedImage(url: URL) async {
+        do {
+            // Download image data from URL
+            let (data, _) = try await URLSession.shared.data(from: url)
+            
+            // Convert to UIImage
+            guard let image = UIImage(data: data) else {
+                await MainActor.run {
+                    viewModel.alertMessage = "Failed to load image from URL"
+                    viewModel.showAlert = true
+                }
+                return
+            }
+            
+            // Analyze the image
+            await viewModel.analyzeReceipt(image: image)
+        } catch {
+            await MainActor.run {
+                viewModel.alertMessage = "Failed to download image: \(error.localizedDescription)"
+                viewModel.showAlert = true
+            }
+        }
+    }
     @State private var showingPaymentProofCamera = false
     
     init(project: Project) {
@@ -209,6 +234,22 @@ struct AddExpenseView: View {
                         FileViewerSheet(fileURL: url, fileName: viewModel.paymentProofName)
                     }
                 }
+                .sheet(isPresented: $viewModel.showingReceiptScanner) {
+                    ReceiptScannerView(
+                        onReceiptScanned: { image in
+                            print("📸 Receipt scanned callback called, image size: \(image.size)")
+                            // Close scanner sheet first
+                            viewModel.showingReceiptScanner = false
+                            // Then start analysis after a brief delay
+                            Task { @MainActor in
+                                try? await Task.sleep(nanoseconds: 300_000_000) // 0.3 seconds
+                                print("📸 Starting receipt analysis...")
+                                await viewModel.analyzeReceipt(image: image)
+                                print("📸 Receipt analysis completed")
+                            }
+                        }
+                    )
+                }
                 .onAppear {
                     UserServices.shared.currentUserPhone
                     // Update customerId in ViewModel when it becomes available
@@ -240,19 +281,54 @@ struct AddExpenseView: View {
         Form {
                 // MARK: - Project Header
                 Section {
-                    VStack(alignment: .leading, spacing: 8) {
-                        Text(project.name)
-                            .font(.title2)
-                            .fontWeight(.semibold)
-                            .foregroundColor(.primary)
-                        
-                        HStack {
-                            Image(systemName: "building.2")
-                                .foregroundColor(.secondary)
-                            Text("Tracura")
-                                .font(.subheadline)
-                                .foregroundColor(.secondary)
+                    VStack(alignment: .leading, spacing: 12) {
+                        VStack(alignment: .leading, spacing: 8) {
+                            Text(project.name)
+                                .font(.title2)
+                                .fontWeight(.semibold)
+                                .foregroundColor(.primary)
+                            
+                            HStack {
+                                Image(systemName: "building.2")
+                                    .foregroundColor(.secondary)
+                                Text("Tracura")
+                                    .font(.subheadline)
+                                    .foregroundColor(.secondary)
+                            }
                         }
+                        
+                        // Scan Receipt button - Below project name
+                        Button(action: {
+                            HapticManager.selection()
+                            viewModel.showingReceiptScanner = true
+                        }) {
+                            HStack {
+                                Image(systemName: "doc.text.viewfinder")
+                                    .font(.title3)
+                                    .foregroundColor(.blue)
+                                Text("Scan Receipt")
+                                    .fontWeight(.semibold)
+                                    .foregroundColor(.blue)
+                                Spacer()
+                                Image(systemName: "chevron.right")
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                            }
+                            .padding()
+                            .background(
+                                LinearGradient(
+                                    colors: [Color.blue.opacity(0.15), Color.blue.opacity(0.1)],
+                                    startPoint: .leading,
+                                    endPoint: .trailing
+                                )
+                            )
+                            .cornerRadius(10)
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 10)
+                                    .stroke(Color.blue.opacity(0.3), lineWidth: 1)
+                            )
+                        }
+                        .buttonStyle(.plain)
                     }
                     .padding(.vertical, 8)
                 }
@@ -1190,8 +1266,31 @@ struct AddExpenseView: View {
     // MARK: - Receipt Section
     private var receiptView: some View {
         VStack(alignment: .leading, spacing: 12) {
+            // Add Receipt button
+            Button(action: {
+                viewModel.showingAttachmentOptions = true
+            }) {
+                HStack {
+                    Image(systemName: "paperclip")
+                        .font(.title3)
+                        .foregroundColor(.blue)
+                    Text("Add Receipt")
+                        .fontWeight(.medium)
+                        .foregroundColor(.blue)
+                    Spacer()
+                }
+                .padding()
+                .background(Color(UIColor.tertiarySystemFill))
+                .cornerRadius(8)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 8)
+                        .stroke(viewModel.attachmentError != nil ? Color.red : Color.clear, lineWidth: 1)
+                )
+            }
+            .buttonStyle(.plain)
+            
+            // Show attached file if exists
             if let attachmentName = viewModel.attachmentName {
-                // Show attached file
                 HStack(spacing: 12) {
                     // File info - not clickable
                     HStack {
@@ -1206,7 +1305,7 @@ struct AddExpenseView: View {
                                 .foregroundColor(.primary)
                                 .lineLimit(1)
                             
-                            Text("Tap preview to view")
+                            Text("Tap preview to view or scan to extract data")
                                 .font(.caption)
                                 .foregroundColor(.secondary)
                         }
@@ -1217,6 +1316,27 @@ struct AddExpenseView: View {
                     .frame(maxWidth: .infinity)
                     .background(Color.blue.opacity(0.1))
                     .cornerRadius(8)
+                    
+                    // Scan button for uploaded image
+                    Button(action: {
+                        HapticManager.selection()
+                        // Load the uploaded image and analyze it
+                        if let urlString = viewModel.attachmentURL,
+                           let url = URL(string: urlString) {
+                            Task {
+                                await scanUploadedImage(url: url)
+                            }
+                        }
+                    }) {
+                        Image(systemName: "doc.text.viewfinder")
+                            .font(.title3)
+                            .foregroundColor(.blue)
+                            .frame(width: 44, height: 44)
+                            .background(Color.blue.opacity(0.1))
+                            .clipShape(Circle())
+                            .contentShape(Circle())
+                    }
+                    .buttonStyle(.plain)
                     
                     // Preview button - separate icon button
                     Button(action: {
@@ -1250,28 +1370,6 @@ struct AddExpenseView: View {
                     }
                     .buttonStyle(.plain)
                 }
-            } else {
-                // Add receipt button
-                Button(action: {
-                    viewModel.showingAttachmentOptions = true
-                }) {
-                    HStack {
-                        Image(systemName: "paperclip")
-                            .font(.title3)
-                        Text("Add Receipt")
-                            .fontWeight(.medium)
-                        Spacer()
-                    }
-                    .foregroundColor(.blue)
-                    .padding()
-                    .background(Color(UIColor.tertiarySystemFill))
-                    .cornerRadius(8)
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 8)
-                            .stroke(viewModel.attachmentError != nil ? Color.red : Color.clear, lineWidth: 1)
-                    )
-                }
-                .buttonStyle(.plain)
             }
             
             // Upload progress
@@ -1280,6 +1378,17 @@ struct AddExpenseView: View {
                     ProgressView(value: viewModel.uploadProgress)
                         .progressViewStyle(LinearProgressViewStyle())
                     Text("Uploading... \(Int(viewModel.uploadProgress * 100))%")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                }
+            }
+            
+            // Receipt analysis progress
+            if viewModel.isAnalyzingReceipt {
+                VStack(spacing: 8) {
+                    ProgressView(value: viewModel.receiptAnalysisProgress)
+                        .progressViewStyle(LinearProgressViewStyle())
+                    Text("Analyzing receipt... \(Int(viewModel.receiptAnalysisProgress * 100))%")
                         .font(.caption)
                         .foregroundColor(.secondary)
                 }
@@ -1728,6 +1837,322 @@ struct BusinessHeadApprovalMessageView: View {
         .background(Color.orange.opacity(0.1))
         .cornerRadius(DesignSystem.CornerRadius.small)
         .padding(.top, DesignSystem.Spacing.extraSmall)
+    }
+}
+
+// MARK: - Receipt Scanner View
+struct ReceiptScannerView: View {
+    let onReceiptScanned: (UIImage) -> Void
+    @Environment(\.dismiss) private var dismiss
+    @StateObject private var cameraManager = ReceiptCameraManager()
+    @State private var capturedImage: UIImage? = nil
+    @State private var showingPreview = false
+    @State private var selectedPhoto: PhotosPickerItem? = nil
+    
+    var body: some View {
+        NavigationView {
+            ZStack {
+                // Camera Preview
+                if let previewLayer = cameraManager.previewLayer {
+                    CameraPreviewView(previewLayer: previewLayer)
+                        .ignoresSafeArea()
+                } else {
+                    Color.black.ignoresSafeArea()
+                    
+                    VStack(spacing: 16) {
+                        ProgressView()
+                            .progressViewStyle(CircularProgressViewStyle(tint: .white))
+                        Text("Initializing camera...")
+                            .foregroundColor(.white)
+                    }
+                }
+                
+                // Overlay with scanning guide
+                VStack {
+                    Spacer()
+                    
+                    // Scanning guide frame
+                    VStack(spacing: 16) {
+                        Text("Position receipt within frame")
+                            .font(.headline)
+                            .foregroundColor(.white)
+                            .padding(.horizontal, 20)
+                            .padding(.vertical, 10)
+                            .background(Color.black.opacity(0.6))
+                            .cornerRadius(12)
+                        
+                        // Receipt frame guide
+                        RoundedRectangle(cornerRadius: 16)
+                            .stroke(Color.white, lineWidth: 3)
+                            .frame(width: UIScreen.main.bounds.width - 60, height: 300)
+                            .overlay(
+                                // Corner indicators
+                                VStack {
+                                    HStack {
+                                        Rectangle()
+                                            .fill(Color.white)
+                                            .frame(width: 30, height: 4)
+                                        Spacer()
+                                        Rectangle()
+                                            .fill(Color.white)
+                                            .frame(width: 30, height: 4)
+                                    }
+                                    Spacer()
+                                    HStack {
+                                        Rectangle()
+                                            .fill(Color.white)
+                                            .frame(width: 30, height: 4)
+                                        Spacer()
+                                        Rectangle()
+                                            .fill(Color.white)
+                                            .frame(width: 30, height: 4)
+                                    }
+                                }
+                                .padding(8)
+                            )
+                    }
+                    
+                    Spacer()
+                    
+                    // Capture button
+                    HStack(spacing: 40) {
+                        // Cancel button
+                        Button {
+                            dismiss()
+                        } label: {
+                            Image(systemName: "xmark.circle.fill")
+                                .font(.system(size: 50))
+                                .foregroundColor(.white)
+                        }
+                        
+                    // Capture button
+                    Button {
+                        HapticManager.impact(.medium)
+                        cameraManager.capturePhoto { image in
+                            if let image = image {
+                                capturedImage = image
+                                showingPreview = true
+                            }
+                        }
+                    } label: {
+                        ZStack {
+                            Circle()
+                                .fill(Color.white)
+                                .frame(width: 70, height: 70)
+                            
+                            Circle()
+                                .stroke(Color.white, lineWidth: 4)
+                                .frame(width: 80, height: 80)
+                        }
+                    }
+                    
+                    // Gallery button
+                    PhotosPicker(
+                        selection: $selectedPhoto,
+                        matching: .images
+                    ) {
+                        Image(systemName: "photo.on.rectangle")
+                            .font(.system(size: 30))
+                            .foregroundColor(.white)
+                    }
+                    }
+                    .padding(.bottom, 40)
+                }
+            }
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarLeading) {
+                    Button("Cancel") {
+                        dismiss()
+                    }
+                    .foregroundColor(.white)
+                }
+            }
+            .sheet(isPresented: $showingPreview) {
+                if let image = capturedImage {
+                    ReceiptPreviewView(
+                        image: image,
+                        onUse: {
+                            // Store the image before dismissing
+                            let imageToScan = image
+                            print("📸 ReceiptPreviewView: Use Photo tapped, image size: \(imageToScan.size)")
+                            // Dismiss preview first
+                            showingPreview = false
+                            // Then call the callback after preview is dismissed
+                            DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                                onReceiptScanned(imageToScan)
+                            }
+                        },
+                        onRetake: {
+                            showingPreview = false
+                            capturedImage = nil
+                        }
+                    )
+                }
+            }
+            .onAppear {
+                cameraManager.setupCamera()
+            }
+            .onDisappear {
+                cameraManager.stopSession()
+            }
+            .onChange(of: selectedPhoto) { newValue in
+                if let newValue = newValue {
+                    Task {
+                        if let data = try? await newValue.loadTransferable(type: Data.self),
+                           let image = UIImage(data: data) {
+                            await MainActor.run {
+                                capturedImage = image
+                                showingPreview = true
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+// MARK: - Camera Preview View
+struct CameraPreviewView: UIViewRepresentable {
+    let previewLayer: AVCaptureVideoPreviewLayer
+    
+    func makeUIView(context: Context) -> UIView {
+        let view = UIView(frame: UIScreen.main.bounds)
+        previewLayer.frame = view.bounds
+        view.layer.addSublayer(previewLayer)
+        return view
+    }
+    
+    func updateUIView(_ uiView: UIView, context: Context) {
+        previewLayer.frame = uiView.bounds
+    }
+}
+
+// MARK: - Receipt Camera Manager
+class ReceiptCameraManager: NSObject, ObservableObject {
+    @Published var previewLayer: AVCaptureVideoPreviewLayer?
+    
+    private let captureSession = AVCaptureSession()
+    private var photoOutput = AVCapturePhotoOutput()
+    private var captureCompletion: ((UIImage?) -> Void)?
+    
+    func setupCamera() {
+        captureSession.sessionPreset = .photo
+        
+        guard let videoDevice = AVCaptureDevice.default(.builtInWideAngleCamera, for: .video, position: .back),
+              let videoInput = try? AVCaptureDeviceInput(device: videoDevice),
+              captureSession.canAddInput(videoInput) else {
+            return
+        }
+        
+        captureSession.addInput(videoInput)
+        
+        if captureSession.canAddOutput(photoOutput) {
+            captureSession.addOutput(photoOutput)
+        }
+        
+        let preview = AVCaptureVideoPreviewLayer(session: captureSession)
+        preview.videoGravity = .resizeAspectFill
+        
+        DispatchQueue.main.async {
+            self.previewLayer = preview
+        }
+        
+        DispatchQueue.global(qos: .userInitiated).async {
+            self.captureSession.startRunning()
+        }
+    }
+    
+    func capturePhoto(completion: @escaping (UIImage?) -> Void) {
+        captureCompletion = completion
+        
+        // Create photo settings
+        let settings = AVCapturePhotoSettings()
+        
+        // Enable high resolution if available
+        if photoOutput.isHighResolutionCaptureEnabled {
+            settings.isHighResolutionPhotoEnabled = true
+        }
+        
+        photoOutput.capturePhoto(with: settings, delegate: self)
+    }
+    
+    func stopSession() {
+        captureSession.stopRunning()
+    }
+}
+
+extension ReceiptCameraManager: AVCapturePhotoCaptureDelegate {
+    func photoOutput(_ output: AVCapturePhotoOutput, didFinishProcessingPhoto photo: AVCapturePhoto, error: Error?) {
+        guard let imageData = photo.fileDataRepresentation(),
+              let image = UIImage(data: imageData) else {
+            captureCompletion?(nil)
+            return
+        }
+        
+        captureCompletion?(image)
+    }
+}
+
+// MARK: - Receipt Preview View
+struct ReceiptPreviewView: View {
+    let image: UIImage
+    let onUse: () -> Void
+    let onRetake: () -> Void
+    @Environment(\.dismiss) private var dismiss
+    
+    var body: some View {
+        NavigationView {
+            VStack(spacing: 20) {
+                // Image preview
+                Image(uiImage: image)
+                    .resizable()
+                    .aspectRatio(contentMode: .fit)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .background(Color.black)
+                
+                // Action buttons
+                HStack(spacing: 16) {
+                    Button {
+                        onRetake()
+                        dismiss()
+                    } label: {
+                        Text("Retake")
+                            .font(.body)
+                            .fontWeight(.semibold)
+                            .foregroundColor(.primary)
+                            .frame(maxWidth: .infinity)
+                            .padding()
+                            .background(Color(.systemGray5))
+                            .cornerRadius(12)
+                    }
+                    
+                    Button {
+                        onUse()
+                    } label: {
+                        Text("Use Photo")
+                            .font(.body)
+                            .fontWeight(.semibold)
+                            .foregroundColor(.white)
+                            .frame(maxWidth: .infinity)
+                            .padding()
+                            .background(Color.blue)
+                            .cornerRadius(12)
+                    }
+                }
+                .padding()
+            }
+            .navigationTitle("Preview Receipt")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarLeading) {
+                    Button("Cancel") {
+                        dismiss()
+                    }
+                }
+            }
+        }
     }
 }
 

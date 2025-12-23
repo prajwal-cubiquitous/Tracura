@@ -23,5 +23,9 @@
 		<string>remote-notification</string>
 		<string>push-to-talk</string>
 	</array>
+	<key>NSCameraUsageDescription</key>
+	<string>We need access to your camera to scan receipts and automatically fill expense forms.</string>
+	<key>OpenAIAPIKey</key>
+	<string>YOUR_OPENAI_API_KEY_HERE</string>
 </dict>
 </plist>
