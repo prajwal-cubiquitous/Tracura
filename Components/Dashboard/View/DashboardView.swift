@@ -1378,31 +1378,15 @@ struct DashboardView: View {
                                     VStack(spacing: 4){
                                         // Show "Completed" badge if phase is completed
                                         if isPhaseCompleted(phase) {
-                                            HStack(spacing: 6) {
-                                                Text("Completed")
-                                                    .font(DesignSystem.Typography.caption2)
-                                                    .fontWeight(.semibold)
-                                                    .foregroundColor(.blue)
-                                                
-                                                // Show proof indicator if proof exists
-                                                if let proofURL = phase.phaseOverProofUrl, !proofURL.isEmpty {
-                                                    Button {
-                                                        HapticManager.selection()
-                                                        proofURLToView = proofURL
-                                                        showingProofViewer = true
-                                                    } label: {
-                                                        Image(systemName: "paperclip.circle.fill")
-                                                            .font(.caption2)
-                                                            .foregroundColor(.blue)
-                                                    }
-                                                    .accessibilityLabel("View phase proof")
-                                                }
-                                            }
-                                            .padding(.horizontal, 8)
-                                            .padding(.vertical, 4)
-                                            .background(Color.blue.opacity(0.12))
-                                            .clipShape(Capsule())
-                                            .accessibilityLabel("Phase status: Completed")
+                                            Text("Completed")
+                                                .font(DesignSystem.Typography.caption2)
+                                                .fontWeight(.semibold)
+                                                .foregroundColor(.blue)
+                                                .padding(.horizontal, 8)
+                                                .padding(.vertical, 4)
+                                                .background(Color.blue.opacity(0.12))
+                                                .clipShape(Capsule())
+                                                .accessibilityLabel("Phase status: Completed")
                                         }
                                         // Show "In Progress" badge if phase is in progress AND enabled
                                         else if isPhaseInProgress(phase) && (phaseEnabledMap[phase.id] ?? true) {
@@ -1453,12 +1437,26 @@ struct DashboardView: View {
                                             // 3-dot menu for Complete Phase (available for all roles, hidden when archived)
                                             if project?.statusType != .ARCHIVE && project?.isSuspended != true{
                                                 Menu {
-                                                    Button(role: .destructive) {
-                                                        HapticManager.selection()
-                                                        phaseToComplete = phase
-                                                        showingProofUploadSheet = true
-                                                    } label: {
-                                                        Label("Complete Phase", systemImage: "checkmark.circle.fill")
+                                                    // Show "See Proof" option for completed phases with proof
+                                                    if isPhaseCompleted(phase), let proofURL = phase.phaseOverProofUrl, !proofURL.isEmpty {
+                                                        Button {
+                                                            HapticManager.selection()
+                                                            proofURLToView = proofURL
+                                                            showingProofViewer = true
+                                                        } label: {
+                                                            Label("See Proof", systemImage: "paperclip.circle.fill")
+                                                        }
+                                                    }
+                                                    
+                                                    // Show "Complete Phase" option for active phases
+                                                    if isPhaseInProgress(phase) && (phaseEnabledMap[phase.id] ?? true) && !isPhaseCompleted(phase) {
+                                                        Button(role: .destructive) {
+                                                            HapticManager.selection()
+                                                            phaseToComplete = phase
+                                                            showingProofUploadSheet = true
+                                                        } label: {
+                                                            Label("Complete Phase", systemImage: "checkmark.circle.fill")
+                                                        }
                                                     }
                                                 } label: {
                                                     Image(systemName: "ellipsis")
@@ -5121,27 +5119,11 @@ private struct AllPhasesView: View {
             VStack(spacing: 4) {
                 // Show "Completed" badge if phase is completed
                 if isPhaseCompleted(phase) {
-                    HStack(spacing: 6) {
-                        Text("Completed")
-                            .font(DesignSystem.Typography.caption2)
-                            .fontWeight(.semibold)
-                            .foregroundColor(.blue)
-                        
-                        // Show proof indicator if proof exists
-                        if let proofURL = phase.phaseOverProofUrl, !proofURL.isEmpty {
-                            Button {
-                                HapticManager.selection()
-                                proofURLToView = proofURL
-                                showingProofViewer = true
-                            } label: {
-                                Image(systemName: "paperclip.circle.fill")
-                                    .font(.caption2)
-                                    .foregroundColor(.blue)
-                            }
-                            .accessibilityLabel("View phase proof")
-                        }
-                    }
-                    .padding(.horizontal, 6)
+                    Text("Completed")
+                        .font(DesignSystem.Typography.caption2)
+                        .fontWeight(.semibold)
+                        .foregroundColor(.blue)
+                        .padding(.horizontal, 6)
                         .padding(.vertical, 3)
                         .background(Color.blue.opacity(0.12))
                         .clipShape(Capsule())
@@ -5194,15 +5176,29 @@ private struct AllPhasesView: View {
                 
                 HStack{
                     Spacer()
-            // 3-dot menu for Complete Phase (available for all roles, only for active phases, hidden when archived)
-            if isPhaseInProgress(phase) && (phaseEnabledMap[phase.id] ?? true) && project?.statusType != .ARCHIVE && project?.isSuspended != true {
+            // 3-dot menu for Complete Phase and See Proof (available for all roles, hidden when archived)
+            if project?.statusType != .ARCHIVE && project?.isSuspended != true {
                 Menu {
-                    Button(role: .destructive) {
-                        HapticManager.selection()
-                        phaseToComplete = phase
-                        showingProofUploadSheet = true
-                    } label: {
-                        Label("Complete Phase", systemImage: "checkmark.circle.fill")
+                    // Show "See Proof" option for completed phases with proof
+                    if isPhaseCompleted(phase), let proofURL = phase.phaseOverProofUrl, !proofURL.isEmpty {
+                        Button {
+                            HapticManager.selection()
+                            proofURLToView = proofURL
+                            showingProofViewer = true
+                        } label: {
+                            Label("See Proof", systemImage: "paperclip.circle.fill")
+                        }
+                    }
+                    
+                    // Show "Complete Phase" option for active phases
+                    if isPhaseInProgress(phase) && (phaseEnabledMap[phase.id] ?? true) && !isPhaseCompleted(phase) {
+                        Button(role: .destructive) {
+                            HapticManager.selection()
+                            phaseToComplete = phase
+                            showingProofUploadSheet = true
+                        } label: {
+                            Label("Complete Phase", systemImage: "checkmark.circle.fill")
+                        }
                     }
                 } label: {
                     Image(systemName: "ellipsis")
@@ -8949,14 +8945,19 @@ struct PhaseProofViewer: View {
                 Color.black.ignoresSafeArea()
                 
                 if isLoading {
-                    ProgressView()
-                        .progressViewStyle(CircularProgressViewStyle(tint: .white))
+                    VStack(spacing: 16) {
+                        ProgressView()
+                            .progressViewStyle(CircularProgressViewStyle(tint: .white))
+                            .scaleEffect(1.5)
+                        
+                        Text("Loading proof...")
+                            .font(.subheadline)
+                            .foregroundColor(.white.opacity(0.8))
+                    }
                 } else if let image = image {
-                    ScrollView {
-                        Image(uiImage: image)
-                            .resizable()
-                            .aspectRatio(contentMode: .fit)
-                            .frame(maxWidth: .infinity)
+                    ScrollView([.horizontal, .vertical], showsIndicators: true) {
+                        ZoomableImageView(image: image)
+                            .frame(maxWidth: .infinity, maxHeight: .infinity)
                     }
                 } else if let fileData = fileData {
                     // For PDF or other files, show download option
@@ -8971,7 +8972,8 @@ struct PhaseProofViewer: View {
                         
                         Button {
                             // Open file in external app
-                            let tempURL = FileManager.default.temporaryDirectory.appendingPathComponent("proof.\(proofURL.components(separatedBy: ".").last ?? "pdf")")
+                            let fileExtension = proofURL.components(separatedBy: ".").last ?? "pdf"
+                            let tempURL = FileManager.default.temporaryDirectory.appendingPathComponent("proof.\(fileExtension)")
                             try? fileData.write(to: tempURL)
                             UIApplication.shared.open(tempURL)
                         } label: {
@@ -8999,6 +9001,7 @@ struct PhaseProofViewer: View {
                             .font(.caption)
                             .foregroundColor(.white.opacity(0.8))
                             .multilineTextAlignment(.center)
+                            .padding(.horizontal)
                     }
                 }
             }
@@ -9009,6 +9012,7 @@ struct PhaseProofViewer: View {
                         dismiss()
                     } label: {
                         Image(systemName: "xmark.circle.fill")
+                            .font(.title2)
                             .foregroundColor(.white)
                     }
                 }
@@ -9029,7 +9033,21 @@ struct PhaseProofViewer: View {
         }
         
         do {
-            let (data, _) = try await URLSession.shared.data(from: url)
+            // Create URL request with timeout
+            var request = URLRequest(url: url)
+            request.timeoutInterval = 30
+            request.cachePolicy = .returnCacheDataElseLoad
+            
+            let (data, response) = try await URLSession.shared.data(for: request)
+            
+            // Check if response is valid
+            if let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode != 200 {
+                await MainActor.run {
+                    errorMessage = "Failed to load proof (Status: \(httpResponse.statusCode))"
+                    isLoading = false
+                }
+                return
+            }
             
             // Try to load as image first
             if let loadedImage = UIImage(data: data) {
@@ -9049,6 +9067,73 @@ struct PhaseProofViewer: View {
                 errorMessage = error.localizedDescription
                 isLoading = false
             }
+        }
+    }
+}
+
+// MARK: - Zoomable Image View
+struct ZoomableImageView: UIViewRepresentable {
+    let image: UIImage
+    
+    func makeUIView(context: Context) -> UIScrollView {
+        let scrollView = UIScrollView()
+        scrollView.delegate = context.coordinator
+        scrollView.minimumZoomScale = 1.0
+        scrollView.maximumZoomScale = 5.0
+        scrollView.showsHorizontalScrollIndicator = true
+        scrollView.showsVerticalScrollIndicator = true
+        scrollView.backgroundColor = .black
+        
+        let imageView = UIImageView(image: image)
+        imageView.contentMode = .scaleAspectFit
+        imageView.frame = scrollView.bounds
+        imageView.autoresizingMask = [.flexibleWidth, .flexibleHeight]
+        
+        scrollView.addSubview(imageView)
+        context.coordinator.imageView = imageView
+        
+        return scrollView
+    }
+    
+    func updateUIView(_ uiView: UIScrollView, context: Context) {
+        // Update image if needed
+        if let imageView = context.coordinator.imageView {
+            imageView.image = image
+            imageView.frame = uiView.bounds
+        }
+    }
+    
+    func makeCoordinator() -> Coordinator {
+        Coordinator()
+    }
+    
+    class Coordinator: NSObject, UIScrollViewDelegate {
+        var imageView: UIImageView?
+        
+        func viewForZooming(in scrollView: UIScrollView) -> UIView? {
+            return imageView
+        }
+        
+        func scrollViewDidZoom(_ scrollView: UIScrollView) {
+            // Center the image when zoomed
+            guard let imageView = imageView else { return }
+            
+            let boundsSize = scrollView.bounds.size
+            var frameToCenter = imageView.frame
+            
+            if frameToCenter.size.width < boundsSize.width {
+                frameToCenter.origin.x = (boundsSize.width - frameToCenter.size.width) / 2
+            } else {
+                frameToCenter.origin.x = 0
+            }
+            
+            if frameToCenter.size.height < boundsSize.height {
+                frameToCenter.origin.y = (boundsSize.height - frameToCenter.size.height) / 2
+            } else {
+                frameToCenter.origin.y = 0
+            }
+            
+            imageView.frame = frameToCenter
         }
     }
 }

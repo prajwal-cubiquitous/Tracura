@@ -1652,7 +1652,7 @@ struct CreateProjectView: View {
                         }
                     } label: {
                         HStack(spacing: 8) {
-                            Image(systemName: "")
+                            Image(systemName: "see")
                                 .font(.system(size: 14, weight: .semibold))
                                 .foregroundColor(viewModel.projectType != nil ? .blue : .secondary)
                             
