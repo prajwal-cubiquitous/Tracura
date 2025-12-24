@@ -237,15 +237,8 @@ struct AddExpenseView: View {
                 .sheet(isPresented: $viewModel.showingReceiptScanner) {
                     ReceiptScannerView(
                         onReceiptScanned: { image in
-                            print("📸 Receipt scanned callback called, image size: \(image.size)")
-                            // Close scanner sheet first
-                            viewModel.showingReceiptScanner = false
-                            // Then start analysis after a brief delay
-                            Task { @MainActor in
-                                try? await Task.sleep(nanoseconds: 300_000_000) // 0.3 seconds
-                                print("📸 Starting receipt analysis...")
+                            Task {
                                 await viewModel.analyzeReceipt(image: image)
-                                print("📸 Receipt analysis completed")
                             }
                         }
                     )
@@ -281,54 +274,19 @@ struct AddExpenseView: View {
         Form {
                 // MARK: - Project Header
                 Section {
-                    VStack(alignment: .leading, spacing: 12) {
-                        VStack(alignment: .leading, spacing: 8) {
-                            Text(project.name)
-                                .font(.title2)
-                                .fontWeight(.semibold)
-                                .foregroundColor(.primary)
-                            
-                            HStack {
-                                Image(systemName: "building.2")
-                                    .foregroundColor(.secondary)
-                                Text("Tracura")
-                                    .font(.subheadline)
-                                    .foregroundColor(.secondary)
-                            }
-                        }
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text(project.name)
+                            .font(.title2)
+                            .fontWeight(.semibold)
+                            .foregroundColor(.primary)
                         
-                        // Scan Receipt button - Below project name
-                        Button(action: {
-                            HapticManager.selection()
-                            viewModel.showingReceiptScanner = true
-                        }) {
-                            HStack {
-                                Image(systemName: "doc.text.viewfinder")
-                                    .font(.title3)
-                                    .foregroundColor(.blue)
-                                Text("Scan Receipt")
-                                    .fontWeight(.semibold)
-                                    .foregroundColor(.blue)
-                                Spacer()
-                                Image(systemName: "chevron.right")
-                                    .font(.caption)
-                                    .foregroundColor(.secondary)
-                            }
-                            .padding()
-                            .background(
-                                LinearGradient(
-                                    colors: [Color.blue.opacity(0.15), Color.blue.opacity(0.1)],
-                                    startPoint: .leading,
-                                    endPoint: .trailing
-                                )
-                            )
-                            .cornerRadius(10)
-                            .overlay(
-                                RoundedRectangle(cornerRadius: 10)
-                                    .stroke(Color.blue.opacity(0.3), lineWidth: 1)
-                            )
+                        HStack {
+                            Image(systemName: "building.2")
+                                .foregroundColor(.secondary)
+                            Text("Tracura")
+                                .font(.subheadline)
+                                .foregroundColor(.secondary)
                         }
-                        .buttonStyle(.plain)
                     }
                     .padding(.vertical, 8)
                 }
@@ -1266,31 +1224,40 @@ struct AddExpenseView: View {
     // MARK: - Receipt Section
     private var receiptView: some View {
         VStack(alignment: .leading, spacing: 12) {
-            // Add Receipt button
+            // Scan Receipt button - Always show at top
             Button(action: {
-                viewModel.showingAttachmentOptions = true
+                HapticManager.selection()
+                viewModel.showingReceiptScanner = true
             }) {
                 HStack {
-                    Image(systemName: "paperclip")
+                    Image(systemName: "doc.text.viewfinder")
                         .font(.title3)
-                        .foregroundColor(.blue)
-                    Text("Add Receipt")
-                        .fontWeight(.medium)
-                        .foregroundColor(.blue)
+                    Text("Scan Receipt")
+                        .fontWeight(.semibold)
                     Spacer()
+                    Image(systemName: "chevron.right")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
                 }
+                .foregroundColor(.blue)
                 .padding()
-                .background(Color(UIColor.tertiarySystemFill))
-                .cornerRadius(8)
+                .background(
+                    LinearGradient(
+                        colors: [Color.blue.opacity(0.15), Color.blue.opacity(0.1)],
+                        startPoint: .leading,
+                        endPoint: .trailing
+                    )
+                )
+                .cornerRadius(10)
                 .overlay(
-                    RoundedRectangle(cornerRadius: 8)
-                        .stroke(viewModel.attachmentError != nil ? Color.red : Color.clear, lineWidth: 1)
+                    RoundedRectangle(cornerRadius: 10)
+                        .stroke(Color.blue.opacity(0.3), lineWidth: 1)
                 )
             }
             .buttonStyle(.plain)
             
-            // Show attached file if exists
             if let attachmentName = viewModel.attachmentName {
+                // Show attached file
                 HStack(spacing: 12) {
                     // File info - not clickable
                     HStack {
@@ -1370,6 +1337,28 @@ struct AddExpenseView: View {
                     }
                     .buttonStyle(.plain)
                 }
+            } else {
+                // Add Receipt button
+                Button(action: {
+                    viewModel.showingAttachmentOptions = true
+                }) {
+                    HStack {
+                        Image(systemName: "paperclip")
+                            .font(.title3)
+                        Text("Add Receipt")
+                            .fontWeight(.medium)
+                        Spacer()
+                    }
+                    .foregroundColor(.blue)
+                    .padding()
+                    .background(Color(UIColor.tertiarySystemFill))
+                    .cornerRadius(8)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 8)
+                            .stroke(viewModel.attachmentError != nil ? Color.red : Color.clear, lineWidth: 1)
+                    )
+                }
+                .buttonStyle(.plain)
             }
             
             // Upload progress
@@ -1973,15 +1962,8 @@ struct ReceiptScannerView: View {
                     ReceiptPreviewView(
                         image: image,
                         onUse: {
-                            // Store the image before dismissing
-                            let imageToScan = image
-                            print("📸 ReceiptPreviewView: Use Photo tapped, image size: \(imageToScan.size)")
-                            // Dismiss preview first
-                            showingPreview = false
-                            // Then call the callback after preview is dismissed
-                            DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
-                                onReceiptScanned(imageToScan)
-                            }
+                            onReceiptScanned(image)
+                            dismiss()
                         },
                         onRetake: {
                             showingPreview = false

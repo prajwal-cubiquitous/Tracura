@@ -2,313 +2,197 @@
 //  ReceiptAnalysisService.swift
 //  Tracura
 //
-//  Optimized for better performance and accuracy
+//  Created by Auto on 12/23/25.
 //
 
 import Foundation
 import UIKit
-import Vision
 
-// MARK: - Detected Text Structure
-struct DetectedText {
-    let text: String
-    let rect: CGRect
-    let confidence: Float
-}
-
-// MARK: - Receipt Analysis Service
+/// Service to analyze receipts using OpenAI Vision API
 class ReceiptAnalysisService {
     static let shared = ReceiptAnalysisService()
     
-    // Cache for compiled regex patterns
-    private let valuePatterns: [NSRegularExpression]
-    private let numberPattern: NSRegularExpression
-    private let datePatterns: [DateFormatter]
+    private let apiURL = URL(string: "https://api.openai.com/v1/chat/completions")!
     
-    private init() {
-        // Pre-compile regex patterns for better performance
-        let patterns = [
-            #"[-:]\s*([\d,]+\.?\d*)"#,
-            #"[₹$]\s*([\d,]+\.?\d*)"#,
-            #"\b(\d+(?:,\d{3})*(?:\.\d{2})?)\b"#
-        ]
-        self.valuePatterns = patterns.compactMap { try? NSRegularExpression(pattern: $0, options: []) }
-        self.numberPattern = try! NSRegularExpression(pattern: #"\d+(?:,\d{3})*(?:\.\d+)?"#, options: [])
-        
-        // Pre-configure date formatters
-        let formats = ["dd/MM/yyyy", "dd-MM-yyyy", "yyyy-MM-dd", "MM/dd/yyyy",
-                       "dd MMM yyyy", "dd MMMM yyyy", "dd/MM/yy", "dd-MM-yy"]
-        self.datePatterns = formats.map {
-            let formatter = DateFormatter()
-            formatter.dateFormat = $0
-            formatter.locale = Locale(identifier: "en_US_POSIX")
-            return formatter
+    private var apiKey: String {
+        // Try to get API key from Info.plist first
+        if let key = Bundle.main.object(forInfoDictionaryKey: "OpenAIAPIKey") as? String, !key.isEmpty {
+            return key
         }
+        // Fallback to environment variable (for development)
+        if let key = ProcessInfo.processInfo.environment["OPENAI_API_KEY"], !key.isEmpty {
+            return key
+        }
+        // Return empty string if not configured (will cause API call to fail with clear error)
+        return ""
     }
     
-    /// Analyze receipt image with improved performance
+    private init() {}
+    
+    /// Analyze receipt image and extract expense fields
     func analyzeReceipt(image: UIImage) async throws -> ReceiptAnalysisResult {
-        guard let cgImage = image.cgImage else {
+        // Check if API key is configured
+        guard !apiKey.isEmpty else {
+            throw ReceiptAnalysisError.apiError("OpenAI API key not configured. Please add 'OpenAIAPIKey' to Info.plist or set OPENAI_API_KEY environment variable.")
+        }
+        
+        guard let imageData = image.jpegData(compressionQuality: 0.8) else {
             throw ReceiptAnalysisError.imageProcessingFailed
         }
         
-        // Optimize image size for faster processing
-        let optimizedImage = optimizeImageSize(cgImage)
+        // Convert image to base64
+        let base64Image = imageData.base64EncodedString()
         
-        return try await withCheckedThrowingContinuation { continuation in
-            let request = VNRecognizeTextRequest { request, error in
-                if let error = error {
-                    continuation.resume(throwing: ReceiptAnalysisError.visionError(error.localizedDescription))
-                    return
-                }
-                
-                guard let observations = request.results as? [VNRecognizedTextObservation] else {
-                    continuation.resume(throwing: ReceiptAnalysisError.parsingFailed)
-                    return
-                }
-                
-                // Extract text with confidence scores
-                let detectedTexts = observations.compactMap { obs -> DetectedText? in
-                    guard let candidate = obs.topCandidates(1).first,
-                          candidate.confidence > 0.3 else { return nil }
-                    
-                    let boundingBox = obs.boundingBox
-                    let rect = CGRect(
-                        x: boundingBox.minX,
-                        y: 1 - boundingBox.maxY,
-                        width: boundingBox.width,
-                        height: boundingBox.height
-                    )
-                    return DetectedText(
-                        text: candidate.string,
-                        rect: rect,
-                        confidence: candidate.confidence
-                    )
-                }
-                
-                // Sort by Y position (top to bottom) for better context
-                let sortedTexts = detectedTexts.sorted { $0.rect.minY < $1.rect.minY }
-                
-                let extractedFields = self.mapFieldsEfficiently(sortedTexts)
-                let result = self.parseAnalysisResult(from: extractedFields)
-                continuation.resume(returning: result)
-            }
-            
-            // Optimize Vision request settings
-            request.recognitionLevel = .accurate
-            request.usesLanguageCorrection = true
-            request.recognitionLanguages = ["en-US"]
-            request.minimumTextHeight = 0.02 // Skip very small text
-            
-            let handler = VNImageRequestHandler(cgImage: optimizedImage, options: [:])
-            DispatchQueue.global(qos: .userInitiated).async {
-                do {
-                    try handler.perform([request])
-                } catch {
-                    continuation.resume(throwing: ReceiptAnalysisError.visionError(error.localizedDescription))
-                }
-            }
+        // Create the prompt based on FormField.swift
+        let systemPrompt = """
+        You are an expert at extracting information from receipts, invoices, and handwritten notes for construction/expense management. 
+        Analyze the image carefully and extract the following fields in JSON format.
+        Pay special attention to handwritten text, labels, and any numerical values.
+        
+        CRITICAL: Look for these specific patterns:
+        - "Quantity" or "Qty" followed by a number
+        - "Unit Price" or "UnitPrice" or "Rate" or "Price" followed by a number
+        - "Amount" or "Total" which is the total amount
+        - Any labels like "Quantity - 5" means quantity is 5
+        - Any labels like "UnitPrice - 20,000" means unit price is 20000 (remove commas)
+        
+        Available fields to extract:
+        - date: Expense date in format dd/MM/yyyy (e.g., "23/12/2025"). Extract from receipt date or bill date. If not visible, use null.
+        - amount: Total amount paid (numeric value only, no currency symbols, remove commas). This is the final total amount.
+        - description: Description or purpose of expense (what was purchased)
+        - categories: Array of expense categories matching these options: ["Labour", "Raw Materials (cement/steel/sand/bricks)", "Ready-Mix / Precast (RMC, precast items)", "Equipment/Machinery Hire", "Tools & Consumables (bits, blades, smalls)", "Subcontractor Services", "Transport & Logistics (freight, loading)", "Site Utilities (power, water, fuel, internet)", "Safety & Compliance (PPE, audits)", "Permits & Regulatory Fees", "Testing & Quality (soil/cube tests, inspections)", "Waste & Disposal (debris, haulage)", "Temporary Works (scaffolding, shuttering/formwork)", "Finishes & Fixtures (tiles, paint, sanitary, lights)", "Repairs & Rework / Snag-fix", "Maintenance (post-handover window)", "Misc / Other (notes required)"]. Select the most appropriate category.
+        - modeOfPayment: Payment mode - one of: "cash", "upi", "cheque", "card" (based on receipt payment method). Default to "cash" if not visible.
+        - itemType: Sub-category - typically "Labour" or "Raw Materials" based on what was purchased
+        - item: Material or item name (e.g., "Cement", "Steel", "Sand")
+        - brand: Brand name if visible (e.g., "UltraTech", "TATA")
+        - spec: Grade or specification (e.g., "M20", "Grade 60")
+        - quantity: Quantity purchased (as string, extract the number after "Quantity" or "Qty". Remove any commas. Example: "5" or "500")
+        - uom: Unit of measure (e.g., "ton", "kg", "bag", "Per Day", "unit"). If not visible, infer from context or use "unit".
+        - unitPrice: Price per unit (as string, numeric value only, remove commas and currency symbols. Example: "20000" for "20,000" or "₹20,000")
+        
+        IMPORTANT EXTRACTION RULES:
+        1. For quantity: Look for text like "Quantity - 5" or "Qty: 5" and extract "5"
+        2. For unitPrice: Look for text like "UnitPrice - 20,000" or "Unit Price: 20000" and extract "20000" (remove commas)
+        3. If you see "Quantity - X" extract X as quantity
+        4. If you see "UnitPrice - Y" extract Y as unitPrice (remove commas)
+        5. Always remove commas from numbers (e.g., "20,000" becomes "20000")
+        6. Always remove currency symbols (₹, $, etc.)
+        
+        Return ONLY valid JSON with the extracted fields. Use null for missing fields. Be precise and extract all visible numerical values.
+        """
+        
+        let userPrompt = """
+        Extract all visible information from this receipt/image. Pay special attention to:
+        1. Any text that says "Quantity" or "Qty" followed by a number
+        2. Any text that says "UnitPrice" or "Unit Price" or "Rate" followed by a number
+        3. Total amount if visible
+        4. Any other relevant details
+        
+        Return as JSON with all extracted fields.
+        """
+        
+        // Create request body
+        let requestBody: [String: Any] = [
+            "model": "gpt-4o",
+            "messages": [
+                [
+                    "role": "system",
+                    "content": systemPrompt
+                ],
+                [
+                    "role": "user",
+                    "content": [
+                        [
+                            "type": "text",
+                            "text": userPrompt
+                        ],
+                        [
+                            "type": "image_url",
+                            "image_url": [
+                                "url": "data:image/jpeg;base64,\(base64Image)"
+                            ]
+                        ]
+                    ]
+                ]
+            ],
+            "max_tokens": 1000
+        ]
+        
+        // Create URL request
+        var request = URLRequest(url: apiURL)
+        request.httpMethod = "POST"
+        request.setValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.httpBody = try JSONSerialization.data(withJSONObject: requestBody)
+        
+        // Make API call
+        let (data, response) = try await URLSession.shared.data(for: request)
+        
+        guard let httpResponse = response as? HTTPURLResponse else {
+            throw ReceiptAnalysisError.invalidResponse
         }
+        
+        guard httpResponse.statusCode == 200 else {
+            let errorMessage = String(data: data, encoding: .utf8) ?? "Unknown error"
+            throw ReceiptAnalysisError.apiError("Status \(httpResponse.statusCode): \(errorMessage)")
+        }
+        
+        // Parse response
+        guard let json = try JSONSerialization.jsonObject(with: data) as? [String: Any],
+              let choices = json["choices"] as? [[String: Any]],
+              let firstChoice = choices.first,
+              let message = firstChoice["message"] as? [String: Any],
+              let content = message["content"] as? String else {
+            throw ReceiptAnalysisError.parsingFailed
+        }
+        
+        // Extract JSON from response (may be wrapped in markdown code blocks)
+        let jsonString = extractJSON(from: content)
+        
+        guard let jsonData = jsonString.data(using: .utf8),
+              let extractedData = try JSONSerialization.jsonObject(with: jsonData) as? [String: Any] else {
+            throw ReceiptAnalysisError.parsingFailed
+        }
+        
+        // Parse into ReceiptAnalysisResult
+        return try parseAnalysisResult(from: extractedData)
     }
     
-    /// Optimize image size for faster processing
-    private func optimizeImageSize(_ cgImage: CGImage) -> CGImage {
-        let maxDimension: CGFloat = 2000
-        let width = CGFloat(cgImage.width)
-        let height = CGFloat(cgImage.height)
+    /// Extract JSON string from response (handles markdown code blocks)
+    private func extractJSON(from content: String) -> String {
+        // Remove markdown code blocks if present
+        var jsonString = content.trimmingCharacters(in: .whitespacesAndNewlines)
         
-        // Return original if already optimized
-        guard max(width, height) > maxDimension else { return cgImage }
+        if jsonString.hasPrefix("```json") {
+            jsonString = String(jsonString.dropFirst(7))
+        } else if jsonString.hasPrefix("```") {
+            jsonString = String(jsonString.dropFirst(3))
+        }
         
-        let scale = maxDimension / max(width, height)
-        let newWidth = Int(width * scale)
-        let newHeight = Int(height * scale)
+        if jsonString.hasSuffix("```") {
+            jsonString = String(jsonString.dropLast(3))
+        }
         
-        guard let context = CGContext(
-            data: nil,
-            width: newWidth,
-            height: newHeight,
-            bitsPerComponent: cgImage.bitsPerComponent,
-            bytesPerRow: 0,
-            space: cgImage.colorSpace ?? CGColorSpaceCreateDeviceRGB(),
-            bitmapInfo: cgImage.bitmapInfo.rawValue
-        ) else { return cgImage }
-        
-        context.interpolationQuality = .high
-        context.draw(cgImage, in: CGRect(x: 0, y: 0, width: newWidth, height: newHeight))
-        
-        return context.makeImage() ?? cgImage
+        return jsonString.trimmingCharacters(in: .whitespacesAndNewlines)
     }
     
-    /// Efficiently map detected text to form fields using spatial context
-    private func mapFieldsEfficiently(_ texts: [DetectedText]) -> [String: String] {
-        var output: [String: String] = [:]
-        var processedIndices = Set<Int>()
-        
-        // Build spatial index for faster lookups
-        let spatialIndex = buildSpatialIndex(texts)
-        
-        // Process each text only once
-        for (index, text) in texts.enumerated() {
-            guard !processedIndices.contains(index) else { continue }
-            
-            let lowercased = text.text.lowercased()
-            let cleanText = text.text.trimmingCharacters(in: .whitespaces)
-            
-            // Check for inline value patterns (e.g., "Quantity - 5")
-            if let (key, value) = extractInlineKeyValue(cleanText) {
-                output[key] = value
-                processedIndices.insert(index)
-                continue
-            }
-            
-            // Match against field definitions
-            for field in fixedExpenseFields {
-                guard output[field.key] == nil else { continue }
-                
-                if field.aliases.contains(where: { lowercased.contains($0.lowercased()) }) {
-                    // Find value using spatial index
-                    if let value = findValueUsingSpatialIndex(
-                        for: text,
-                        in: texts,
-                        spatialIndex: spatialIndex,
-                        processedIndices: &processedIndices
-                    ) {
-                        output[field.key] = value
-                        processedIndices.insert(index)
-                        break
-                    }
-                }
-            }
-            
-            // Smart detection for common patterns without explicit labels
-            if output["amount"] == nil, let amount = extractAmount(from: cleanText) {
-                output["amount"] = amount
-                processedIndices.insert(index)
-            }
-        }
-        
-        return output
-    }
-    
-    /// Build spatial index for O(1) lookup of nearby text
-    private func buildSpatialIndex(_ texts: [DetectedText]) -> [Int: [Int]] {
-        var index: [Int: [Int]] = [:]
-        
-        for (i, text) in texts.enumerated() {
-            let row = Int(text.rect.midY * 100) // Discretize Y position
-            index[row, default: []].append(i)
-        }
-        
-        return index
-    }
-    
-    /// Extract key-value pairs from inline text (e.g., "Quantity - 5")
-    private func extractInlineKeyValue(_ text: String) -> (String, String)? {
-        let lowercased = text.lowercased()
-        
-        // Check for quantity patterns
-        if lowercased.contains("quantity") || lowercased.contains("qty") {
-            if let value = extractValueUsingPatterns(text) {
-                return ("quantity", value)
-            }
-        }
-        
-        // Check for unit price patterns
-        if lowercased.contains("unitprice") || lowercased.contains("unit price") ||
-           lowercased.contains("rate") || lowercased.contains("price") {
-            if let value = extractValueUsingPatterns(text) {
-                return ("unitPrice", value)
-            }
-        }
-        
-        // Check for amount patterns
-        if lowercased.contains("total") || lowercased.contains("amount") {
-            if let value = extractValueUsingPatterns(text) {
-                return ("amount", value)
-            }
-        }
-        
-        return nil
-    }
-    
-    /// Extract numeric value using pre-compiled regex patterns
-    private func extractValueUsingPatterns(_ text: String) -> String? {
-        for pattern in valuePatterns {
-            if let match = pattern.firstMatch(in: text, options: [], range: NSRange(text.startIndex..., in: text)),
-               match.numberOfRanges > 1,
-               let range = Range(match.range(at: 1), in: text) {
-                return cleanNumericValue(String(text[range]))
-            }
-        }
-        return nil
-    }
-    
-    /// Clean numeric value by removing currency symbols and commas
-    private func cleanNumericValue(_ value: String) -> String {
-        value.replacingOccurrences(of: "[₹$,\\s]", with: "", options: .regularExpression)
-            .trimmingCharacters(in: .whitespaces)
-    }
-    
-    /// Extract amount from text (smart detection)
-    private func extractAmount(from text: String) -> String? {
-        // Look for currency symbols followed by numbers
-        if let match = numberPattern.firstMatch(in: text, options: [], range: NSRange(text.startIndex..., in: text)),
-           let range = Range(match.range, in: text) {
-            let value = String(text[range])
-            // Only return if it looks like a monetary amount (has decimal or is large)
-            if value.contains(".") || (Double(value.replacingOccurrences(of: ",", with: "")) ?? 0) > 10 {
-                return cleanNumericValue(value)
-            }
-        }
-        return nil
-    }
-    
-    /// Find value using spatial index for O(1) average lookup
-    private func findValueUsingSpatialIndex(
-        for label: DetectedText,
-        in texts: [DetectedText],
-        spatialIndex: [Int: [Int]],
-        processedIndices: inout Set<Int>
-    ) -> String? {
-        let row = Int(label.rect.midY * 100)
-        let searchRange = -2...2 // Check nearby rows
-        
-        var candidates: [(text: DetectedText, distance: CGFloat)] = []
-        
-        for offset in searchRange {
-            guard let indices = spatialIndex[row + offset] else { continue }
-            
-            for index in indices {
-                let text = texts[index]
-                guard !processedIndices.contains(index),
-                      text.text != label.text else { continue }
-                
-                // Check if to the right and within reasonable distance
-                let isToRight = text.rect.minX > label.rect.maxX - 0.05
-                let horizontalDistance = text.rect.minX - label.rect.maxX
-                let isReasonablyClose = horizontalDistance < 0.6
-                
-                if isToRight && isReasonablyClose {
-                    candidates.append((text, horizontalDistance))
-                }
-            }
-        }
-        
-        // Return closest candidate
-        if let closest = candidates.min(by: { $0.distance < $1.distance }) {
-            return closest.text.text.trimmingCharacters(in: .whitespaces)
-        }
-        
-        return nil
-    }
-    
-    /// Parse extracted fields into ReceiptAnalysisResult
-    private func parseAnalysisResult(from fields: [String: String]) -> ReceiptAnalysisResult {
-        // Parse date using pre-configured formatters
+    /// Parse extracted data into ReceiptAnalysisResult
+    private func parseAnalysisResult(from data: [String: Any]) throws -> ReceiptAnalysisResult {
+        // Parse date - try multiple formats
         var date: Date? = nil
-        if let dateString = fields["date"] {
-            for formatter in datePatterns {
+        if let dateString = data["date"] as? String {
+            let formatters = [
+                "dd/MM/yyyy",
+                "dd-MM-yyyy",
+                "yyyy-MM-dd",
+                "MM/dd/yyyy",
+                "dd MMM yyyy",
+                "dd MMMM yyyy"
+            ]
+            
+            for format in formatters {
+                let formatter = DateFormatter()
+                formatter.dateFormat = format
                 if let parsedDate = formatter.date(from: dateString) {
                     date = parsedDate
                     break
@@ -317,28 +201,91 @@ class ReceiptAnalysisService {
         }
         
         // Parse amount
-        let amount = fields["amount"].flatMap { Double(cleanNumericValue($0)) }
+        var amount: Double? = nil
+        if let amountValue = data["amount"] {
+            if let amountDouble = amountValue as? Double {
+                amount = amountDouble
+            } else if let amountString = amountValue as? String {
+                // Remove currency symbols and commas
+                let cleaned = amountString
+                    .replacingOccurrences(of: "₹", with: "")
+                    .replacingOccurrences(of: ",", with: "")
+                    .replacingOccurrences(of: " ", with: "")
+                amount = Double(cleaned)
+            }
+        }
         
         // Parse description
-        let description = fields["description"] ?? ""
+        let description = data["description"] as? String ?? ""
         
         // Parse categories
-        let categories = fields["categories"]?
-            .components(separatedBy: ",")
-            .map { $0.trimmingCharacters(in: .whitespaces) }
-            .filter { !$0.isEmpty } ?? []
+        var categories: [String] = []
+        if let categoriesArray = data["categories"] as? [String] {
+            categories = categoriesArray
+        } else if let categoryString = data["categories"] as? String {
+            categories = [categoryString]
+        }
         
         // Parse payment mode
-        let paymentMode = parsePaymentMode(fields["modeOfPayment"])
+        var paymentMode: PaymentMode = .cash
+        if let modeString = data["modeOfPayment"] as? String {
+            let lowercased = modeString.lowercased()
+            // Map common payment mode strings to PaymentMode enum
+            switch lowercased {
+            case "cash", "by cash":
+                paymentMode = .cash
+            case "upi", "by upi", "phonepe", "gpay", "paytm":
+                paymentMode = .upi
+            case "cheque", "by cheque", "check":
+                paymentMode = .cheque
+            case "card", "by card", "credit card", "debit card":
+                paymentMode = .Card
+            default:
+                paymentMode = .cash
+            }
+        }
         
-        // Material details
-        let itemType = fields["itemType"] ?? ""
-        let item = fields["item"] ?? ""
-        let brand = fields["brand"] ?? ""
-        let spec = fields["spec"] ?? ""
-        let quantity = fields["quantity"].map { cleanNumericValue($0) } ?? ""
-        let uom = fields["uom"] ?? ""
-        let unitPrice = fields["unitPrice"].map { cleanNumericValue($0) } ?? ""
+        // Parse material details
+        let itemType = data["itemType"] as? String ?? ""
+        let item = data["item"] as? String ?? ""
+        let brand = data["brand"] as? String ?? ""
+        let spec = data["spec"] as? String ?? ""
+        
+        // Parse quantity - handle both string and number, remove commas
+        var quantity: String = ""
+        if let quantityValue = data["quantity"] {
+            if let quantityString = quantityValue as? String {
+                quantity = quantityString.replacingOccurrences(of: ",", with: "").trimmingCharacters(in: .whitespaces)
+            } else if let quantityNumber = quantityValue as? NSNumber {
+                quantity = quantityNumber.stringValue
+            } else if let quantityDouble = quantityValue as? Double {
+                quantity = String(format: "%.0f", quantityDouble)
+            }
+        }
+        
+        let uom = data["uom"] as? String ?? ""
+        
+        // Parse unitPrice - handle both string and number, remove commas and currency symbols
+        var unitPrice: String = ""
+        if let unitPriceValue = data["unitPrice"] {
+            if let unitPriceString = unitPriceValue as? String {
+                unitPrice = unitPriceString
+                    .replacingOccurrences(of: ",", with: "")
+                    .replacingOccurrences(of: "₹", with: "")
+                    .replacingOccurrences(of: "$", with: "")
+                    .replacingOccurrences(of: " ", with: "")
+                    .trimmingCharacters(in: .whitespaces)
+            } else if let unitPriceNumber = unitPriceValue as? NSNumber {
+                unitPrice = unitPriceNumber.stringValue
+            } else if let unitPriceDouble = unitPriceValue as? Double {
+                // Format without decimals if it's a whole number
+                if unitPriceDouble.truncatingRemainder(dividingBy: 1) == 0 {
+                    unitPrice = String(format: "%.0f", unitPriceDouble)
+                } else {
+                    unitPrice = String(unitPriceDouble)
+                }
+            }
+        }
         
         return ReceiptAnalysisResult(
             date: date,
@@ -354,23 +301,6 @@ class ReceiptAnalysisService {
             uom: uom,
             unitPrice: unitPrice
         )
-    }
-    
-    /// Parse payment mode from string
-    private func parsePaymentMode(_ modeString: String?) -> PaymentMode {
-        guard let modeString = modeString else { return .cash }
-        
-        let lowercased = modeString.lowercased()
-        switch lowercased {
-        case let s where s.contains("upi") || s.contains("phonepe") || s.contains("gpay") || s.contains("paytm"):
-            return .upi
-        case let s where s.contains("cheque") || s.contains("check"):
-            return .cheque
-        case let s where s.contains("card") || s.contains("credit") || s.contains("debit"):
-            return .Card
-        default:
-            return .cash
-        }
     }
 }
 
@@ -393,17 +323,21 @@ struct ReceiptAnalysisResult {
 // MARK: - Receipt Analysis Errors
 enum ReceiptAnalysisError: LocalizedError {
     case imageProcessingFailed
-    case visionError(String)
+    case invalidResponse
+    case apiError(String)
     case parsingFailed
     
     var errorDescription: String? {
         switch self {
         case .imageProcessingFailed:
             return "Failed to process receipt image"
-        case .visionError(let message):
-            return "Vision Error: \(message)"
+        case .invalidResponse:
+            return "Invalid response from server"
+        case .apiError(let message):
+            return "API Error: \(message)"
         case .parsingFailed:
             return "Failed to parse receipt data"
         }
     }
 }
+
